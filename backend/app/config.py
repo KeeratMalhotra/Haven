@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Scheduler settings
     SCHEDULER_API_KEY: str = ""
-    NUDGE_INTERVAL_MINUTES: int = 15
+    NUDGE_INTERVAL_MINUTES: int = 30
 
     # MCP server paths
     MCP_CALENDAR_PATH: str = "../mcp-servers/google-calendar/server.py"

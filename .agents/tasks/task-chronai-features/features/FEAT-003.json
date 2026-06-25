@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Proactive Scheduling - Background task that checks deadlines and sends escalating notifications, plus a Cloud Scheduler trigger endpoint and WebSocket push for real-time notifications.",
+  "status": "in_progress",
+  "steps": [
+    "Create backend/app/scheduler/__init__.py.",
+    "Create backend/app/scheduler/proactive.py: Background task using asyncio that runs every 30 minutes. On each tick, query all users from Firestore, check their tasks/deadlines. If deadline within 24h: gentle reminder. Within 6h: urgent reminder with action suggestion. Within 1h: critical - offer to reschedule or provide completion help. Store a set of connected WebSocket clients to push notifications. Export start_proactive_scheduler() and stop_proactive_scheduler() functions.",
+    "Create backend/app/scheduler/nudge_engine.py: Escalation logic module. Given a task and its time_until_deadline, generate a context-aware nudge message using Gemini. Functions: generate_nudge(task, urgency_level) -> str that calls Gemini with a system prompt describing escalation rules, classify_urgency(deadline: datetime) -> str returning 'gentle'|'urgent'|'critical'.",
+    "Add REST endpoint POST /api/nudge/trigger in backend/app/main.py that triggers a manual nudge check for all users (or optionally a specific user_id query param). This endpoint is what Cloud Scheduler calls in production. Protect it with a simple API key check (add SCHEDULER_API_KEY to config).",
+    "Add WebSocket push mechanism: maintain a dict of user_id -> list[WebSocket] in main.py (or a separate connection manager module). When proactive.py generates a notification, push it to connected clients. Add a ConnectionManager class that tracks active WebSocket connections by user_id.",
+    "Update backend/app/main.py lifespan to start the proactive scheduler background task on startup and stop it on shutdown.",
+    "Update backend/app/config.py to add SCHEDULER_API_KEY field and NUDGE_INTERVAL_MINUTES (default 30).",
+    "Create docs/CLOUD_SCHEDULER_SETUP.md with instructions for setting up Google Cloud Scheduler to call POST /api/nudge/trigger every 30 minutes with the API key header."
+  ],
+  "acceptance_criteria": [
+    "backend/app/scheduler/proactive.py exists with a periodic background task that checks deadlines",
+    "backend/app/scheduler/nudge_engine.py exists with urgency classification and Gemini-powered nudge generation",
+    "POST /api/nudge/trigger endpoint exists and is protected by API key",
+    "WebSocket connections are tracked by user_id for push notifications",
+    "docs/CLOUD_SCHEDULER_SETUP.md exists with clear setup instructions",
+    "Python imports work: python -c 'from app.scheduler.proactive import start_proactive_scheduler; from app.scheduler.nudge_engine import generate_nudge, classify_urgency'"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -c 'from app.scheduler.proactive import start_proactive_scheduler, stop_proactive_scheduler; from app.scheduler.nudge_engine import generate_nudge, classify_urgency; print(\"Scheduler imports OK\")'",
+    "cd /projects/sandbox/ChronAI/backend && python -c 'from app.main import app; print(\"App with scheduler OK\")'",
+    "test -f /projects/sandbox/ChronAI/docs/CLOUD_SCHEDULER_SETUP.md && echo 'Cloud Scheduler docs exist'"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

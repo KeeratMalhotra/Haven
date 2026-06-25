@@ -35,6 +35,21 @@ class UserRepository:
         return None
 
     @classmethod
+    async def list_all(cls) -> list[User]:
+        """List all users.
+
+        Returns:
+            List of all User instances.
+        """
+        db = get_db()
+        users = []
+        async for doc in db.collection(cls.COLLECTION).stream():
+            data = doc.to_dict()
+            data["id"] = doc.id
+            users.append(User(**data))
+        return users
+
+    @classmethod
     async def get_by_email(cls, email: str) -> Optional[User]:
         """Get a user by email address.
 

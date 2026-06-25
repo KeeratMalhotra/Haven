@@ -1,10 +1,12 @@
 """ChronAI Backend - FastAPI server with WebSocket chat and AI agents."""
 
+import asyncio
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents.base import AgentRegistry
@@ -17,6 +19,8 @@ from app.auth import verify_google_token
 from app.config import settings
 from app.db.firestore import init_firestore
 from app.mcp.client import MCPClient
+from app.scheduler.proactive import start_proactive_scheduler, stop_proactive_scheduler, run_nudge_check
+from app.ws_manager import connection_manager
 
 # Add shared package to path so we can import shared schemas
 _shared_path = str(Path(__file__).resolve().parent.parent.parent / "shared")
@@ -29,15 +33,19 @@ from shared.schemas import WebSocketMessage, AgentResponse, MessageType, Respons
 # Global MCP client instance
 mcp_client: MCPClient | None = None
 
+# Global proactive scheduler task
+_scheduler_task: asyncio.Task | None = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown lifecycle.
 
     Initializes MCP client, connects to MCP servers,
-    and registers all agents on startup. Cleans up on shutdown.
+    registers all agents, and starts the proactive scheduler on startup.
+    Cleans up on shutdown.
     """
-    global mcp_client
+    global mcp_client, _scheduler_task
 
     # Initialize Firestore
     init_firestore()
@@ -73,7 +81,14 @@ async def lifespan(app: FastAPI):
     NotificationAgent(mcp_client=mcp_client)
     VoiceAgent(mcp_client=mcp_client)
 
+    # Start proactive scheduler
+    _scheduler_task = start_proactive_scheduler(connection_manager)
+
     yield
+
+    # Shutdown: stop proactive scheduler
+    if _scheduler_task:
+        stop_proactive_scheduler(_scheduler_task)
 
     # Shutdown: stop MCP servers
     if mcp_client:
@@ -103,12 +118,13 @@ async def websocket_chat(websocket: WebSocket):
 
     Protocol:
         Receive: {"type": "chat"|"voice", "content": "message", "auth_token": "token"}
-        Send: {"type": "text"|"audio"|"task_update", "content": "response", "agent": "name"}
+        Send: {"type": "text"|"audio"|"task_update"|"notification", "content": "response", "agent": "name"}
     """
     await websocket.accept()
 
     # Per-connection conversation history to prevent cross-user leakage
     conversation_history: list[dict] = []
+    connected_user_id: str | None = None
 
     try:
         while True:
@@ -146,6 +162,13 @@ async def websocket_chat(websocket: WebSocket):
                         }
                     )
                     continue
+
+            # Register connection with ConnectionManager on first auth
+            if user and not connected_user_id:
+                user_id = user.get("sub", user.get("id", ""))
+                if user_id:
+                    connected_user_id = user_id
+                    connection_manager.connect(user_id, websocket)
 
             # Route based on message type
             if msg_type == "voice":
@@ -234,6 +257,51 @@ async def websocket_chat(websocket: WebSocket):
             )
         except Exception:
             pass
+    finally:
+        # Unregister connection from ConnectionManager
+        if connected_user_id:
+            connection_manager.disconnect(connected_user_id, websocket)
+
+
+@app.post("/api/nudge/trigger")
+async def trigger_nudge(
+    user_id: Optional[str] = Query(default=None, description="Specific user ID to nudge"),
+    x_api_key: Optional[str] = Header(default=None),
+):
+    """Trigger a manual nudge check for all users or a specific user.
+
+    This endpoint is intended to be called by Google Cloud Scheduler
+    on a periodic basis. It checks all (or a specific) user's tasks for
+    approaching deadlines and sends nudge notifications via WebSocket.
+
+    Args:
+        user_id: Optional query param to nudge a specific user.
+        x_api_key: API key for authentication (X-API-Key header).
+
+    Returns:
+        Summary of nudges generated and delivered.
+    """
+    # Validate API key
+    if not settings.SCHEDULER_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Scheduler API key not configured",
+        )
+
+    if x_api_key != settings.SCHEDULER_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+        )
+
+    nudges = await run_nudge_check(connection_manager, user_id=user_id)
+
+    return {
+        "status": "completed",
+        "nudges_generated": len(nudges),
+        "nudges_delivered": sum(1 for n in nudges if n.get("delivered")),
+        "details": nudges,
+    }
 
 
 @app.get("/api/tasks")
