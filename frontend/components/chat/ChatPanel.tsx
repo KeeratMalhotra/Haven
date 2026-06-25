@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import MessageBubble from "./MessageBubble";
 import { WebSocketClient } from "@/lib/ws";
 import { startListening, playAudioBase64 } from "@/lib/voice";
@@ -14,12 +15,16 @@ interface ChatMessage {
 }
 
 export default function ChatPanel() {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocketClient | null>(null);
+
+  // Get the access token from the session
+  const accessToken = (session as Record<string, unknown> | null)?.accessToken as string || "";
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -72,10 +77,10 @@ export default function ChatPanel() {
     wsRef.current.send({
       type: "chat",
       content: input.trim(),
-      auth_token: "",
+      auth_token: accessToken,
     });
     setInput("");
-  }, [input]);
+  }, [input, accessToken]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -104,7 +109,7 @@ export default function ChatPanel() {
         wsRef.current.send({
           type: "voice",
           content: transcript,
-          auth_token: "",
+          auth_token: accessToken,
         });
       }
     } finally {

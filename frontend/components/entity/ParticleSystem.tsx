@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect, useCallback } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { MouseTracker } from "./MouseTracker";
+import { AudioAnalyzer } from "./AudioAnalyzer";
 
 import vertexShader from "./shaders/vertex.glsl";
 import fragmentShader from "./shaders/fragment.glsl";
@@ -13,6 +14,8 @@ const PARTICLE_COUNT = 3000;
 export default function ParticleSystem() {
   const meshRef = useRef<THREE.Points>(null);
   const mouseTracker = useRef<MouseTracker>(new MouseTracker(0.08));
+  const audioAnalyzer = useRef<AudioAnalyzer>(new AudioAnalyzer());
+  const audioInitialized = useRef(false);
   const { gl } = useThree();
 
   // Create uniforms
@@ -67,6 +70,32 @@ export default function ParticleSystem() {
     };
   }, [gl.domElement]);
 
+  // Initialize AudioAnalyzer on first user interaction
+  const initAudio = useCallback(async () => {
+    if (audioInitialized.current) return;
+    audioInitialized.current = true;
+    try {
+      await audioAnalyzer.current.init();
+    } catch {
+      // AudioContext may fail in some environments; fall back to idle simulation
+      audioInitialized.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    const domElement = gl.domElement;
+    const analyzer = audioAnalyzer.current;
+    // Initialize audio on first click/touch (browser requires user gesture)
+    domElement.addEventListener("click", initAudio, { once: true });
+    domElement.addEventListener("touchstart", initAudio, { once: true });
+
+    return () => {
+      domElement.removeEventListener("click", initAudio);
+      domElement.removeEventListener("touchstart", initAudio);
+      analyzer.dispose();
+    };
+  }, [gl.domElement, initAudio]);
+
   // Animation loop - update uniforms each frame
   useFrame((_, delta) => {
     if (!meshRef.current) return;
@@ -83,13 +112,24 @@ export default function ParticleSystem() {
       mouseTracker.current.y
     );
 
-    // Subtle idle audio simulation when no real audio is playing
-    // This makes the entity feel alive even without audio input
-    const time = material.uniforms.uTime.value;
-    const idlePulse = Math.sin(time * 2) * 0.02 + 0.02;
-    material.uniforms.uAudioFrequency.value = idlePulse;
-    material.uniforms.uAudioBass.value = Math.sin(time * 1.2) * 0.03 + 0.03;
-    material.uniforms.uAudioTreble.value = Math.sin(time * 3.5) * 0.01 + 0.01;
+    // Use real audio data if AudioAnalyzer is active, otherwise use idle simulation
+    const analyzer = audioAnalyzer.current;
+    const avgFrequency = analyzer.getAverageFrequency();
+
+    if (audioInitialized.current && avgFrequency > 0.01) {
+      // Real audio data available
+      material.uniforms.uAudioFrequency.value = avgFrequency;
+      material.uniforms.uAudioBass.value = analyzer.getBassLevel();
+      material.uniforms.uAudioTreble.value = analyzer.getTrebleLevel();
+    } else {
+      // Subtle idle simulation when no real audio is playing
+      // This makes the entity feel alive even without audio input
+      const time = material.uniforms.uTime.value;
+      const idlePulse = Math.sin(time * 2) * 0.02 + 0.02;
+      material.uniforms.uAudioFrequency.value = idlePulse;
+      material.uniforms.uAudioBass.value = Math.sin(time * 1.2) * 0.03 + 0.03;
+      material.uniforms.uAudioTreble.value = Math.sin(time * 3.5) * 0.01 + 0.01;
+    }
   });
 
   return (

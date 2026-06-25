@@ -6,6 +6,13 @@ const handler = NextAuth({
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks",
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
@@ -13,14 +20,23 @@ const handler = NextAuth({
     signIn: "/",
   },
   callbacks: {
+    async jwt({ token, account }) {
+      // Persist the Google OAuth access token on initial sign-in
+      if (account) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.expiresAt = account.expires_at;
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (session.user) {
         (session.user as Record<string, unknown>).id = token.sub;
       }
+      // Expose the access token to the client session
+      const sessionWithToken = session as unknown as Record<string, unknown>;
+      sessionWithToken.accessToken = token.accessToken;
       return session;
-    },
-    async jwt({ token }) {
-      return token;
     },
   },
 });

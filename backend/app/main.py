@@ -1,7 +1,8 @@
 """ChronAI Backend - FastAPI server with WebSocket chat and AI agents."""
 
-import json
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,13 @@ from app.agents.voice import VoiceAgent
 from app.auth import verify_google_token
 from app.config import settings
 from app.mcp.client import MCPClient
+
+# Add shared package to path so we can import shared schemas
+_shared_path = str(Path(__file__).resolve().parent.parent.parent / "shared")
+if _shared_path not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
+from shared.schemas import WebSocketMessage, AgentResponse, MessageType, ResponseType
 
 
 # Global MCP client instance
@@ -95,15 +103,30 @@ async def websocket_chat(websocket: WebSocket):
     """
     await websocket.accept()
 
+    # Per-connection conversation history to prevent cross-user leakage
+    conversation_history: list[dict] = []
+
     try:
         while True:
             # Receive message from client
             raw_data = await websocket.receive_text()
-            data = json.loads(raw_data)
 
-            msg_type = data.get("type", "chat")
-            content = data.get("content", "")
-            auth_token = data.get("auth_token", "")
+            # Validate incoming message using shared schema
+            try:
+                ws_message = WebSocketMessage.model_validate_json(raw_data)
+            except Exception:
+                await websocket.send_json(
+                    AgentResponse(
+                        type=ResponseType.TEXT,
+                        content="Invalid message format. Please send valid JSON.",
+                        agent="system",
+                    ).model_dump(mode="json")
+                )
+                continue
+
+            msg_type = ws_message.type.value
+            content = ws_message.content
+            auth_token = ws_message.auth_token
 
             # Validate auth token if provided
             user = None
@@ -130,6 +153,7 @@ async def websocket_chat(websocket: WebSocket):
                             "message": content,
                             "auth_token": auth_token,
                             "user": user,
+                            "conversation_history": conversation_history,
                         }
                     )
 
@@ -166,6 +190,7 @@ async def websocket_chat(websocket: WebSocket):
                             "message": content,
                             "auth_token": auth_token,
                             "user": user,
+                            "conversation_history": conversation_history,
                         }
                     )
 
@@ -194,14 +219,17 @@ async def websocket_chat(websocket: WebSocket):
 
     except WebSocketDisconnect:
         pass
-    except json.JSONDecodeError:
-        await websocket.send_json(
-            {
-                "type": "text",
-                "content": "Invalid message format. Please send valid JSON.",
-                "agent": "system",
-            }
-        )
+    except Exception:
+        try:
+            await websocket.send_json(
+                AgentResponse(
+                    type=ResponseType.TEXT,
+                    content="An unexpected error occurred. Please try again.",
+                    agent="system",
+                ).model_dump(mode="json")
+            )
+        except Exception:
+            pass
 
 
 @app.get("/api/tasks")

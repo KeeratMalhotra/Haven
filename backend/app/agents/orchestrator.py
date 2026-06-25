@@ -58,13 +58,13 @@ class OrchestratorAgent(AgentBase):
         super().__init__(mcp_client)
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
         self.model = "gemini-2.5-flash"
-        self.conversation_history: list[dict] = []
 
     async def execute(self, task: dict) -> dict:
         """Analyze user message and route to appropriate agents.
 
         Args:
-            task: Dict with 'message' (user input), 'user_id', and optional 'context'.
+            task: Dict with 'message' (user input), 'auth_token', 'user_id',
+                  and 'conversation_history' (per-connection list managed by caller).
 
         Returns:
             Dict with 'content' (response text), 'agent' (this agent's name),
@@ -72,17 +72,18 @@ class OrchestratorAgent(AgentBase):
         """
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
+        conversation_history: list[dict] = task.get("conversation_history", [])
 
-        # Add to conversation history
-        self.conversation_history.append({"role": "user", "content": message})
+        # Add user message to per-connection history
+        conversation_history.append({"role": "user", "content": message})
 
         # Analyze intent with Gemini
-        routing = await self._analyze_intent(message)
+        routing = await self._analyze_intent(message, conversation_history)
 
         # If direct response (no agents needed)
         if routing.get("direct_response") and not routing.get("agents"):
             response_content = routing["direct_response"]
-            self.conversation_history.append(
+            conversation_history.append(
                 {"role": "assistant", "content": response_content}
             )
             return {
@@ -111,7 +112,7 @@ class OrchestratorAgent(AgentBase):
         # Consolidate responses
         consolidated = await self._consolidate_responses(message, results)
 
-        self.conversation_history.append(
+        conversation_history.append(
             {"role": "assistant", "content": consolidated}
         )
 
@@ -124,11 +125,12 @@ class OrchestratorAgent(AgentBase):
             },
         }
 
-    async def _analyze_intent(self, message: str) -> dict:
+    async def _analyze_intent(self, message: str, conversation_history: list[dict]) -> dict:
         """Use Gemini to analyze user intent and determine routing.
 
         Args:
             message: The user's message to analyze.
+            conversation_history: Per-connection conversation history.
 
         Returns:
             Routing dictionary with intent, agents, tasks, and direct_response.
@@ -136,7 +138,7 @@ class OrchestratorAgent(AgentBase):
         try:
             # Build conversation for context
             history_text = ""
-            for msg in self.conversation_history[-10:]:  # Last 10 messages for context
+            for msg in conversation_history[-10:]:  # Last 10 messages for context
                 role = msg["role"]
                 content = msg["content"]
                 history_text += f"{role}: {content}\n"
