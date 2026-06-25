@@ -1,0 +1,50 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Create the complete Next.js 15 frontend with Three.js particle entity, chat interface, auth, WebSocket, and all pages. This is the full frontend implementation including the living particle system with custom GLSL shaders, Google OAuth via NextAuth.js, chat panel, voice interface, and WebSocket client.",
+  "status": "in_progress",
+  "steps": [
+    "Create frontend/package.json with dependencies: next@15, react@19, react-dom@19, three, @react-three/fiber, @react-three/drei, tailwindcss, postcss, autoprefixer, next-auth, typescript, @types/react, @types/three, @types/node, eslint, eslint-config-next",
+    "Create frontend/tsconfig.json with Next.js 15 App Router TypeScript config (paths alias @/* for src)",
+    "Create frontend/next.config.ts (enable webpack for GLSL raw imports via raw-loader)",
+    "Create frontend/tailwind.config.ts with dark mode class strategy and custom neon/glow colors",
+    "Create frontend/postcss.config.js with tailwindcss and autoprefixer",
+    "Create frontend/app/layout.tsx - root layout with dark background, Inter font, metadata for ChronAI",
+    "Create frontend/app/globals.css with Tailwind directives and custom dark theme variables",
+    "Create frontend/app/page.tsx - landing page showing the particle entity centered with 'Sign in with Google' button",
+    "Create frontend/app/dashboard/page.tsx - main app page with entity, chat panel sidebar, protected route",
+    "Create frontend/app/api/auth/[...nextauth]/route.ts - NextAuth.js Google OAuth provider config",
+    "Create frontend/components/entity/shaders/vertex.glsl - custom vertex shader with uniforms for time, mouse position (vec2), audio frequency data (float array), implements: base ring/sphere positioning, perlin-noise-based idle floating animation, mouse attraction (particles pulled toward cursor based on distance), audio reactivity (displacement along normals based on frequency)",
+    "Create frontend/components/entity/shaders/fragment.glsl - fragment shader with glow/bloom effect: soft circular point shape with radial falloff, neon color (cyan/purple gradient), additive blending support, alpha based on distance from center",
+    "Create frontend/components/entity/MouseTracker.ts - class that tracks mouse position, converts to normalized device coordinates (-1 to 1), provides smooth interpolated values via lerp",
+    "Create frontend/components/entity/AudioAnalyzer.ts - class wrapping Web Audio API AnalyserNode, creates AudioContext, connects to audio source, extracts frequency data as Float32Array, provides getFrequencyData() method",
+    "Create frontend/components/entity/ParticleSystem.tsx - React component using @react-three/fiber: creates BufferGeometry with ~3000 particles positioned in a ring/sphere, ShaderMaterial with custom vertex/fragment shaders, useFrame animation loop updating uniforms (time, mouse, audio), proper cleanup on unmount",
+    "Create frontend/components/entity/EntityCanvas.tsx - wrapper component with Canvas from @react-three/fiber, dark background, proper camera position, renders ParticleSystem",
+    "Create frontend/components/chat/MessageBubble.tsx - individual message component, different styles for user vs AI, supports markdown rendering, shows agent name",
+    "Create frontend/components/chat/ChatPanel.tsx - full chat panel: message list (scrollable), text input with send button, voice button, connects to WebSocket, manages message state",
+    "Create frontend/lib/ws.ts - WebSocket client class: connects to backend WS endpoint, sends JSON messages {type, content, auth_token}, receives and dispatches responses, reconnection logic, event emitter pattern",
+    "Create frontend/lib/voice.ts - Voice utilities: Web Speech API for speech-to-text, function to play base64 audio from backend TTS response, AudioContext management",
+    "Create frontend/middleware.ts - Next.js middleware to protect /dashboard route (redirect to / if no session)",
+    "Create frontend/.env.example with NEXT_PUBLIC_GOOGLE_CLIENT_ID, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_WS_URL",
+    "Create frontend/types/glsl.d.ts - TypeScript declaration for .glsl file imports",
+    "Create frontend/public/ directory with a simple favicon placeholder"
+  ],
+  "acceptance_criteria": [
+    "Running 'cd frontend && pnpm install && pnpm build' completes without errors",
+    "The particle system component uses real Three.js BufferGeometry with ~3000 particles",
+    "GLSL vertex shader implements mouse attraction (distance-based force toward cursor uniform)",
+    "GLSL vertex shader implements audio displacement (frequency data uniform displaces particles)",
+    "GLSL vertex shader implements idle animation (time-based floating with sin/noise)",
+    "GLSL fragment shader produces soft glowing neon particle appearance",
+    "NextAuth.js is configured with Google OAuth provider",
+    "WebSocket client sends properly formatted JSON messages",
+    "Chat panel maintains message state and renders message bubbles",
+    "All TypeScript types are correct with no type errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm install && pnpm build",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint || true"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
