@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "docs",
   "description": "GCP Setup Documentation + Config Integration. Create docs/GCP_SETUP.md with step-by-step GCP project setup instructions, update backend/app/config.py with Firestore config, and update both .env.example files with all necessary vars.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create docs/GCP_SETUP.md with comprehensive GCP setup instructions covering: creating a GCP project, enabling APIs (Google Calendar API, Google Tasks API, Cloud Text-to-Speech API, Generative Language API), creating OAuth 2.0 credentials (Web application type) with redirect URI http://localhost:3000/api/auth/callback/google, required OAuth scopes (calendar, tasks, email, profile), getting a Gemini API key from AI Studio, and setting up environment variables.",
     "Update backend/app/config.py: Add FIRESTORE_PROJECT_ID (defaults to GCP_PROJECT_ID), FIRESTORE_DATABASE (defaults to '(default)'), and MCP_GMAIL_PATH field.",
@@ -20,5 +20,5 @@
     "test -f /projects/sandbox/ChronAI/docs/GCP_SETUP.md && echo 'GCP_SETUP.md exists'"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All verification commands passed. Config imports cleanly with all new fields (FIRESTORE_PROJECT_ID, FIRESTORE_DATABASE, SCHEDULER_API_KEY, NUDGE_INTERVAL_MINUTES, MCP_GMAIL_PATH). Note: Pydantic v2.11 deprecation warning for accessing model_fields on instance instead of class - not a blocker."
 }
