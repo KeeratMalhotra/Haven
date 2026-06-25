@@ -2,7 +2,7 @@
   "id": "FEAT-005",
   "type": "feat",
   "description": "Comprehensive Testing - Add pytest tests for backend (agents, websocket, firestore, MCP servers) and Jest tests for frontend (ChatPanel, ParticleSystem). All tests must pass without real API keys using mocks.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create backend/pytest.ini with configuration: [pytest] asyncio_mode = auto, testpaths = tests, python_files = test_*.py.",
     "Update backend/requirements.txt to add: pytest>=8.0.0, pytest-asyncio>=0.24.0, httpx>=0.27.0 (httpx already present but ensure version).",
@@ -34,5 +34,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm test -- --passWithNoTests"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 28 backend tests and 4 frontend tests pass. Used importlib.util.spec_from_file_location for MCP server imports to avoid module name collisions. jsdom required scrollIntoView polyfill for ChatPanel tests. pytest-asyncio 1.4.0 was installed (satisfies >=0.24.0). The pnpm test script includes --passWithNoTests to handle the `pnpm test -- --passWithNoTests` invocation pattern."
 }
