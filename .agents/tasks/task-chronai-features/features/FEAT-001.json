@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-001",
+  "type": "docs",
+  "description": "GCP Setup Documentation + Config Integration. Create docs/GCP_SETUP.md with step-by-step GCP project setup instructions, update backend/app/config.py with Firestore config, and update both .env.example files with all necessary vars.",
+  "status": "in_progress",
+  "steps": [
+    "Create docs/GCP_SETUP.md with comprehensive GCP setup instructions covering: creating a GCP project, enabling APIs (Google Calendar API, Google Tasks API, Cloud Text-to-Speech API, Generative Language API), creating OAuth 2.0 credentials (Web application type) with redirect URI http://localhost:3000/api/auth/callback/google, required OAuth scopes (calendar, tasks, email, profile), getting a Gemini API key from AI Studio, and setting up environment variables.",
+    "Update backend/app/config.py: Add FIRESTORE_PROJECT_ID (defaults to GCP_PROJECT_ID), FIRESTORE_DATABASE (defaults to '(default)'), and MCP_GMAIL_PATH field.",
+    "Update backend/.env.example to include all vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GEMINI_API_KEY, GCP_API_KEY, GCP_PROJECT_ID, FIRESTORE_PROJECT_ID, FIRESTORE_DATABASE, HOST, PORT, FRONTEND_ORIGIN, MCP_CALENDAR_PATH, MCP_TASKS_PATH, MCP_GMAIL_PATH.",
+    "Update frontend/.env.example to include: NEXT_PUBLIC_GOOGLE_CLIENT_ID, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_WS_URL, GOOGLE_CLIENT_SECRET (needed by NextAuth for token refresh)."
+  ],
+  "acceptance_criteria": [
+    "docs/GCP_SETUP.md exists with clear step-by-step instructions covering all listed topics",
+    "backend/app/config.py has Firestore config fields (FIRESTORE_PROJECT_ID, FIRESTORE_DATABASE) and MCP_GMAIL_PATH",
+    "Both .env.example files contain all required variables with descriptive comments",
+    "Python can import the updated config without errors: python -c 'from app.config import settings'"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -c 'from app.config import settings; print(settings.model_fields.keys())'",
+    "test -f /projects/sandbox/ChronAI/docs/GCP_SETUP.md && echo 'GCP_SETUP.md exists'"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
