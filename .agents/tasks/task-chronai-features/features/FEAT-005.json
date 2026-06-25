@@ -1,0 +1,38 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Comprehensive Testing - Add pytest tests for backend (agents, websocket, firestore, MCP servers) and Jest tests for frontend (ChatPanel, ParticleSystem). All tests must pass without real API keys using mocks.",
+  "status": "in_progress",
+  "steps": [
+    "Create backend/pytest.ini with configuration: [pytest] asyncio_mode = auto, testpaths = tests, python_files = test_*.py.",
+    "Update backend/requirements.txt to add: pytest>=8.0.0, pytest-asyncio>=0.24.0, httpx>=0.27.0 (httpx already present but ensure version).",
+    "Create backend/tests/__init__.py (empty).",
+    "Create backend/tests/conftest.py with shared fixtures: mock_gemini_client (patches google.genai.Client to return controlled JSON responses), mock_firestore (patches Firestore client with in-memory dict-based mock), mock_mcp_client (mock MCPClient that returns predefined tool results), test_auth_token (a fake token string), mock_verify_token (patches verify_google_token to return a test user dict).",
+    "Create backend/tests/test_agents.py: Unit tests for OrchestratorAgent (test routing to planner, test direct response), PlannerAgent (test goal decomposition with mocked Gemini), SchedulerAgent (test scheduling request analysis), NotificationAgent (test notification generation), EmailAgent (test email operations), VoiceAgent (test TTS call). Each test mocks Gemini and MCP tools.",
+    "Create backend/tests/test_websocket.py: Test WebSocket connection (connect, send message, receive response), test invalid message format, test auth token validation failure. Use httpx.AsyncClient with ASGI transport for TestClient.",
+    "Create backend/tests/test_firestore.py: Test CRUD operations for UserRepository, TaskRepository, HabitRepository, ConversationRepository using the mock Firestore from conftest (dict-based in-memory mock that mimics Firestore async API).",
+    "Create backend/tests/test_mcp_servers.py: Test each MCP server's tools by importing the server modules directly and calling the tool handler functions with mocked Google API service objects. Test google-calendar (list_events, create_event), google-tasks (list_tasks, create_task), google-gmail (list_emails, send_email, search_emails).",
+    "Install frontend test dependencies: Add to frontend/package.json devDependencies: @testing-library/react, @testing-library/jest-dom, jest, jest-environment-jsdom, @types/jest, ts-jest. Add jest config to package.json or jest.config.ts.",
+    "Create frontend/__tests__/components/ChatPanel.test.tsx: Test that ChatPanel renders input field, test message submission calls WebSocket, test incoming message displays in chat. Mock next-auth/react useSession, mock WebSocketClient.",
+    "Create frontend/__tests__/components/ParticleSystem.test.tsx: Basic mount test that the component renders without crashing. Mock @react-three/fiber and Three.js as needed.",
+    "Run all backend tests with pytest and ensure they pass. Run all frontend tests with jest and ensure they pass."
+  ],
+  "acceptance_criteria": [
+    "backend/pytest.ini exists with correct config",
+    "backend/tests/conftest.py provides reusable fixtures for mocking Gemini, Firestore, MCP, and auth",
+    "backend/tests/test_agents.py has tests for all 6 agents that pass",
+    "backend/tests/test_websocket.py has WebSocket flow tests that pass",
+    "backend/tests/test_firestore.py has CRUD tests for all repositories that pass",
+    "backend/tests/test_mcp_servers.py tests MCP server tools that pass",
+    "frontend/__tests__/components/ChatPanel.test.tsx exists and passes",
+    "frontend/__tests__/components/ParticleSystem.test.tsx exists and passes",
+    "All backend tests pass: pytest returns exit code 0",
+    "All frontend tests pass: jest returns exit code 0"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && pip install -r requirements.txt && python -m pytest tests/ -v",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm test -- --passWithNoTests"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
