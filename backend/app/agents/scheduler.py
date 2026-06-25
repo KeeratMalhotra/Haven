@@ -2,15 +2,18 @@
 
 Finds optimal time slots for tasks and events using Gemini,
 and manages the calendar through the Google Calendar MCP server.
+Optionally persists scheduled events to Firestore.
 """
 
 import json
+from datetime import datetime
 from typing import Any
 
 from google import genai
 
 from app.agents.base import AgentBase
 from app.config import settings
+from app.db.firestore import get_db
 
 
 SCHEDULER_PROMPT = """You are a scheduling specialist. Your job is to:
@@ -61,13 +64,15 @@ class SchedulerAgent(AgentBase):
 
         Args:
             task: Dict with 'message' (scheduling request),
-                  'auth_token' for Google Calendar API access.
+                  'auth_token' for Google Calendar API access,
+                  'user_id' for optional Firestore persistence.
 
         Returns:
             Dict with 'content' (scheduling result), 'agent' name.
         """
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
+        user_id = task.get("user_id", "")
 
         # Use Gemini to understand the scheduling request
         schedule_plan = await self._analyze_scheduling_request(message)
@@ -90,6 +95,9 @@ class SchedulerAgent(AgentBase):
                 result = await self._create_event(auth_token, event_details)
                 if result:
                     schedule_plan["response"] += "\n\nEvent created successfully!"
+                    # Optionally persist created event to Firestore
+                    if user_id:
+                        await self._persist_event_to_firestore(user_id, event_details, result)
 
         return {
             "content": schedule_plan.get("response", "I can help you with scheduling."),
@@ -187,3 +195,28 @@ class SchedulerAgent(AgentBase):
             )
         except Exception:
             return {}
+
+    async def _persist_event_to_firestore(
+        self, user_id: str, event_details: dict, result: dict
+    ) -> None:
+        """Log a scheduled event to Firestore for history tracking.
+
+        Args:
+            user_id: The user ID who owns this event.
+            event_details: The planned event details from Gemini.
+            result: The result from the calendar API creation.
+        """
+        try:
+            db = get_db()
+            event_doc = {
+                "user_id": user_id,
+                "summary": event_details.get("summary", ""),
+                "description": event_details.get("description", ""),
+                "duration_minutes": event_details.get("duration_minutes", 60),
+                "calendar_result": result if isinstance(result, dict) else {},
+                "created_at": datetime.utcnow(),
+            }
+            await db.collection("scheduled_events").document().set(event_doc)
+        except Exception:
+            # Non-critical: don't fail the scheduling if persistence fails
+            pass

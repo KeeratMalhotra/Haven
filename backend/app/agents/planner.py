@@ -2,15 +2,19 @@
 
 Breaks user goals into subtasks with deadlines using Gemini,
 and manages tasks through the Google Tasks MCP server.
+Persists created tasks to Firestore via TaskRepository.
 """
 
 import json
+from datetime import datetime, timedelta
 from typing import Any
 
 from google import genai
 
 from app.agents.base import AgentBase
 from app.config import settings
+from app.db.models import Task as TaskModel
+from app.db.repositories import TaskRepository
 
 
 PLANNER_PROMPT = """You are a task planning specialist. Your job is to:
@@ -62,7 +66,8 @@ class PlannerAgent(AgentBase):
 
         Args:
             task: Dict with 'message' (the goal or instruction),
-                  'auth_token' for Google API access.
+                  'auth_token' for Google API access,
+                  'user_id' for Firestore persistence.
 
         Returns:
             Dict with 'content' (plan description), 'agent' name,
@@ -70,6 +75,7 @@ class PlannerAgent(AgentBase):
         """
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
+        user_id = task.get("user_id", "")
 
         # Use Gemini to decompose the goal
         plan = await self._decompose_goal(message)
@@ -94,6 +100,10 @@ class PlannerAgent(AgentBase):
                     # Continue with other tasks even if one fails
                     pass
 
+        # Persist tasks to Firestore
+        if user_id and plan.get("tasks"):
+            await self._persist_tasks_to_firestore(user_id, plan["tasks"])
+
         response_content = plan.get(
             "response", plan.get("plan_summary", "Plan created.")
         )
@@ -107,6 +117,35 @@ class PlannerAgent(AgentBase):
             "tasks": plan.get("tasks", []),
             "created_count": len(created_tasks),
         }
+
+    async def _persist_tasks_to_firestore(
+        self, user_id: str, tasks: list[dict]
+    ) -> None:
+        """Persist planned tasks to Firestore.
+
+        Args:
+            user_id: The user ID to associate tasks with.
+            tasks: List of task dictionaries from the plan.
+        """
+        now = datetime.utcnow()
+        for task_item in tasks:
+            try:
+                due_days = task_item.get("due_days_from_now", 7)
+                deadline = now + timedelta(days=due_days)
+                task_model = TaskModel(
+                    user_id=user_id,
+                    title=task_item.get("title", ""),
+                    description=task_item.get("notes", ""),
+                    priority=task_item.get("priority", "medium"),
+                    status="pending",
+                    deadline=deadline,
+                    created_at=now,
+                    updated_at=now,
+                )
+                await TaskRepository.create(task_model)
+            except Exception:
+                # Continue persisting other tasks even if one fails
+                pass
 
     async def _decompose_goal(self, goal: str) -> dict:
         """Use Gemini to break a goal into subtasks.

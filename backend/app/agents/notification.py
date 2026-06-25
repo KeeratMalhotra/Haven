@@ -2,6 +2,7 @@
 
 Generates intelligent reminders with escalating urgency based on deadline
 proximity. Provides proactive suggestions using Gemini.
+Uses Firestore as a fallback source for task data when MCP is unavailable.
 """
 
 import json
@@ -12,6 +13,7 @@ from google import genai
 
 from app.agents.base import AgentBase
 from app.config import settings
+from app.db.repositories import TaskRepository
 
 
 NOTIFICATION_PROMPT = """You are a notification specialist. Your job is to:
@@ -66,7 +68,8 @@ class NotificationAgent(AgentBase):
 
         Args:
             task: Dict with 'message' (context/request),
-                  'auth_token' for task data access.
+                  'auth_token' for task data access,
+                  'user_id' for Firestore fallback.
 
         Returns:
             Dict with 'content' (notification summary), 'agent' name,
@@ -74,11 +77,16 @@ class NotificationAgent(AgentBase):
         """
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
+        user_id = task.get("user_id", "")
 
         # Get current tasks for context if available
         tasks_context = []
         if self.mcp_client and auth_token:
             tasks_context = await self._get_tasks_context(auth_token)
+
+        # Fallback to Firestore if MCP returned no tasks
+        if not tasks_context and user_id:
+            tasks_context = await self._get_tasks_from_firestore(user_id)
 
         # Generate notifications using Gemini
         notifications = await self._generate_notifications(message, tasks_context)
@@ -103,6 +111,21 @@ class NotificationAgent(AgentBase):
                 "google-tasks", "list_tasks", {"auth_token": auth_token}
             )
             return result if isinstance(result, list) else []
+        except Exception:
+            return []
+
+    async def _get_tasks_from_firestore(self, user_id: str) -> list[dict]:
+        """Fetch tasks from Firestore as a fallback data source.
+
+        Args:
+            user_id: The user's ID for querying tasks.
+
+        Returns:
+            List of task dictionaries from Firestore.
+        """
+        try:
+            tasks = await TaskRepository.list_by_user(user_id)
+            return [t.model_dump(mode="json") for t in tasks]
         except Exception:
             return []
 

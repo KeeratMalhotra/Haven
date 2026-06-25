@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Firestore Integration - Add persistent data store with async Firestore client, data models, and CRUD repositories. Update agents to persist data.",
+  "status": "in_progress",
+  "steps": [
+    "Create backend/app/db/__init__.py (empty or with imports).",
+    "Create backend/app/db/firestore.py: Async Firestore client initialization using google-cloud-firestore SDK. Use AsyncClient from google.cloud.firestore. Initialize with project from settings.FIRESTORE_PROJECT_ID (falling back to GCP_PROJECT_ID). Provide a get_db() async function that returns the client singleton.",
+    "Create backend/app/db/models.py with Pydantic data models: User (id, email, name, google_tokens dict, preferences dict, created_at datetime), Task (id, user_id, title, description, subtasks list, priority str, status str, deadline optional datetime, created_at, updated_at), Habit (id, user_id, name, frequency str, streak int, last_completed optional datetime, history list), Conversation (id, user_id, messages list of dicts, created_at datetime).",
+    "Create backend/app/db/repositories.py with CRUD operations for each model: UserRepository (get_by_id, get_by_email, create, update, update_tokens), TaskRepository (get_by_id, list_by_user, create, update, delete), HabitRepository (get_by_id, list_by_user, create, update_streak, record_completion), ConversationRepository (get_by_id, list_by_user, create, add_message). All use async Firestore operations.",
+    "Update backend/requirements.txt to add google-cloud-firestore>=2.19.0.",
+    "Update backend/app/main.py lifespan to initialize Firestore on startup (import and call get_db or init function).",
+    "Update backend/app/agents/planner.py to persist created tasks to Firestore via TaskRepository after creating them in Google Tasks. Add user_id param handling.",
+    "Update backend/app/agents/notification.py to read user tasks from Firestore (in addition to or as fallback for MCP tasks) for generating notifications.",
+    "Update backend/app/agents/scheduler.py to optionally persist scheduled events to Firestore."
+  ],
+  "acceptance_criteria": [
+    "backend/app/db/firestore.py exists and exports an async Firestore client getter",
+    "backend/app/db/models.py defines User, Task, Habit, Conversation Pydantic models with all specified fields",
+    "backend/app/db/repositories.py implements CRUD for all models using async Firestore",
+    "backend/requirements.txt includes google-cloud-firestore>=2.19.0",
+    "backend/app/main.py initializes Firestore in the lifespan",
+    "Agents (planner, notification, scheduler) use repositories for persistence",
+    "Python can import all new modules: python -c 'from app.db.firestore import get_db; from app.db.models import User, Task, Habit, Conversation; from app.db.repositories import UserRepository, TaskRepository'"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && pip install -r requirements.txt && python -c 'from app.db.firestore import get_db; from app.db.models import User, Task, Habit, Conversation; from app.db.repositories import UserRepository, TaskRepository, HabitRepository, ConversationRepository; print(\"All imports OK\")'",
+    "cd /projects/sandbox/ChronAI/backend && python -c 'from app.main import app; print(\"App imports OK\")'"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

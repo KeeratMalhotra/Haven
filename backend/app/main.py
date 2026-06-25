@@ -15,6 +15,7 @@ from app.agents.notification import NotificationAgent
 from app.agents.voice import VoiceAgent
 from app.auth import verify_google_token
 from app.config import settings
+from app.db.firestore import init_firestore
 from app.mcp.client import MCPClient
 
 # Add shared package to path so we can import shared schemas
@@ -37,6 +38,9 @@ async def lifespan(app: FastAPI):
     and registers all agents on startup. Cleans up on shutdown.
     """
     global mcp_client
+
+    # Initialize Firestore
+    init_firestore()
 
     # Initialize MCP client
     mcp_client = MCPClient()
