@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Create the complete Python FastAPI backend with WebSocket chat, Google Gemini-powered AI agents (orchestrator, planner, scheduler, notification, voice), MCP client, and OAuth middleware. Also create both MCP servers (google-calendar, google-tasks) as standalone Python packages, shared types, docker-compose.yml, and root config files.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create backend/requirements.txt with: fastapi, uvicorn[standard], websockets, google-genai, google-auth, google-api-python-client, mcp, pydantic, python-dotenv, httpx",
     "Create backend/app/__init__.py (empty)",
@@ -52,5 +52,5 @@
     "cd /projects/sandbox/ChronAI && python -c 'import yaml; yaml.safe_load(open(\"docker-compose.yml\"))' || docker compose config --quiet"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Python 3.11 required (mcp package needs >=3.10). Used pyenv global 3.11.15 to switch. google-genai 2.10.0 installed (latest compatible), mcp 1.28.0 installed. FastAPI 0.138.0 installed. All Python files pass py_compile and imports work correctly. docker-compose.yml validates as proper YAML."
 }
