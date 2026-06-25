@@ -2,7 +2,28 @@
  * Voice utilities for ChronAI.
  * - Web Speech API for speech-to-text (STT)
  * - Audio playback for base64-encoded TTS responses from backend
+ * - Shared audio element for analyzer integration
  */
+
+/**
+ * Persistent audio element used for TTS playback.
+ * Exposed so the AudioAnalyzer can connect to it and
+ * visualize voice output through the particle system.
+ */
+let sharedAudioElement: HTMLAudioElement | null = null;
+
+/**
+ * Get or create the shared audio element used for voice playback.
+ * This element is reused across playback calls so the AudioAnalyzer
+ * only needs to connect once.
+ */
+export function getVoiceAudioElement(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (!sharedAudioElement) {
+    sharedAudioElement = new Audio();
+  }
+  return sharedAudioElement;
+}
 
 /**
  * Start listening via Web Speech API.
@@ -53,6 +74,8 @@ export function startListening(): Promise<string> {
 
 /**
  * Play base64-encoded audio data (from backend TTS).
+ * Uses the shared audio element so the AudioAnalyzer can
+ * visualize the voice output through the particle system.
  * Supports common audio formats (mp3, wav, ogg).
  */
 export async function playAudioBase64(
@@ -71,8 +94,12 @@ export async function playAudioBase64(
   const blob = new Blob([arrayBuffer], { type: format });
   const url = URL.createObjectURL(blob);
 
+  const audio = getVoiceAudioElement();
+  if (!audio) return;
+
   return new Promise<void>((resolve, reject) => {
-    const audio = new Audio(url);
+    // Clean up previous object URL if any
+    const previousSrc = audio.src;
 
     audio.onended = () => {
       URL.revokeObjectURL(url);
@@ -84,7 +111,16 @@ export async function playAudioBase64(
       reject(new Error("Failed to play audio"));
     };
 
-    audio.play().catch(reject);
+    audio.src = url;
+    audio.play().catch((err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    });
+
+    // Revoke the old URL after setting the new one
+    if (previousSrc && previousSrc.startsWith("blob:")) {
+      URL.revokeObjectURL(previousSrc);
+    }
   });
 }
 

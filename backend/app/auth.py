@@ -2,18 +2,24 @@
 
 from typing import Optional
 
+import httpx
 from fastapi import HTTPException, status
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
 
 from app.config import settings
 
+# Google tokeninfo endpoint for validating OAuth2 access tokens
+GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
+
 
 async def verify_google_token(token: str) -> dict:
-    """Verify a Google OAuth ID token and return user info.
+    """Verify a Google OAuth access token using the tokeninfo endpoint.
+
+    This validates opaque OAuth2 access tokens (not JWT ID tokens).
+    The tokeninfo endpoint returns the token's metadata including the
+    associated user information.
 
     Args:
-        token: The Google OAuth ID token to verify.
+        token: The Google OAuth access token to verify.
 
     Returns:
         Dictionary containing user information (sub, email, name, picture).
@@ -22,28 +28,43 @@ async def verify_google_token(token: str) -> dict:
         HTTPException: If token validation fails.
     """
     try:
-        id_info = id_token.verify_oauth2_token(
-            token,
-            google_requests.Request(),
-            settings.GOOGLE_CLIENT_ID,
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                GOOGLE_TOKENINFO_URL,
+                params={"access_token": token},
+            )
 
-        if id_info["iss"] not in [
-            "accounts.google.com",
-            "https://accounts.google.com",
-        ]:
-            raise ValueError("Invalid issuer.")
+        if response.status_code != 200:
+            raise ValueError("Token validation failed")
+
+        token_info = response.json()
+
+        # Verify the token was issued for our application
+        # The 'aud' field contains the client ID the token was issued to
+        token_aud = token_info.get("aud", "")
+        if settings.GOOGLE_CLIENT_ID and token_aud != settings.GOOGLE_CLIENT_ID:
+            raise ValueError("Token was not issued for this application")
+
+        # Verify token has not expired (expires_in > 0)
+        expires_in = int(token_info.get("expires_in", 0))
+        if expires_in <= 0:
+            raise ValueError("Token has expired")
 
         return {
-            "sub": id_info["sub"],
-            "email": id_info.get("email", ""),
-            "name": id_info.get("name", ""),
-            "picture": id_info.get("picture", ""),
+            "sub": token_info.get("sub", ""),
+            "email": token_info.get("email", ""),
+            "name": token_info.get("name", ""),
+            "picture": token_info.get("picture", ""),
         }
-    except ValueError as e:
+    except (ValueError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid authentication token: {e}",
+        )
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Unable to validate token: {e}",
         )
 
 

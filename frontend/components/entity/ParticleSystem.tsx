@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { MouseTracker } from "./MouseTracker";
 import { AudioAnalyzer } from "./AudioAnalyzer";
+import { getVoiceAudioElement } from "../../lib/voice";
 
 import vertexShader from "./shaders/vertex.glsl";
 import fragmentShader from "./shaders/fragment.glsl";
@@ -76,6 +77,13 @@ export default function ParticleSystem() {
     audioInitialized.current = true;
     try {
       await audioAnalyzer.current.init();
+
+      // Connect the shared voice audio element to the analyzer
+      // so TTS playback drives the particle visualization
+      const voiceAudio = getVoiceAudioElement();
+      if (voiceAudio) {
+        audioAnalyzer.current.connectAudioElement(voiceAudio);
+      }
     } catch {
       // AudioContext may fail in some environments; fall back to idle simulation
       audioInitialized.current = false;

@@ -33,4 +33,5 @@ services:
     volumes:
       - ./backend:/app
       - ./mcp-servers:/mcp-servers
+      - ./shared:/shared
     depends_on: []
