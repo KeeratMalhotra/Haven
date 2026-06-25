@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Create the complete Next.js 15 frontend with Three.js particle entity, chat interface, auth, WebSocket, and all pages. This is the full frontend implementation including the living particle system with custom GLSL shaders, Google OAuth via NextAuth.js, chat panel, voice interface, and WebSocket client.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create frontend/package.json with dependencies: next@15, react@19, react-dom@19, three, @react-three/fiber, @react-three/drei, tailwindcss, postcss, autoprefixer, next-auth, typescript, @types/react, @types/three, @types/node, eslint, eslint-config-next",
     "Create frontend/tsconfig.json with Next.js 15 App Router TypeScript config (paths alias @/* for src)",
@@ -46,5 +46,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm lint || true"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Used @react-three/fiber v9.6.1 and @react-three/drei v10.7.7 (not v8/v9 as originally planned) because React 19 requires fiber v9+ which properly augments React.JSX.IntrinsicElements. bufferAttribute in fiber v9 requires args=[array, itemSize] instead of separate count/array/itemSize props. Uint8Array type needed explicit ArrayBuffer generic for TypeScript 5.9 strictness. ESLint config required .eslintrc.json with next/core-web-vitals extension."
 }
