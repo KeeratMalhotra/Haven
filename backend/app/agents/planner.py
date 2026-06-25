@@ -6,6 +6,7 @@ Persists created tasks to Firestore via TaskRepository.
 """
 
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -15,6 +16,9 @@ from app.agents.base import AgentBase
 from app.config import settings
 from app.db.models import Task as TaskModel
 from app.db.repositories import TaskRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 PLANNER_PROMPT = """You are a task planning specialist. Your job is to:
@@ -101,8 +105,9 @@ class PlannerAgent(AgentBase):
                     pass
 
         # Persist tasks to Firestore
+        persist_failures = 0
         if user_id and plan.get("tasks"):
-            await self._persist_tasks_to_firestore(user_id, plan["tasks"])
+            persist_failures = await self._persist_tasks_to_firestore(user_id, plan["tasks"])
 
         response_content = plan.get(
             "response", plan.get("plan_summary", "Plan created.")
@@ -111,23 +116,31 @@ class PlannerAgent(AgentBase):
         if created_tasks:
             response_content += f"\n\nI've created {len(created_tasks)} task(s) in your Google Tasks."
 
+        if persist_failures > 0:
+            response_content += f"\n\nNote: {persist_failures} task(s) could not be saved to persistent storage."
+
         return {
             "content": response_content,
             "agent": self.name,
             "tasks": plan.get("tasks", []),
             "created_count": len(created_tasks),
+            "persist_failures": persist_failures,
         }
 
     async def _persist_tasks_to_firestore(
         self, user_id: str, tasks: list[dict]
-    ) -> None:
+    ) -> int:
         """Persist planned tasks to Firestore.
 
         Args:
             user_id: The user ID to associate tasks with.
             tasks: List of task dictionaries from the plan.
+
+        Returns:
+            Number of tasks that failed to persist.
         """
         now = datetime.utcnow()
+        failed_count = 0
         for task_item in tasks:
             try:
                 due_days = task_item.get("due_days_from_now", 7)
@@ -143,9 +156,15 @@ class PlannerAgent(AgentBase):
                     updated_at=now,
                 )
                 await TaskRepository.create(task_model)
-            except Exception:
-                # Continue persisting other tasks even if one fails
-                pass
+            except Exception as e:
+                failed_count += 1
+                logger.warning(
+                    "Failed to persist task '%s' for user '%s': %s",
+                    task_item.get("title", "unknown"),
+                    user_id,
+                    str(e),
+                )
+        return failed_count
 
     async def _decompose_goal(self, goal: str) -> dict:
         """Use Gemini to break a goal into subtasks.

@@ -89,17 +89,26 @@ class EmailAgent(AgentBase):
         action = action_plan.get("action", "")
         parameters = action_plan.get("parameters", {})
 
+        # Require auth_token for all email operations
+        if not auth_token:
+            return {
+                "content": "Authentication is required to access your email. Please sign in with your Google account first.",
+                "agent": self.name,
+                "action": action,
+                "result": None,
+            }
+
         # Execute the action via MCP tools
         result = None
-        if action == "draft_email" and auth_token:
+        if action == "draft_email":
             result = await self._draft_email(auth_token, parameters)
-        elif action == "send_email" and auth_token:
+        elif action == "send_email":
             result = await self._send_email(auth_token, parameters)
-        elif action == "summarize_emails" and auth_token:
+        elif action == "summarize_emails":
             result = await self._summarize_emails(auth_token, parameters)
-        elif action == "search_emails" and auth_token:
+        elif action == "search_emails":
             result = await self._search_emails(auth_token, parameters)
-        elif action == "list_emails" and auth_token:
+        elif action == "list_emails":
             result = await self._list_emails(auth_token, parameters)
 
         # Build response

@@ -10,6 +10,21 @@ from google import genai
 
 from app.config import settings
 
+# Module-level Gemini client (reused across all nudge generation calls)
+_gemini_client: genai.Client | None = None
+
+
+def _get_gemini_client() -> genai.Client:
+    """Get or create the module-level Gemini client.
+
+    Returns:
+        A reusable genai.Client instance.
+    """
+    global _gemini_client
+    if _gemini_client is None:
+        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    return _gemini_client
+
 
 NUDGE_SYSTEM_PROMPT = """You are a proactive productivity assistant generating nudge messages.
 Your job is to write a short, helpful reminder message for a user about an upcoming deadline.
@@ -98,7 +113,7 @@ async def generate_nudge(task_title: str, urgency: str, time_remaining: str) -> 
         Generated nudge message string.
     """
     try:
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        client = _get_gemini_client()
 
         prompt = f"""Generate a {urgency} nudge message for the following task:
 Task: {task_title}

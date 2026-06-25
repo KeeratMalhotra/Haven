@@ -1,6 +1,7 @@
 """ChronAI Backend - FastAPI server with WebSocket chat and AI agents."""
 
 import asyncio
+import secrets
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -292,14 +293,14 @@ async def trigger_nudge(
     Returns:
         Summary of nudges generated and delivered.
     """
-    # Validate API key
-    if not settings.SCHEDULER_API_KEY:
+    # Validate API key using timing-safe comparison
+    if not settings.SCHEDULER_API_KEY or not x_api_key:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Scheduler API key not configured",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
         )
 
-    if x_api_key != settings.SCHEDULER_API_KEY:
+    if not secrets.compare_digest(x_api_key, settings.SCHEDULER_API_KEY):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key",
