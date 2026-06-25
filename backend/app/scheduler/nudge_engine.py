@@ -1,29 +1,32 @@
 """Nudge Engine - Escalation logic and Gemini-powered nudge generation.
 
 Classifies task urgency based on deadline proximity and generates
-context-aware nudge messages using the Gemini AI model.
+context-aware nudge messages using Vertex AI Gemini.
 """
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
-from google import genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
 from app.config import settings
 
-# Module-level Gemini client (reused across all nudge generation calls)
-_gemini_client: genai.Client | None = None
+# Module-level Vertex AI model (reused across all nudge generation calls)
+_model: GenerativeModel | None = None
 
 
-def _get_gemini_client() -> genai.Client:
-    """Get or create the module-level Gemini client.
+def _get_model() -> GenerativeModel:
+    """Get or create the module-level Vertex AI GenerativeModel.
 
     Returns:
-        A reusable genai.Client instance.
+        A reusable GenerativeModel instance.
     """
-    global _gemini_client
-    if _gemini_client is None:
-        _gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    return _gemini_client
+    global _model
+    if _model is None:
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
+        _model = GenerativeModel("gemini-2.5-flash")
+    return _model
 
 
 NUDGE_SYSTEM_PROMPT = """You are a proactive productivity assistant generating nudge messages.
@@ -113,9 +116,11 @@ async def generate_nudge(task_title: str, urgency: str, time_remaining: str) -> 
         Generated nudge message string.
     """
     try:
-        client = _get_gemini_client()
+        model = _get_model()
 
-        prompt = f"""Generate a {urgency} nudge message for the following task:
+        prompt = f"""{NUDGE_SYSTEM_PROMPT}
+
+Generate a {urgency} nudge message for the following task:
 Task: {task_title}
 Urgency: {urgency}
 Time remaining: {time_remaining}
@@ -125,12 +130,9 @@ Remember:
 - urgent: action-oriented, suggest what to do next
 - critical: offer to reschedule or provide completion help"""
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config={
-                "system_instruction": NUDGE_SYSTEM_PROMPT,
-            },
+        response = await asyncio.to_thread(
+            model.generate_content,
+            prompt,
         )
         return response.text.strip()
     except Exception:

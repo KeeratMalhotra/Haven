@@ -1,15 +1,17 @@
 """Scheduler Agent - Calendar management and time optimization.
 
-Finds optimal time slots for tasks and events using Gemini,
+Finds optimal time slots for tasks and events using Vertex AI Gemini,
 and manages the calendar through the Google Calendar MCP server.
 Optionally persists scheduled events to Firestore.
 """
 
+import asyncio
 import json
 from datetime import datetime
 from typing import Any
 
-from google import genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase
 from app.config import settings
@@ -41,7 +43,7 @@ Default working hours: 9 AM - 6 PM. Default break: 30 min between meetings.
 class SchedulerAgent(AgentBase):
     """Scheduler agent that manages calendar and finds optimal time slots.
 
-    Uses Gemini for intelligent scheduling decisions and the Google Calendar
+    Uses Vertex AI Gemini for intelligent scheduling decisions and the Google Calendar
     MCP server for calendar operations.
     """
 
@@ -50,14 +52,14 @@ class SchedulerAgent(AgentBase):
     capabilities = ["find_free_slots", "create_event", "list_events", "scheduling"]
 
     def __init__(self, mcp_client: Any = None):
-        """Initialize the scheduler with Gemini client.
+        """Initialize the scheduler with Vertex AI GenerativeModel.
 
         Args:
             mcp_client: Optional MCP client for tool access.
         """
         super().__init__(mcp_client)
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.5-flash"
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
+        self.model = GenerativeModel("gemini-2.5-flash")
 
     async def execute(self, task: dict) -> dict:
         """Handle a scheduling request.
@@ -115,13 +117,14 @@ class SchedulerAgent(AgentBase):
             Scheduling plan with action and event details.
         """
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=f"Scheduling request: {message}",
-                config={
-                    "system_instruction": SCHEDULER_PROMPT,
-                    "response_mime_type": "application/json",
-                },
+            prompt = f"""{SCHEDULER_PROMPT}
+
+Scheduling request: {message}"""
+
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
             )
             return json.loads(response.text)
         except Exception:

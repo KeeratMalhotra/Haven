@@ -1,13 +1,15 @@
 """Email Agent - Manages email operations.
 
 Handles drafting, summarizing, searching, and sending emails
-using the Gmail MCP server and Gemini for content generation.
+using the Gmail MCP server and Vertex AI Gemini for content generation.
 """
 
+import asyncio
 import json
 from typing import Any
 
-from google import genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase
 from app.config import settings
@@ -51,7 +53,7 @@ For searching:
 class EmailAgent(AgentBase):
     """Email agent that manages email operations.
 
-    Uses Gemini for content generation and the Gmail MCP server
+    Uses Vertex AI Gemini for content generation and the Gmail MCP server
     for interacting with the user's email account.
     """
 
@@ -60,14 +62,14 @@ class EmailAgent(AgentBase):
     capabilities = ["draft_email", "summarize_emails", "send_email", "search_emails"]
 
     def __init__(self, mcp_client: Any = None):
-        """Initialize the email agent with Gemini client.
+        """Initialize the email agent with Vertex AI GenerativeModel.
 
         Args:
             mcp_client: Optional MCP client for tool access.
         """
         super().__init__(mcp_client)
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.5-flash"
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
+        self.model = GenerativeModel("gemini-2.5-flash")
 
     async def execute(self, task: dict) -> dict:
         """Handle email-related instructions.
@@ -140,13 +142,14 @@ class EmailAgent(AgentBase):
             Action plan dictionary with action, parameters, and response.
         """
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=f"User instruction: {message}",
-                config={
-                    "system_instruction": EMAIL_SYSTEM_PROMPT,
-                    "response_mime_type": "application/json",
-                },
+            prompt = f"""{EMAIL_SYSTEM_PROMPT}
+
+User instruction: {message}"""
+
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
             )
             return json.loads(response.text)
         except Exception:

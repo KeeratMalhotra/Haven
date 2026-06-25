@@ -125,8 +125,8 @@ pnpm dev
 |----------|-------------|
 | GOOGLE_CLIENT_ID | Google OAuth 2.0 client ID |
 | GOOGLE_CLIENT_SECRET | Google OAuth 2.0 client secret |
-| GEMINI_API_KEY | Google Gemini API key |
 | GCP_PROJECT_ID | Google Cloud project ID |
+| GCP_REGION | Vertex AI region (default: us-central1) |
 
 ### Frontend (`frontend/.env.local`)
 | Variable | Description |

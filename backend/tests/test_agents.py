@@ -1,7 +1,7 @@
 """Tests for all ChronAI agents.
 
-Each test mocks the Gemini client and MCP tools to verify agent logic
-without requiring real API keys.
+Each test mocks Vertex AI and MCP tools to verify agent logic
+without requiring real API keys or credentials.
 """
 
 import json
@@ -14,24 +14,25 @@ class TestOrchestratorAgent:
     """Tests for the OrchestratorAgent."""
 
     @pytest.fixture(autouse=True)
-    def setup_orchestrator(self, mock_gemini_client, mock_mcp_client):
+    def setup_orchestrator(self, mock_vertexai_model, mock_mcp_client):
         """Set up the orchestrator agent with mocked dependencies."""
         from app.agents.base import AgentRegistry
 
         AgentRegistry._agents.clear()
 
-        with patch("google.genai.Client", return_value=mock_gemini_client):
+        with patch("app.agents.orchestrator.vertexai.init"), \
+             patch("app.agents.orchestrator.GenerativeModel", return_value=mock_vertexai_model):
             from app.agents.orchestrator import OrchestratorAgent
 
             self.agent = OrchestratorAgent(mcp_client=mock_mcp_client)
-            self.mock_client = mock_gemini_client
+            self.mock_model = mock_vertexai_model
             yield
             AgentRegistry._agents.clear()
 
     async def test_orchestrator_direct_response(self):
         """Send a casual chat message, verify orchestrator returns direct_response."""
-        # Configure Gemini to return a direct response (no routing)
-        self.mock_client.models.generate_content.return_value = MagicMock(
+        # Configure model to return a direct response (no routing)
+        self.mock_model.generate_content.return_value = MagicMock(
             text=json.dumps({
                 "intent": "greeting",
                 "agents": [],
@@ -63,8 +64,8 @@ class TestOrchestratorAgent:
         })
         AgentRegistry._agents["planner"] = mock_planner
 
-        # Configure Gemini to route to planner
-        self.mock_client.models.generate_content.return_value = MagicMock(
+        # Configure model to route to planner
+        self.mock_model.generate_content.return_value = MagicMock(
             text=json.dumps({
                 "intent": "task_creation",
                 "agents": ["planner"],
@@ -88,17 +89,18 @@ class TestPlannerAgent:
     """Tests for the PlannerAgent."""
 
     @pytest.fixture(autouse=True)
-    def setup_planner(self, mock_gemini_client, mock_mcp_client):
+    def setup_planner(self, mock_vertexai_model, mock_mcp_client):
         """Set up the planner agent with mocked dependencies."""
         from app.agents.base import AgentRegistry
 
         AgentRegistry._agents.clear()
 
-        with patch("google.genai.Client", return_value=mock_gemini_client):
+        with patch("app.agents.planner.vertexai.init"), \
+             patch("app.agents.planner.GenerativeModel", return_value=mock_vertexai_model):
             from app.agents.planner import PlannerAgent
 
             self.agent = PlannerAgent(mcp_client=mock_mcp_client)
-            self.mock_client = mock_gemini_client
+            self.mock_model = mock_vertexai_model
             self.mock_mcp = mock_mcp_client
             yield
             AgentRegistry._agents.clear()
@@ -123,7 +125,7 @@ class TestPlannerAgent:
             ],
             "response": "I've created a plan to build your portfolio website.",
         }
-        self.mock_client.models.generate_content.return_value = MagicMock(
+        self.mock_model.generate_content.return_value = MagicMock(
             text=json.dumps(plan_response)
         )
 
@@ -145,17 +147,18 @@ class TestSchedulerAgent:
     """Tests for the SchedulerAgent."""
 
     @pytest.fixture(autouse=True)
-    def setup_scheduler(self, mock_gemini_client, mock_mcp_client):
+    def setup_scheduler(self, mock_vertexai_model, mock_mcp_client):
         """Set up the scheduler agent with mocked dependencies."""
         from app.agents.base import AgentRegistry
 
         AgentRegistry._agents.clear()
 
-        with patch("google.genai.Client", return_value=mock_gemini_client):
+        with patch("app.agents.scheduler.vertexai.init"), \
+             patch("app.agents.scheduler.GenerativeModel", return_value=mock_vertexai_model):
             from app.agents.scheduler import SchedulerAgent
 
             self.agent = SchedulerAgent(mcp_client=mock_mcp_client)
-            self.mock_client = mock_gemini_client
+            self.mock_model = mock_vertexai_model
             self.mock_mcp = mock_mcp_client
             yield
             AgentRegistry._agents.clear()
@@ -167,7 +170,7 @@ class TestSchedulerAgent:
             "event_details": {"summary": "Team meeting", "duration_minutes": 60},
             "response": "Looking for a 1-hour slot for your team meeting.",
         }
-        self.mock_client.models.generate_content.return_value = MagicMock(
+        self.mock_model.generate_content.return_value = MagicMock(
             text=json.dumps(schedule_response)
         )
 
@@ -190,17 +193,18 @@ class TestNotificationAgent:
     """Tests for the NotificationAgent."""
 
     @pytest.fixture(autouse=True)
-    def setup_notification(self, mock_gemini_client, mock_mcp_client):
+    def setup_notification(self, mock_vertexai_model, mock_mcp_client):
         """Set up the notification agent with mocked dependencies."""
         from app.agents.base import AgentRegistry
 
         AgentRegistry._agents.clear()
 
-        with patch("google.genai.Client", return_value=mock_gemini_client):
+        with patch("app.agents.notification.vertexai.init"), \
+             patch("app.agents.notification.GenerativeModel", return_value=mock_vertexai_model):
             from app.agents.notification import NotificationAgent
 
             self.agent = NotificationAgent(mcp_client=mock_mcp_client)
-            self.mock_client = mock_gemini_client
+            self.mock_model = mock_vertexai_model
             yield
             AgentRegistry._agents.clear()
 
@@ -217,7 +221,7 @@ class TestNotificationAgent:
             ],
             "response": "You have 1 urgent notification: Your project deadline is approaching!",
         }
-        self.mock_client.models.generate_content.return_value = MagicMock(
+        self.mock_model.generate_content.return_value = MagicMock(
             text=json.dumps(notification_response)
         )
 
@@ -236,17 +240,18 @@ class TestEmailAgent:
     """Tests for the EmailAgent."""
 
     @pytest.fixture(autouse=True)
-    def setup_email(self, mock_gemini_client, mock_mcp_client):
+    def setup_email(self, mock_vertexai_model, mock_mcp_client):
         """Set up the email agent with mocked dependencies."""
         from app.agents.base import AgentRegistry
 
         AgentRegistry._agents.clear()
 
-        with patch("google.genai.Client", return_value=mock_gemini_client):
+        with patch("app.agents.email.vertexai.init"), \
+             patch("app.agents.email.GenerativeModel", return_value=mock_vertexai_model):
             from app.agents.email import EmailAgent
 
             self.agent = EmailAgent(mcp_client=mock_mcp_client)
-            self.mock_client = mock_gemini_client
+            self.mock_model = mock_vertexai_model
             self.mock_mcp = mock_mcp_client
             yield
             AgentRegistry._agents.clear()
@@ -262,7 +267,7 @@ class TestEmailAgent:
             },
             "response": "I've drafted a follow-up email to your colleague.",
         }
-        self.mock_client.models.generate_content.return_value = MagicMock(
+        self.mock_model.generate_content.return_value = MagicMock(
             text=json.dumps(action_response)
         )
 

@@ -1,15 +1,17 @@
 """Notification Agent - Context-aware reminders and proactive suggestions.
 
 Generates intelligent reminders with escalating urgency based on deadline
-proximity. Provides proactive suggestions using Gemini.
+proximity. Provides proactive suggestions using Vertex AI Gemini.
 Uses Firestore as a fallback source for task data when MCP is unavailable.
 """
 
+import asyncio
 import json
 from datetime import datetime, timedelta
 from typing import Any
 
-from google import genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase
 from app.config import settings
@@ -46,7 +48,7 @@ class NotificationAgent(AgentBase):
     """Notification agent for context-aware reminders.
 
     Generates reminders with escalating urgency and proactive suggestions
-    using Gemini for contextual awareness.
+    using Vertex AI Gemini for contextual awareness.
     """
 
     name = "notification"
@@ -54,14 +56,14 @@ class NotificationAgent(AgentBase):
     capabilities = ["reminders", "urgency_escalation", "proactive_suggestions"]
 
     def __init__(self, mcp_client: Any = None):
-        """Initialize the notification agent with Gemini client.
+        """Initialize the notification agent with Vertex AI GenerativeModel.
 
         Args:
             mcp_client: Optional MCP client for tool access.
         """
         super().__init__(mcp_client)
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.5-flash"
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
+        self.model = GenerativeModel("gemini-2.5-flash")
 
     async def execute(self, task: dict) -> dict:
         """Generate notifications and suggestions.
@@ -145,19 +147,18 @@ class NotificationAgent(AgentBase):
             now = datetime.now().isoformat()
             tasks_text = json.dumps(tasks, default=str) if tasks else "No tasks found"
 
-            prompt = f"""Current time: {now}
+            prompt = f"""{NOTIFICATION_PROMPT}
+
+Current time: {now}
 User context: {message}
 Current tasks: {tasks_text}
 
 Generate appropriate notifications and proactive suggestions."""
 
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config={
-                    "system_instruction": NOTIFICATION_PROMPT,
-                    "response_mime_type": "application/json",
-                },
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
             )
             return json.loads(response.text)
         except Exception:

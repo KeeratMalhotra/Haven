@@ -1,16 +1,18 @@
 """Planner Agent - Task decomposition and management.
 
-Breaks user goals into subtasks with deadlines using Gemini,
+Breaks user goals into subtasks with deadlines using Vertex AI Gemini,
 and manages tasks through the Google Tasks MCP server.
 Persists created tasks to Firestore via TaskRepository.
 """
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from google import genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase
 from app.config import settings
@@ -47,7 +49,7 @@ Be specific and actionable. Each task should be completable in one sitting.
 class PlannerAgent(AgentBase):
     """Planner agent that decomposes goals into tasks.
 
-    Uses Gemini for intelligent task decomposition and the Google Tasks
+    Uses Vertex AI Gemini for intelligent task decomposition and the Google Tasks
     MCP server for task CRUD operations.
     """
 
@@ -56,14 +58,14 @@ class PlannerAgent(AgentBase):
     capabilities = ["task_decomposition", "task_creation", "task_listing"]
 
     def __init__(self, mcp_client: Any = None):
-        """Initialize the planner with Gemini client.
+        """Initialize the planner with Vertex AI GenerativeModel.
 
         Args:
             mcp_client: Optional MCP client for tool access.
         """
         super().__init__(mcp_client)
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.5-flash"
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
+        self.model = GenerativeModel("gemini-2.5-flash")
 
     async def execute(self, task: dict) -> dict:
         """Break down a goal into subtasks and optionally create them.
@@ -176,13 +178,14 @@ class PlannerAgent(AgentBase):
             Plan dictionary with tasks, summary, and response.
         """
         try:
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=f"Break this goal into actionable tasks: {goal}",
-                config={
-                    "system_instruction": PLANNER_PROMPT,
-                    "response_mime_type": "application/json",
-                },
+            prompt = f"""{PLANNER_PROMPT}
+
+Break this goal into actionable tasks: {goal}"""
+
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
             )
             return json.loads(response.text)
         except Exception as e:

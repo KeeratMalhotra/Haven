@@ -8,9 +8,9 @@ class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GEMINI_API_KEY: str = ""
-    GCP_API_KEY: str = ""  # Separate GCP API key for Cloud TTS (falls back to GEMINI_API_KEY)
+    GCP_API_KEY: str = ""  # GCP API key for Cloud TTS
     GCP_PROJECT_ID: str = ""
+    GCP_REGION: str = "us-central1"
 
     # Firestore configuration
     FIRESTORE_PROJECT_ID: str = ""  # Defaults to GCP_PROJECT_ID if empty

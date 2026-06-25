@@ -1,6 +1,6 @@
 """Shared fixtures for backend tests.
 
-Provides mocks for Gemini, Firestore, MCP client, and auth
+Provides mocks for Vertex AI Gemini, Firestore, MCP client, and auth
 so all tests can run without real API keys or external services.
 """
 
@@ -142,11 +142,9 @@ def mock_gemini_response():
 
 
 @pytest.fixture
-def mock_gemini_client(mock_gemini_response):
-    """Patch google.genai.Client to return controlled JSON responses."""
-    mock_client_instance = MagicMock()
-    mock_models = MagicMock()
-    mock_client_instance.models = mock_models
+def mock_vertexai_model(mock_gemini_response):
+    """Patch vertexai.init and GenerativeModel to return controlled responses."""
+    mock_model_instance = MagicMock()
 
     # Default response - can be overridden per test
     default_response = mock_gemini_response(json.dumps({
@@ -155,11 +153,19 @@ def mock_gemini_client(mock_gemini_response):
         "tasks": [],
         "direct_response": "Hello! How can I help you today?",
     }))
-    mock_models.generate_content = MagicMock(return_value=default_response)
+    mock_model_instance.generate_content = MagicMock(return_value=default_response)
 
-    with patch("google.genai.Client", return_value=mock_client_instance) as mock_cls:
-        mock_cls._instance = mock_client_instance
-        yield mock_client_instance
+    with patch("vertexai.init") as mock_init, \
+         patch("vertexai.generative_models.GenerativeModel", return_value=mock_model_instance) as mock_model_cls:
+        mock_model_cls._instance = mock_model_instance
+        yield mock_model_instance
+
+
+# Keep backward-compatible alias
+@pytest.fixture
+def mock_gemini_client(mock_vertexai_model):
+    """Alias for mock_vertexai_model for backward compatibility."""
+    return mock_vertexai_model
 
 
 @pytest.fixture

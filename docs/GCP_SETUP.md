@@ -113,29 +113,29 @@ For local development, the app can remain in "Testing" status.
 
 ---
 
-## 5. Get a Gemini API Key
+## 5. Set Up Vertex AI Authentication
 
-The Gemini API key is obtained through Google AI Studio (separate from the GCP Console):
+ChronAI uses Vertex AI SDK which authenticates via Application Default Credentials (ADC).
+No API key is needed for Gemini - just authenticate with your Google Cloud account:
 
-1. Go to [Google AI Studio](https://aistudio.google.com/).
-2. Sign in with your Google account.
-3. Click **Get API Key** in the left sidebar.
-4. Click **Create API key**.
-5. Select your GCP project from the dropdown (the same project you created in step 1).
-6. Copy the generated API key.
-
-This value maps to `GEMINI_API_KEY`.
+1. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) if not already installed.
+2. Run the following command to set up ADC:
+   ```bash
+   gcloud auth application-default login
+   ```
+3. Follow the browser prompts to authenticate with your Google account.
+4. The credentials will be stored locally and used automatically by the Vertex AI SDK.
 
 ### GCP API Key for Cloud Text-to-Speech (Optional)
 
-If you want to use a separate API key for Cloud TTS (instead of the Gemini key):
+If you want to use Cloud TTS (for the voice agent), you need a separate API key:
 
 1. Go to **APIs & Services > Credentials** in the Cloud Console.
 2. Click **Create Credentials > API key**.
 3. Restrict the key to **Cloud Text-to-Speech API** only (recommended).
 4. Copy the key.
 
-This value maps to `GCP_API_KEY`. If left empty, the system falls back to `GEMINI_API_KEY`.
+This value maps to `GCP_API_KEY`.
 
 ---
 
@@ -156,14 +156,14 @@ Required variables:
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 
-# Gemini API key (from step 5)
-GEMINI_API_KEY=your-gemini-api-key
-
-# GCP API key for Cloud Text-to-Speech (optional, falls back to GEMINI_API_KEY)
+# GCP API key for Cloud Text-to-Speech (optional)
 GCP_API_KEY=your-gcp-api-key
 
 # GCP Project ID (from step 1)
 GCP_PROJECT_ID=your-project-id
+
+# Vertex AI region
+GCP_REGION=us-central1
 
 # Firestore configuration (defaults to GCP_PROJECT_ID and '(default)' database)
 FIRESTORE_PROJECT_ID=your-project-id

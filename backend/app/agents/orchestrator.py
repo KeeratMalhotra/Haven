@@ -1,12 +1,14 @@
 """Orchestrator Agent - Brain of ChronAI.
 
-Analyzes user intent using Gemini 2.5 Flash and routes to specialist agents.
+Analyzes user intent using Gemini 2.5 Flash via Vertex AI and routes to specialist agents.
 """
 
+import asyncio
 import json
 from typing import Any
 
-from google import genai
+import vertexai
+from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase, AgentRegistry
 from app.config import settings
@@ -42,7 +44,7 @@ set agents to an empty list and provide a direct_response.
 class OrchestratorAgent(AgentBase):
     """Brain/Orchestrator agent that routes requests to specialist agents.
 
-    Uses Google Gemini 2.5 Flash to analyze user intent and coordinate
+    Uses Vertex AI Gemini 2.5 Flash to analyze user intent and coordinate
     with specialist agents to fulfill requests.
     """
 
@@ -51,14 +53,14 @@ class OrchestratorAgent(AgentBase):
     capabilities = ["intent_analysis", "agent_routing", "response_consolidation"]
 
     def __init__(self, mcp_client: Any = None):
-        """Initialize the orchestrator with Gemini client.
+        """Initialize the orchestrator with Vertex AI GenerativeModel.
 
         Args:
             mcp_client: Optional MCP client for tool access.
         """
         super().__init__(mcp_client)
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-2.5-flash"
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
+        self.model = GenerativeModel("gemini-2.5-flash")
 
     async def execute(self, task: dict) -> dict:
         """Analyze user message and route to appropriate agents.
@@ -144,20 +146,19 @@ class OrchestratorAgent(AgentBase):
                 content = msg["content"]
                 history_text += f"{role}: {content}\n"
 
-            prompt = f"""Conversation history:
+            prompt = f"""{SYSTEM_PROMPT}
+
+Conversation history:
 {history_text}
 
 Current user message: {message}
 
 Analyze the intent and decide routing."""
 
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config={
-                    "system_instruction": SYSTEM_PROMPT,
-                    "response_mime_type": "application/json",
-                },
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
             )
 
             return json.loads(response.text)
@@ -203,8 +204,9 @@ Multiple specialist agents provided responses:
 Consolidate these into a single coherent and helpful response for the user.
 Be concise but include all relevant information."""
 
-            response = self.client.models.generate_content(
-                model=self.model, contents=prompt
+            response = await asyncio.to_thread(
+                self.model.generate_content,
+                prompt,
             )
             return response.text
         except Exception:

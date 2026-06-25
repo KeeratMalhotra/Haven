@@ -97,8 +97,8 @@ class VoiceAgent(AgentBase):
 
         try:
             async with httpx.AsyncClient() as client:
-                # Use GCP_API_KEY for Cloud TTS; fall back to GEMINI_API_KEY if not set
-                api_key = settings.GCP_API_KEY or settings.GEMINI_API_KEY
+                # Use GCP_API_KEY for Cloud TTS
+                api_key = settings.GCP_API_KEY
                 response = await client.post(
                     self.TTS_URL,
                     json=request_body,
