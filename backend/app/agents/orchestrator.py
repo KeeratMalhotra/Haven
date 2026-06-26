@@ -101,6 +101,7 @@ class OrchestratorAgent(AgentBase):
 
         # Analyze intent with Gemini
         routing = await self._analyze_intent(message, conversation_history)
+        print(f"[ORCHESTRATOR DEBUG] routing_result: intent={routing.get('intent')}, agents={routing.get('agents')}, has_direct={bool(routing.get('direct_response'))}")
 
         logger.info(f"[orchestrator] Routing: intent={routing.get('intent')}, agents={routing.get('agents', [])}")
 
@@ -134,6 +135,7 @@ class OrchestratorAgent(AgentBase):
                 )
                 logger.info(f"[orchestrator] '{agent_name}' responded with {len(result.get('content', ''))} chars")
                 results.append(result)
+                print(f"[ORCHESTRATOR DEBUG] Agent '{agent_name}' returned: {result.get('content', '')[:100]}")
 
         # Consolidate responses
         consolidated = await self._consolidate_responses(message, results)

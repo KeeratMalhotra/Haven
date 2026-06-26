@@ -26,6 +26,11 @@ SCHEDULER_PROMPT = """You are a scheduling specialist. Your job is to:
 2. Consider existing calendar events to avoid conflicts
 3. Respect user preferences (working hours, breaks, etc.)
 
+ACTION SELECTION RULES:
+- If the user asks what's on their calendar, what events they have, or wants to see their schedule -> action: "list_events"
+- If the user wants to find free time, available slots, or asks "when can I..." -> action: "find_slots"  
+- If the user wants to create, schedule, or book an event/meeting -> action: "create_event"
+
 When given a scheduling request, respond with a JSON object:
 {
   "action": "find_slots|create_event|list_events",
@@ -36,8 +41,13 @@ When given a scheduling request, respond with a JSON object:
     "preferred_time": "morning|afternoon|evening|any",
     "date_range_days": 7
   },
-  "response": "A natural language response explaining the scheduling suggestion"
+  "response": "A natural language response explaining what you're doing"
 }
+
+EXAMPLES:
+- "What's on my calendar this week?" -> action: "list_events", response: "Let me check your calendar for this week."
+- "Find me a free slot tomorrow" -> action: "find_slots"
+- "Schedule a meeting at 2pm" -> action: "create_event"
 
 Default working hours: 9 AM - 6 PM. Default break: 30 min between meetings.
 """
@@ -84,6 +94,7 @@ class SchedulerAgent(AgentBase):
         # Use Gemini to understand the scheduling request
         schedule_plan = await self._analyze_scheduling_request(message)
         action = schedule_plan.get("action", "find_slots")
+        print(f"[SCHEDULER DEBUG] action={action}, has_mcp={bool(self.mcp_client)}, has_token={bool(auth_token)}, plan={schedule_plan}")
 
         # Execute the appropriate calendar operation
         if self.mcp_client and auth_token:

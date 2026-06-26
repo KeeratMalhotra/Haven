@@ -1,5 +1,8 @@
 """ChronAI Backend - FastAPI server with WebSocket chat and AI agents."""
 
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
 import asyncio
 import secrets
 import sys
