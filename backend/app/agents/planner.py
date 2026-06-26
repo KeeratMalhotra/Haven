@@ -17,12 +17,15 @@ from app.agents.base import AgentBase
 from app.config import settings
 from app.db.models import Task as TaskModel
 from app.db.repositories import TaskRepository
+from app.utils.timectx import time_context_string
 
 
 logger = logging.getLogger(__name__)
 
 
-PLANNER_PROMPT = """You are a task planning specialist. You either READ the user's existing tasks or CREATE new tasks. You must choose exactly one action.
+PLANNER_PROMPT = """You are a task planning specialist. You either READ the user's existing tasks or CREATE new tasks. You must choose exactly one action (or ask for a missing deadline).
+
+You will be given the CURRENT date and time. Use it to interpret deadlines like "by Friday" or "next week".
 
 ACTION SELECTION RULES (read carefully - this is critical):
 - READ intent -> action: "list_tasks". The user wants to SEE, VIEW, or CHECK tasks that already exist. They are NOT asking you to make anything. In this case you MUST NOT create any tasks; return an EMPTY "tasks" array.
@@ -34,7 +37,20 @@ ACTION SELECTION RULES (read carefully - this is critical):
 - For "create_tasks", create ONLY the tasks the user actually asked for. A single simple request = a single task. Only decompose into multiple subtasks when the user gives a broad goal that genuinely needs a plan. Never spam many tasks for a simple query.
 - If the instruction starts with "Create task:" -> action: "create_tasks". Extract the title and deadline from the instruction.
 
-Respond with a JSON object:
+DEADLINE CLARIFICATION RULE:
+- A simple errand with no implied urgency does NOT need a deadline. e.g. "add a task to call mom" -> just create it (the system picks a sensible default). Do NOT ask for a deadline here.
+- BUT when the user clearly implies a time-bound deliverable WITHOUT giving the specific date ("I have a report due", "I need to submit the assignment soon", "there's a deadline coming up") -> action: "needs_info". Ask specifically WHEN it is due. Do NOT invent a deadline.
+
+When action is "needs_info", respond with:
+{
+  "action": "needs_info",
+  "question": "When is the report due?",
+  "pending": {"title": "Finish report", "notes": ""},
+  "awaiting": "deadline",
+  "intent": "create"
+}
+
+Otherwise respond with a JSON object:
 {
   "action": "list_tasks" | "create_tasks",
   "plan_summary": "brief description of the plan (create_tasks only)",
@@ -90,10 +106,27 @@ class PlannerAgent(AgentBase):
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
         user_id = task.get("user_id", "")
+        pending_action = task.get("pending_action")
 
-        # Classify intent (READ vs WRITE) and, if writing, decompose the goal.
-        plan = await self._analyze_request(message)
+        # Completing a previously stored clarification (e.g. a missing deadline).
+        if pending_action:
+            plan = await self._complete_pending(message, pending_action)
+        else:
+            # Classify intent (READ vs WRITE) and, if writing, decompose the goal.
+            plan = await self._analyze_request(message)
+
         action = plan.get("action", "create_tasks")
+
+        # Clarification needed: ask the user instead of inventing a deadline.
+        if action == "needs_info":
+            pending = self._build_needs_info(plan)
+            return {
+                "content": pending["question"],
+                "agent": self.name,
+                "action": "needs_info",
+                "tasks": [],
+                "pending_action": pending,
+            }
 
         # READ intent: list existing tasks, never create anything.
         if action == "list_tasks":
@@ -103,6 +136,7 @@ class PlannerAgent(AgentBase):
                 "agent": self.name,
                 "action": "list_tasks",
                 "tasks": tasks,
+                "pending_action": None,
             }
 
         # WRITE intent: create the requested task(s).
@@ -147,6 +181,7 @@ class PlannerAgent(AgentBase):
             "tasks": plan.get("tasks", []),
             "created_count": len(created_tasks),
             "persist_failures": persist_failures,
+            "pending_action": None,
         }
 
     @staticmethod
@@ -222,10 +257,12 @@ class PlannerAgent(AgentBase):
             message: The user's task-related message.
 
         Returns:
-            Plan dictionary with 'action' ("list_tasks" | "create_tasks"),
-            and for writes, 'tasks', 'plan_summary', and 'response'.
+            Plan dictionary with 'action' ("list_tasks" | "create_tasks" |
+            "needs_info"), and for writes, 'tasks', 'plan_summary', 'response'.
         """
-        prompt = f"""{PLANNER_PROMPT}
+        prompt = f"""{time_context_string()}
+
+{PLANNER_PROMPT}
 
 User request: {message}"""
 
@@ -243,6 +280,66 @@ User request: {message}"""
                 "tasks": [],
                 "response": "Let me pull up your tasks.",
             }
+
+    def _build_needs_info(self, plan: dict) -> dict:
+        """Build a JSON-serializable pending_action for a missing deadline."""
+        partial = dict(plan.get("pending") or {})
+        if not partial.get("title"):
+            partial["title"] = "New task"
+        awaiting = plan.get("awaiting") or "deadline"
+        question = plan.get("question") or f'When is "{partial["title"]}" due?'
+        return {
+            "agent": self.name,
+            "intent": plan.get("intent", "create"),
+            "awaiting": awaiting,
+            "question": question,
+            "partial": partial,
+        }
+
+    async def _complete_pending(self, message: str, pending: dict) -> dict:
+        """Merge the user's deadline answer into a pending task creation."""
+        partial = dict(pending.get("partial") or {})
+        question = pending.get("question", "")
+
+        prompt = f"""{time_context_string()}
+
+{PLANNER_PROMPT}
+
+You previously asked the user: "{question}"
+The task so far: {json.dumps(partial)}
+The user just replied with the deadline: "{message}"
+
+Produce the completed "create_tasks" action JSON with a single task that uses the
+deadline from the reply (set due_days_from_now accordingly). If the reply does not
+contain a usable deadline, return action "needs_info" again."""
+
+        text = await self.generate(
+            prompt,
+            generation_config={"response_mime_type": "application/json"},
+            fallback="",
+        )
+        try:
+            plan = json.loads(text)
+            if isinstance(plan, dict) and plan.get("action"):
+                return plan
+        except Exception:
+            pass
+
+        # Fallback: create the task with the system default deadline so we never
+        # get stuck, rather than inventing a specific date.
+        title = partial.get("title", "New task")
+        return {
+            "action": "create_tasks",
+            "tasks": [
+                {
+                    "title": title,
+                    "notes": partial.get("notes", ""),
+                    "due_days_from_now": 7,
+                    "priority": partial.get("priority", "medium"),
+                }
+            ],
+            "response": f'Added "{title}" to your tasks.',
+        }
 
     async def list_tasks(self, auth_token: str) -> list[dict]:
         """List all tasks from Google Tasks.

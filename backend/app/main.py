@@ -157,6 +157,9 @@ async def websocket_chat(websocket: WebSocket):
     # Per-connection conversation history to prevent cross-user leakage
     conversation_history: list[dict] = []
     connected_user_id: str | None = None
+    # Per-connection pending clarification/confirmation the orchestrator is
+    # waiting on (e.g. "what time is your meeting?"). JSON-serializable dict.
+    pending_action: dict | None = None
 
     try:
         while True:
@@ -213,9 +216,13 @@ async def websocket_chat(websocket: WebSocket):
                             "auth_token": auth_token,
                             "user": user,
                             "conversation_history": conversation_history,
+                            "pending_action": pending_action,
                         },
                         status_callback=_make_status_callback(websocket),
                     )
+
+                    # Persist any pending clarification for the next turn.
+                    pending_action = result.get("pending_action")
 
                     # Send text response first
                     await websocket.send_json(
@@ -251,9 +258,13 @@ async def websocket_chat(websocket: WebSocket):
                             "auth_token": auth_token,
                             "user": user,
                             "conversation_history": conversation_history,
+                            "pending_action": pending_action,
                         },
                         status_callback=_make_status_callback(websocket),
                     )
+
+                    # Persist any pending clarification for the next turn.
+                    pending_action = result.get("pending_action")
 
                     # Determine response type
                     response_type = "text"

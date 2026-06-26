@@ -2,14 +2,21 @@
 
 Finds optimal time slots for tasks and events using Vertex AI Gemini,
 and manages the calendar through the Google Calendar MCP server.
-Optionally persists scheduled events to Firestore.
+
+Intelligence features:
+- Grounded in real IST (Asia/Kolkata) date/time so relative phrases resolve.
+- Slot-filling: NEVER invents a date or time. If a create request is missing a
+  concrete time (or date), it asks the user instead of guessing.
+- Pending-action memory: completes a half-specified request on the next turn.
+- Conflict detection: warns about overlapping events before creating.
+- Reschedule / delete intents in addition to create / list / find.
 """
 
 import json
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,27 +26,49 @@ from vertexai.generative_models import GenerativeModel
 from app.agents.base import AgentBase
 from app.config import settings
 from app.db.firestore import get_db
+from app.utils.timectx import IST, now_ist, resolve_relative, time_context_string
 
 
-SCHEDULER_PROMPT = """You are a scheduling specialist. Your job is to:
-1. Find optimal time slots for tasks and meetings
-2. Consider existing calendar events to avoid conflicts
-3. Respect user preferences (working hours, breaks, etc.)
+SCHEDULER_PROMPT = """You are a scheduling specialist. You manage the user's calendar.
+You MUST NOT invent or guess a date or time that the user did not provide. If a
+required detail is missing, you ask for it instead of making something up.
+
+You will be given the CURRENT date and time. Use it to resolve relative phrases
+like "today", "tonight", "tomorrow", or "next monday" into concrete values.
 
 ACTION SELECTION RULES:
-- If the user asks what's on their calendar, what events they have, or wants to see their schedule -> action: "list_events"
-- If the user wants to find free time, available slots, or asks "when can I..." -> action: "find_slots"  
-- If the user wants to create, schedule, or book an event/meeting -> action: "create_event"
-- If the user says they HAVE a meeting/event/appointment at a specific time (e.g. "I have a meeting at 6pm", "there's a standup at 10am") -> action: "create_event". This is an implicit create request.
-- If the instruction starts with "Create event:" -> action: "create_event". Extract the title and time from the instruction.
+- The user wants to SEE their schedule / events ("what's on my calendar", "my schedule") -> action: "list_events"
+- The user wants to find free time / availability ("when am I free", "find a slot") -> action: "find_slots"
+- The user wants to CREATE/book an event, OR states they HAVE an event ("I have a meeting at 6pm", "there's a standup at 10am", "Create event: ...") -> action: "create_event"
+- The user wants to MOVE/reschedule an event ("move my 6pm to 8pm", "reschedule the standup to 11") -> action: "reschedule_event"
+- The user wants to CANCEL/delete an event ("cancel my dentist appointment", "delete the standup") -> action: "delete_event"
 
-When given a scheduling request, respond with a JSON object:
+CLARIFICATION RULES (CRITICAL - this is the most important behavior):
+A calendar event REQUIRES both a concrete DATE and a concrete TIME.
+- If a TIME is given but NO day -> assume TODAY. (e.g. "I have a meeting at 6pm" -> today 18:00)
+- If a DAY is given but NO time -> action: "needs_info". Ask specifically for the time. Do NOT invent a time.
+- If NEITHER date nor time is given for a create -> action: "needs_info". Ask for the time/day.
+- A missing TITLE is fine: default it to "Meeting" or "Event". Never ask just for a title.
+
+When action is "needs_info", respond with:
 {
-  "action": "find_slots|create_event|list_events",
+  "action": "needs_info",
+  "question": "A specific question asking ONLY for the missing detail",
+  "pending": { "summary": "Meeting", "start_time": "tomorrow", "duration_minutes": 60 },
+  "awaiting": "time" | "date",
+  "intent": "create"
+}
+The "pending" object must capture everything you DO know so far.
+
+For all other actions respond with:
+{
+  "action": "find_slots|create_event|list_events|reschedule_event|delete_event",
   "event_details": {
     "summary": "event title",
     "description": "event description",
-    "start_time": "today 18:00 or tomorrow 15:00 or ISO format",
+    "start_time": "today 18:00 or tomorrow 15:00 or next monday 10:00 or ISO format",
+    "new_time": "for reschedule: the NEW start time, e.g. today 20:00",
+    "match": "for reschedule/delete: words identifying which event (title and/or time)",
     "duration_minutes": 60,
     "preferred_time": "morning|afternoon|evening|any",
     "date_range_days": 7
@@ -48,35 +77,69 @@ When given a scheduling request, respond with a JSON object:
 }
 
 EXAMPLES:
-- "What's on my calendar this week?" -> action: "list_events", response: "Let me check your calendar for this week."
-- "Find me a free slot tomorrow" -> action: "find_slots"
-- "Schedule a meeting at 2pm" -> action: "create_event"
-- "Create event: meeting, today at 6pm" -> action: "create_event", event_details: {"summary": "Meeting", "start_time": "today 18:00", "duration_minutes": 60}
-- "Create event: dentist appointment, tomorrow at 3pm" -> action: "create_event", event_details: {"summary": "Dentist appointment", "start_time": "tomorrow 15:00", "duration_minutes": 60}
-- "I have a meeting at 6pm" -> action: "create_event", event_details: {"summary": "Meeting", "start_time": "today 18:00", "duration_minutes": 60}
-- "There's a standup at 10am" -> action: "create_event", event_details: {"summary": "Standup", "start_time": "today 10:00", "duration_minutes": 60}
+- "What's on my calendar this week?" -> {"action": "list_events", "response": "Let me check your calendar."}
+- "Find me a free slot tomorrow" -> {"action": "find_slots", "event_details": {"duration_minutes": 60}}
+- "Create event: dentist, tomorrow at 3pm" -> {"action": "create_event", "event_details": {"summary": "Dentist", "start_time": "tomorrow 15:00", "duration_minutes": 60}}
+- "I have a meeting at 6pm" -> {"action": "create_event", "event_details": {"summary": "Meeting", "start_time": "today 18:00", "duration_minutes": 60}}
+- "I have a meeting tomorrow" -> {"action": "needs_info", "question": "What time is your meeting tomorrow?", "pending": {"summary": "Meeting", "start_time": "tomorrow", "duration_minutes": 60}, "awaiting": "time", "intent": "create"}
+- "Schedule a sync" -> {"action": "needs_info", "question": "Sure — what day and time should I schedule the sync for?", "pending": {"summary": "Sync", "duration_minutes": 60}, "awaiting": "time", "intent": "create"}
+- "Move my 6pm to 8pm" -> {"action": "reschedule_event", "event_details": {"match": "6pm", "new_time": "today 20:00"}}
+- "Cancel my dentist appointment" -> {"action": "delete_event", "event_details": {"match": "dentist"}}
 
-Default working hours: 9 AM - 6 PM. Default break: 30 min between meetings.
+Default working hours: 9 AM - 6 PM.
 """
 
 
-class SchedulerAgent(AgentBase):
-    """Scheduler agent that manages calendar and finds optimal time slots.
+# Keyword-based duration inference (minutes).
+_DURATION_KEYWORDS = {
+    30: ("call", "quick", "sync", "standup", "stand-up", "1:1", "one-on-one", "catch up", "catch-up", "coffee"),
+    90: ("workshop", "session", "training", "deep dive", "deep-dive", "interview", "seminar"),
+    # lunch / dinner explicitly default to 60 (handled as default below)
+}
+_DEFAULT_DURATION = 60
 
-    Uses Vertex AI Gemini for intelligent scheduling decisions and the Google Calendar
-    MCP server for calendar operations.
+_AFFIRMATIVE = ("yes", "yeah", "yep", "yup", "sure", "ok", "okay", "go ahead", "anyway", "do it", "schedule it", "please do", "confirm")
+_NEGATIVE = ("no", "nope", "nah", "cancel", "don't", "do not", "never mind", "nevermind", "forget it", "skip")
+
+
+def _is_affirmative(text: str) -> bool:
+    t = text.strip().lower()
+    return any(w in t for w in _AFFIRMATIVE)
+
+
+def _is_negative(text: str) -> bool:
+    t = text.strip().lower()
+    return any(w in t for w in _NEGATIVE)
+
+
+def infer_duration(text: str, default: int = _DEFAULT_DURATION) -> tuple[int, bool]:
+    """Infer a sensible duration in minutes from keywords in the text.
+
+    Returns (minutes, inferred) where ``inferred`` is True when a keyword drove
+    the choice (so the caller can mention it to the user).
     """
+    low = (text or "").lower()
+    for minutes, words in _DURATION_KEYWORDS.items():
+        if any(w in low for w in words):
+            return minutes, True
+    return default, False
+
+
+class SchedulerAgent(AgentBase):
+    """Scheduler agent that manages calendar and finds optimal time slots."""
 
     name = "scheduler"
     description = "Finds optimal time slots and manages calendar events"
-    capabilities = ["find_free_slots", "create_event", "list_events", "scheduling"]
+    capabilities = [
+        "find_free_slots",
+        "create_event",
+        "list_events",
+        "reschedule_event",
+        "delete_event",
+        "scheduling",
+    ]
 
     def __init__(self, mcp_client: Any = None):
-        """Initialize the scheduler with Vertex AI GenerativeModel.
-
-        Args:
-            mcp_client: Optional MCP client for tool access.
-        """
         super().__init__(mcp_client)
         vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
         self.model = GenerativeModel(settings.GEMINI_MODEL)
@@ -85,74 +148,535 @@ class SchedulerAgent(AgentBase):
         """Handle a scheduling request.
 
         Args:
-            task: Dict with 'message' (scheduling request),
-                  'auth_token' for Google Calendar API access,
-                  'user_id' for optional Firestore persistence.
+            task: Dict with 'message', 'auth_token', 'user_id', and optionally
+                  'pending_action' (a previously stored clarification/confirmation
+                  this message is answering).
 
         Returns:
-            Dict with 'content' (scheduling result), 'agent' name.
+            Dict with 'content', 'agent', 'action', and 'pending_action'
+            (a dict to remember for the next turn, or None to clear it).
         """
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
         user_id = task.get("user_id", "")
+        pending_action = task.get("pending_action")
 
-        logger.info(f"[scheduler] Executing action={task.get('message', '')[:50]}, has_mcp={bool(self.mcp_client)}, has_token={bool(auth_token)}")
+        logger.info(
+            f"[scheduler] action_msg={message[:50]!r}, has_mcp={bool(self.mcp_client)}, "
+            f"has_token={bool(auth_token)}, pending={bool(pending_action)}"
+        )
 
-        # Use Gemini to understand the scheduling request (single LLM call).
-        schedule_plan = await self._analyze_scheduling_request(message)
-        action = schedule_plan.get("action", "find_slots")
+        # Completing a previously stored clarification / confirmation.
+        if pending_action:
+            return await self._complete_pending(message, pending_action, auth_token, user_id)
 
-        # Execute the appropriate calendar operation, formatting results with
-        # pure Python (no second Gemini call).
-        if self.mcp_client and auth_token:
-            if action == "list_events":
-                result = await self._list_events(auth_token)
-                schedule_plan["response"] = self._format_events(result)
+        # Fresh request: ask Gemini to classify and extract details.
+        plan = await self._analyze_scheduling_request(message)
+        return await self._dispatch_plan(plan, auth_token, user_id, source_text=message)
 
-            elif action == "find_slots":
-                result = await self._find_free_slots(auth_token, schedule_plan.get("event_details", {}))
-                schedule_plan["response"] = self._format_free_slots(
-                    result, schedule_plan.get("response", "")
-                )
+    # ------------------------------------------------------------------
+    # Plan dispatch
+    # ------------------------------------------------------------------
 
-            elif action == "create_event":
-                event_details = schedule_plan.get("event_details", {})
-                result = await self._create_event(auth_token, event_details)
-                if result and not (isinstance(result, dict) and result.get("error")):
-                    schedule_plan["response"] = self._format_create_confirmation(
-                        event_details, result
-                    )
-                    # Optionally persist created event to Firestore
-                    if user_id:
-                        await self._persist_event_to_firestore(user_id, event_details, result)
-                else:
-                    schedule_plan["response"] = (
-                        "I couldn't create that event. Please try again in a moment."
-                    )
+    async def _dispatch_plan(
+        self, plan: dict, auth_token: str, user_id: str, source_text: str
+    ) -> dict:
+        """Execute the calendar operation described by a plan dict."""
+        action = plan.get("action", "find_slots")
 
+        if action == "needs_info":
+            return self._build_needs_info(plan, source_text)
+
+        if not (self.mcp_client and auth_token):
+            return {
+                "content": plan.get("response", "I can help you with scheduling."),
+                "agent": self.name,
+                "action": action,
+                "pending_action": None,
+            }
+
+        if action == "list_events":
+            events = await self._list_events(auth_token)
+            return self._result(self._format_events(events), action)
+
+        if action == "find_slots":
+            slots = await self._find_free_slots(auth_token, plan.get("event_details", {}))
+            return self._result(
+                self._format_free_slots(slots, plan.get("response", "")), action
+            )
+
+        if action == "create_event":
+            return await self._do_create(
+                auth_token, plan.get("event_details", {}), user_id, source_text
+            )
+
+        if action == "reschedule_event":
+            return await self._do_reschedule(
+                auth_token, plan.get("event_details", {}), user_id, source_text
+            )
+
+        if action == "delete_event":
+            return await self._do_delete(auth_token, plan.get("event_details", {}))
+
+        # Unknown action -> safe default.
+        return self._result(
+            plan.get("response", "I can help you with scheduling."), action
+        )
+
+    def _result(self, content: str, action: str, pending: Optional[dict] = None) -> dict:
         return {
-            "content": schedule_plan.get("response", "I can help you with scheduling."),
+            "content": content,
             "agent": self.name,
             "action": action,
+            "pending_action": pending,
         }
 
+    # ------------------------------------------------------------------
+    # Clarification / slot-filling
+    # ------------------------------------------------------------------
+
+    def _build_needs_info(self, plan: dict, source_text: str) -> dict:
+        """Turn a Gemini 'needs_info' plan into a result + pending_action."""
+        partial = dict(plan.get("pending") or plan.get("event_details") or {})
+        if not partial.get("summary"):
+            partial["summary"] = "Meeting"
+        if not partial.get("duration_minutes"):
+            minutes, _ = infer_duration(source_text)
+            partial["duration_minutes"] = minutes
+
+        awaiting = plan.get("awaiting") or "time"
+        question = plan.get("question") or self._default_question(partial, awaiting)
+        intent = plan.get("intent") or "create"
+
+        pending = {
+            "agent": self.name,
+            "intent": intent,
+            "awaiting": awaiting,
+            "question": question,
+            "partial": partial,
+        }
+        return self._result(question, "needs_info", pending)
+
     @staticmethod
-    def _format_events(events: list[dict]) -> str:
-        """Format calendar events into a readable bulleted list.
+    def _default_question(partial: dict, awaiting: str) -> str:
+        summary = (partial.get("summary") or "your event").strip()
+        date_phrase = (partial.get("start_time") or "").strip()
+        if awaiting == "date":
+            return f'What day should I schedule "{summary}" for?'
+        if date_phrase:
+            return f'What time is "{summary}" {date_phrase}?'
+        return f'What day and time should I schedule "{summary}" for?'
 
-        Args:
-            events: List of event dicts with summary/start/end fields.
+    async def _complete_pending(
+        self, message: str, pending: dict, auth_token: str, user_id: str
+    ) -> dict:
+        """Apply the user's answer to a stored pending action."""
+        awaiting = pending.get("awaiting")
+        intent = pending.get("intent", "create")
+        partial = dict(pending.get("partial") or {})
 
-        Returns:
-            A friendly summary string, handling the empty state.
+        # Confirmation after a conflict warning.
+        if awaiting == "confirmation":
+            if _is_affirmative(message):
+                return await self._do_create(
+                    auth_token, partial, user_id, source_text=message, confirmed=True
+                )
+            if _is_negative(message):
+                return self._result(
+                    "No problem — I won't schedule that.", "cancel", None
+                )
+            # Unclear answer: re-ask the same confirmation.
+            return self._result(
+                pending.get("question", "Should I go ahead and schedule it anyway?"),
+                "needs_info",
+                pending,
+            )
+
+        # Choosing among multiple matches for a delete.
+        if awaiting == "which":
+            refined = dict(partial)
+            refined["match"] = message
+            return await self._do_delete(auth_token, refined)
+
+        # Filling in a missing time/date for a create (or reschedule).
+        merged = await self._merge_pending(message, pending)
+        if merged.get("action") == "needs_info":
+            # Still missing something -> keep asking.
+            return self._build_needs_info(merged, message)
+
+        details = merged.get("event_details", partial)
+        if intent == "reschedule":
+            return await self._do_reschedule(auth_token, details, user_id, message)
+        return await self._do_create(auth_token, details, user_id, message)
+
+    async def _merge_pending(self, message: str, pending: dict) -> dict:
+        """Merge the user's slot answer into the pending partial via Gemini.
+
+        Falls back to a deterministic Python merge if the model is unavailable.
         """
+        partial = dict(pending.get("partial") or {})
+        awaiting = pending.get("awaiting", "time")
+        question = pending.get("question", "")
+
+        prompt = f"""{time_context_string()}
+
+{SCHEDULER_PROMPT}
+
+You previously asked the user: "{question}"
+What you already know (partial event): {json.dumps(partial)}
+The user just replied: "{message}"
+
+Merge the reply into the partial event and produce the completed action JSON.
+If after merging you STILL lack a concrete date or time, return action "needs_info" again."""
+
+        text = await self.generate(
+            prompt,
+            generation_config={"response_mime_type": "application/json"},
+            fallback="",
+        )
+        try:
+            plan = json.loads(text)
+            if isinstance(plan, dict) and plan.get("action"):
+                return plan
+        except Exception:
+            pass
+
+        # Deterministic fallback merge.
+        return self._python_merge(message, partial, awaiting)
+
+    @staticmethod
+    def _python_merge(message: str, partial: dict, awaiting: str) -> dict:
+        """Best-effort, model-free merge of an answer into a partial event."""
+        details = dict(partial)
+        existing = (details.get("start_time") or "").strip()
+        reply = message.strip()
+
+        if awaiting == "date":
+            # The reply provides the day; keep any existing time component.
+            combined = f"{reply} {existing}".strip()
+        else:
+            # awaiting time (default): reply provides time; keep existing day.
+            combined = f"{existing} {reply}".strip()
+
+        details["start_time"] = combined
+        if resolve_relative(combined, base=now_ist()) is None:
+            return {
+                "action": "needs_info",
+                "question": "Sorry, I didn't catch the time — what time should I use?",
+                "pending": details,
+                "awaiting": "time",
+                "intent": "create",
+            }
+        return {"action": "create_event", "event_details": details}
+
+    # ------------------------------------------------------------------
+    # Create (with conflict detection)
+    # ------------------------------------------------------------------
+
+    async def _do_create(
+        self,
+        auth_token: str,
+        details: dict,
+        user_id: str,
+        source_text: str = "",
+        confirmed: bool = False,
+    ) -> dict:
+        """Create an event, asking for a time or confirming conflicts first."""
+        details = dict(details or {})
+        start_phrase = (details.get("start_time") or "").strip()
+
+        # Resolve to a concrete IST datetime. None => no concrete time given.
+        start_iso = resolve_relative(start_phrase, base=now_ist()) if start_phrase else None
+        if start_iso is None:
+            # Missing time -> ask, never invent.
+            return self._build_needs_info(
+                {
+                    "action": "needs_info",
+                    "pending": details,
+                    "awaiting": "time",
+                    "intent": "create",
+                },
+                source_text or start_phrase,
+            )
+
+        # Lock the resolved absolute time into the details so a later
+        # confirmation turn reuses it verbatim.
+        details["start_time"] = start_iso
+
+        # Duration: respect an explicit value, otherwise infer from keywords.
+        duration_inferred = False
+        if not details.get("duration_minutes"):
+            minutes, duration_inferred = infer_duration(source_text or details.get("summary", ""))
+            details["duration_minutes"] = minutes
+        duration_minutes = details.get("duration_minutes", _DEFAULT_DURATION)
+
+        # Conflict detection (one extra list call) unless already confirmed.
+        if not confirmed:
+            conflict = await self._find_conflict(auth_token, start_iso, duration_minutes)
+            if conflict:
+                question = self._format_conflict_question(conflict, details)
+                pending = {
+                    "agent": self.name,
+                    "intent": "create",
+                    "awaiting": "confirmation",
+                    "question": question,
+                    "partial": details,
+                }
+                return self._result(question, "needs_info", pending)
+
+        result = await self._create_event(auth_token, details)
+        if result and not (isinstance(result, dict) and result.get("error")):
+            if user_id:
+                await self._persist_event_to_firestore(user_id, details, result)
+            content = self._format_create_confirmation(details, result, duration_inferred)
+            return self._result(content, "create_event", None)
+
+        return self._result(
+            "I couldn't create that event. Please try again in a moment.",
+            "create_event",
+            None,
+        )
+
+    async def _find_conflict(
+        self, auth_token: str, start_iso: str, duration_minutes: int
+    ) -> Optional[dict]:
+        """Return an existing event overlapping the proposed slot, if any."""
+        try:
+            start = datetime.fromisoformat(start_iso)
+        except (ValueError, AttributeError):
+            return None
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=IST)
+        end = start + timedelta(minutes=duration_minutes)
+
+        events = await self._list_events(auth_token)
+        for e in events or []:
+            if not isinstance(e, dict) or e.get("error"):
+                continue
+            estart = self._parse_event_dt(e.get("start"))
+            if estart is None:
+                continue
+            eend = self._parse_event_dt(e.get("end")) or (estart + timedelta(minutes=60))
+            # Overlap test on the same instant line.
+            if estart < end and start < eend:
+                return e
+        return None
+
+    @staticmethod
+    def _parse_event_dt(value: Any) -> Optional[datetime]:
+        if not value or not isinstance(value, str):
+            return None
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=IST)
+        return dt.astimezone(IST)
+
+    def _format_conflict_question(self, conflict: dict, details: dict) -> str:
+        existing = conflict.get("summary") or "another event"
+        existing_when = self._parse_event_dt(conflict.get("start"))
+        when_str = self._human_time(existing_when) if existing_when else "that time"
+        new_summary = (details.get("summary") or "the new event").strip()
+        return (
+            f'You already have "{existing}" at {when_str}. '
+            f'Want me to schedule "{new_summary}" anyway?'
+        )
+
+    # ------------------------------------------------------------------
+    # Reschedule / delete
+    # ------------------------------------------------------------------
+
+    async def _do_reschedule(
+        self, auth_token: str, details: dict, user_id: str, source_text: str
+    ) -> dict:
+        """Move an existing event to a new time (delete + recreate)."""
+        details = dict(details or {})
+        match = details.get("match") or details.get("summary") or ""
+        new_phrase = (details.get("new_time") or details.get("start_time") or "").strip()
+        new_iso = resolve_relative(new_phrase, base=now_ist()) if new_phrase else None
+
+        events = await self._list_events(auth_token)
+        candidates = self._match_events(events, match)
+
+        if not candidates:
+            return self._result(
+                f"I couldn't find an event matching \"{match}\" to reschedule.",
+                "reschedule_event",
+                None,
+            )
+        if len(candidates) > 1:
+            listing = self._format_event_choices(candidates)
+            pending = {
+                "agent": self.name,
+                "intent": "delete",
+                "awaiting": "which",
+                "question": f"Which one did you mean?\n{listing}",
+                "partial": {"match": match},
+            }
+            return self._result(
+                f"I found a few events matching \"{match}\". Which one?\n{listing}",
+                "needs_info",
+                pending,
+            )
+
+        target = candidates[0]
+
+        if new_iso is None:
+            # We know which event but not the new time -> ask.
+            pending = {
+                "agent": self.name,
+                "intent": "reschedule",
+                "awaiting": "time",
+                "question": f'What time should I move "{target.get("summary", "the event")}" to?',
+                "partial": {
+                    "summary": target.get("summary", "Event"),
+                    "match": match,
+                },
+            }
+            return self._result(pending["question"], "needs_info", pending)
+
+        # Delete the old occurrence and create the new one.
+        event_id = target.get("id", "")
+        if event_id:
+            await self._delete_event(auth_token, event_id)
+
+        new_details = {
+            "summary": target.get("summary", "Event"),
+            "description": target.get("description", ""),
+            "start_time": new_iso,
+            "duration_minutes": self._event_duration(target),
+        }
+        result = await self._create_event(auth_token, new_details)
+        if result and not (isinstance(result, dict) and result.get("error")):
+            if user_id:
+                await self._persist_event_to_firestore(user_id, new_details, result)
+            summary = new_details["summary"]
+            when = self._human_time(self._parse_event_dt(new_iso))
+            return self._result(
+                f'Done — moved "{summary}" to {when}.', "reschedule_event", None
+            )
+        return self._result(
+            "I couldn't reschedule that event. Please try again.",
+            "reschedule_event",
+            None,
+        )
+
+    async def _do_delete(self, auth_token: str, details: dict) -> dict:
+        """Delete an event matching the user's description."""
+        match = (details or {}).get("match") or (details or {}).get("summary") or ""
+        events = await self._list_events(auth_token)
+        candidates = self._match_events(events, match)
+
+        if not candidates:
+            return self._result(
+                f"I couldn't find an event matching \"{match}\" to cancel.",
+                "delete_event",
+                None,
+            )
+        if len(candidates) > 1:
+            listing = self._format_event_choices(candidates)
+            pending = {
+                "agent": self.name,
+                "intent": "delete",
+                "awaiting": "which",
+                "question": f"Which one did you mean?\n{listing}",
+                "partial": {"match": match},
+            }
+            return self._result(
+                f"I found a few events matching \"{match}\". Which one should I cancel?\n{listing}",
+                "needs_info",
+                pending,
+            )
+
+        target = candidates[0]
+        event_id = target.get("id", "")
+        result = await self._delete_event(auth_token, event_id) if event_id else {"error": "no id"}
+        if result and not (isinstance(result, dict) and result.get("error")):
+            summary = target.get("summary", "the event")
+            when = self._human_time(self._parse_event_dt(target.get("start")))
+            suffix = f" ({when})" if when else ""
+            return self._result(
+                f'Done — cancelled "{summary}"{suffix}.', "delete_event", None
+            )
+        return self._result(
+            "I couldn't cancel that event. Please try again.", "delete_event", None
+        )
+
+    def _match_events(self, events: list, match: str) -> list:
+        """Find events whose title or time matches the user's description."""
+        real = [e for e in (events or []) if isinstance(e, dict) and not e.get("error")]
+        if not match:
+            return real
+
+        match_low = match.lower().strip()
+        # Pull any time tokens (e.g. "6pm", "18:00") from the match string.
+        match_time = resolve_relative(match_low, base=now_ist())
+        match_hour = None
+        if match_time:
+            try:
+                match_hour = datetime.fromisoformat(match_time).hour
+            except ValueError:
+                match_hour = None
+
+        scored = []
+        for e in real:
+            summary = (e.get("summary") or "").lower()
+            score = 0
+            # Title keyword overlap.
+            for word in re.findall(r"[a-z]{3,}", match_low):
+                if word in summary:
+                    score += 2
+            # Time match.
+            if match_hour is not None:
+                est = self._parse_event_dt(e.get("start"))
+                if est is not None and est.hour == match_hour:
+                    score += 3
+            if score > 0:
+                scored.append((score, e))
+
+        if not scored:
+            return []
+        scored.sort(key=lambda x: x[0], reverse=True)
+        top = scored[0][0]
+        return [e for s, e in scored if s == top]
+
+    def _format_event_choices(self, events: list) -> str:
+        lines = []
+        for e in events:
+            summary = e.get("summary") or "Untitled"
+            when = self._human_time(self._parse_event_dt(e.get("start")))
+            lines.append(f"• {summary} ({when})" if when else f"• {summary}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _event_duration(event: dict) -> int:
+        start = SchedulerAgent._parse_event_dt(event.get("start"))
+        end = SchedulerAgent._parse_event_dt(event.get("end"))
+        if start and end and end > start:
+            return int((end - start).total_seconds() / 60)
+        return _DEFAULT_DURATION
+
+    # ------------------------------------------------------------------
+    # Formatting helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _human_time(dt: Optional[datetime]) -> str:
+        """Render an IST datetime like 'Sat, 28 Jun at 6:00 PM IST'."""
+        if dt is None:
+            return ""
+        dt = dt.astimezone(IST)
+        return dt.strftime("%a, %-d %b at %-I:%M %p") + " IST"
+
+    @staticmethod
+    def _format_events(events: list) -> str:
         real_events = [
             e for e in (events or []) if isinstance(e, dict) and not e.get("error")
         ]
-
         if not real_events:
             return "Your calendar is clear this week!"
-
         lines = [f"You have {len(real_events)} event(s) coming up:"]
         for e in real_events:
             summary = e.get("summary") or "Untitled event"
@@ -162,13 +686,14 @@ class SchedulerAgent(AgentBase):
 
     @staticmethod
     def _format_when(start: str) -> str:
-        """Turn an ISO start string into a short prefix like 'Mon 2pm — '."""
         if not start:
             return ""
         try:
             dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             return ""
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(IST)
         day = dt.strftime("%a")
         hour = dt.hour % 12 or 12
         ampm = "am" if dt.hour < 12 else "pm"
@@ -177,15 +702,12 @@ class SchedulerAgent(AgentBase):
         return f"{day} {hour}{ampm} — "
 
     @staticmethod
-    def _format_free_slots(slots: list[dict], intro: str) -> str:
-        """Format available time slots into a readable list."""
+    def _format_free_slots(slots: list, intro: str) -> str:
         real_slots = [
             s for s in (slots or []) if isinstance(s, dict) and not s.get("error")
         ]
-
         if not real_slots:
             return "I couldn't find any open slots in that window. Want me to widen the search?"
-
         lines = [intro.strip() or "Here are some open slots:"]
         for s in real_slots[:5]:
             when = SchedulerAgent._format_when(s.get("start", ""))
@@ -197,59 +719,48 @@ class SchedulerAgent(AgentBase):
         return "\n".join(lines)
 
     @staticmethod
-    def _format_create_confirmation(event_details: dict, result: dict) -> str:
-        """Format a friendly confirmation message after creating an event.
-
-        Args:
-            event_details: The planned event details (summary, start_time, etc.).
-            result: The result from the MCP create_event tool.
-
-        Returns:
-            A human-friendly confirmation string.
-        """
-        summary = event_details.get("summary", "Event")
-        # Capitalize first letter of summary for display
+    def _format_create_confirmation(
+        event_details: dict, result: dict, duration_inferred: bool = False
+    ) -> str:
+        """Friendly confirmation with the resolved absolute IST day + time."""
+        summary = event_details.get("summary", "Event") or "Event"
         display_summary = summary[0].upper() + summary[1:] if summary else "Event"
 
-        # Try to format the time from the result or from event_details
         start_iso = ""
         if isinstance(result, dict):
             start_iso = result.get("start", "")
         if not start_iso:
             start_iso = event_details.get("start_time", "")
 
-        time_display = ""
+        when = ""
         if start_iso:
             try:
                 dt = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
-                hour = dt.hour % 12 or 12
-                ampm = "AM" if dt.hour < 12 else "PM"
-                minute_str = f":{dt.minute:02d}" if dt.minute else ""
-                today = datetime.now().date()
-                if dt.date() == today:
-                    time_display = f"today at {hour}{minute_str} {ampm}"
-                elif dt.date() == today + timedelta(days=1):
-                    time_display = f"tomorrow at {hour}{minute_str} {ampm}"
-                else:
-                    day_name = dt.strftime("%A, %B %-d")
-                    time_display = f"on {day_name} at {hour}{minute_str} {ampm}"
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=IST)
+                when = SchedulerAgent._human_time(dt)
             except (ValueError, AttributeError):
-                pass
+                when = ""
 
-        if time_display:
-            return f'Done! I\'ve added "{display_summary}" to your calendar {time_display}.'
-        return f'Done! I\'ve added "{display_summary}" to your calendar.'
+        if when:
+            msg = f'Done — "{display_summary}" on {when}.'
+        else:
+            msg = f'Done — I\'ve added "{display_summary}" to your calendar.'
+
+        if duration_inferred:
+            minutes = event_details.get("duration_minutes", _DEFAULT_DURATION)
+            msg += f" (I set it to {minutes} minutes — let me know to change that.)"
+        return msg
+
+    # ------------------------------------------------------------------
+    # Gemini analysis
+    # ------------------------------------------------------------------
 
     async def _analyze_scheduling_request(self, message: str) -> dict:
-        """Use Gemini to analyze a scheduling request.
+        """Use Gemini (grounded in IST) to analyze a scheduling request."""
+        prompt = f"""{time_context_string()}
 
-        Args:
-            message: The user's scheduling-related message.
-
-        Returns:
-            Scheduling plan with action and event details.
-        """
-        prompt = f"""{SCHEDULER_PROMPT}
+{SCHEDULER_PROMPT}
 
 Scheduling request: {message}"""
 
@@ -267,35 +778,23 @@ Scheduling request: {message}"""
                 "response": f"I'll help you find time for: {message}",
             }
 
-    async def _list_events(self, auth_token: str) -> list[dict]:
-        """List upcoming calendar events.
+    # ------------------------------------------------------------------
+    # MCP calendar operations
+    # ------------------------------------------------------------------
 
-        Args:
-            auth_token: Google OAuth token for API access.
-
-        Returns:
-            List of event dictionaries.
-        """
+    async def _list_events(self, auth_token: str) -> list:
         try:
-            return await self.call_mcp_tool(
+            result = await self.call_mcp_tool(
                 "google-calendar",
                 "list_events",
                 {"auth_token": auth_token, "days_ahead": 7},
             )
+            return result if isinstance(result, list) else []
         except Exception as e:
             logger.error(f"[scheduler] _list_events failed: {e}", exc_info=True)
             return []
 
-    async def _find_free_slots(self, auth_token: str, details: dict) -> list[dict]:
-        """Find free time slots in the calendar.
-
-        Args:
-            auth_token: Google OAuth token for API access.
-            details: Event details with duration and preferences.
-
-        Returns:
-            List of available time slot dictionaries.
-        """
+    async def _find_free_slots(self, auth_token: str, details: dict) -> list:
         try:
             return await self.call_mcp_tool(
                 "google-calendar",
@@ -311,17 +810,7 @@ Scheduling request: {message}"""
             return []
 
     async def _create_event(self, auth_token: str, details: dict) -> dict:
-        """Create a calendar event.
-
-        Args:
-            auth_token: Google OAuth token for API access.
-            details: Event details including summary, start_time, duration, etc.
-
-        Returns:
-            Created event data or empty dict on failure.
-        """
         try:
-            # Resolve start_time from relative phrases to ISO format
             start_time_raw = details.get("start_time", "")
             start_time_iso = self._resolve_start_time(start_time_raw) if start_time_raw else None
 
@@ -335,76 +824,48 @@ Scheduling request: {message}"""
                 tool_args["start_time"] = start_time_iso
 
             return await self.call_mcp_tool(
-                "google-calendar",
-                "create_event",
-                tool_args,
+                "google-calendar", "create_event", tool_args
             )
         except Exception as e:
             logger.error(f"[scheduler] _create_event failed: {e}", exc_info=True)
             return {}
 
+    async def _delete_event(self, auth_token: str, event_id: str) -> dict:
+        try:
+            return await self.call_mcp_tool(
+                "google-calendar",
+                "delete_event",
+                {"auth_token": auth_token, "event_id": event_id},
+            )
+        except Exception as e:
+            logger.error(f"[scheduler] _delete_event failed: {e}", exc_info=True)
+            return {"error": str(e)}
+
     @staticmethod
     def _resolve_start_time(time_str: str) -> str:
-        """Convert relative time phrases to ISO format datetime strings.
+        """Convert a relative time phrase to an IST-offset ISO datetime string.
 
-        Handles:
-        - "today 18:00" -> today's date at 18:00
-        - "tomorrow 15:00" -> tomorrow's date at 15:00
-        - "2024-01-15T09:00:00" -> pass through as-is
-        - If parsing fails, default to next available hour.
-
-        Args:
-            time_str: A time string like "today 18:00", "tomorrow 15:00", or ISO.
-
-        Returns:
-            ISO format datetime string (e.g. "2024-01-15T18:00:00").
+        - ISO strings (starting YYYY-MM-DDT) pass through unchanged.
+        - Relative phrases resolve via timectx.resolve_relative (Asia/Kolkata).
+        - If nothing resolves, default to the next full hour in IST.
         """
-        time_str = time_str.strip()
+        time_str = (time_str or "").strip()
 
-        # Already in ISO format - pass through
+        # Already ISO (date+time) -> pass through unchanged.
         if re.match(r"^\d{4}-\d{2}-\d{2}T", time_str):
             return time_str
 
-        now = datetime.now()
+        resolved = resolve_relative(time_str, base=now_ist())
+        if resolved:
+            return resolved
 
-        # Match "today HH:MM" or "today HH"
-        today_match = re.match(r"^today\s+(\d{1,2}):?(\d{2})?$", time_str, re.IGNORECASE)
-        if today_match:
-            hour = int(today_match.group(1))
-            minute = int(today_match.group(2) or 0)
-            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            return target.isoformat()
-
-        # Match "tomorrow HH:MM" or "tomorrow HH"
-        tomorrow_match = re.match(r"^tomorrow\s+(\d{1,2}):?(\d{2})?$", time_str, re.IGNORECASE)
-        if tomorrow_match:
-            hour = int(tomorrow_match.group(1))
-            minute = int(tomorrow_match.group(2) or 0)
-            target = (now + timedelta(days=1)).replace(hour=hour, minute=minute, second=0, microsecond=0)
-            return target.isoformat()
-
-        # Try parsing as a bare time "HH:MM" (assume today)
-        bare_time_match = re.match(r"^(\d{1,2}):(\d{2})$", time_str)
-        if bare_time_match:
-            hour = int(bare_time_match.group(1))
-            minute = int(bare_time_match.group(2))
-            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            return target.isoformat()
-
-        # Fallback: default to next available hour
-        target = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        # Fallback: next full hour, in IST.
+        target = now_ist().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         return target.isoformat()
 
     async def _persist_event_to_firestore(
         self, user_id: str, event_details: dict, result: dict
     ) -> None:
-        """Log a scheduled event to Firestore for history tracking.
-
-        Args:
-            user_id: The user ID who owns this event.
-            event_details: The planned event details from Gemini.
-            result: The result from the calendar API creation.
-        """
         try:
             db = get_db()
             event_doc = {
@@ -413,9 +874,8 @@ Scheduling request: {message}"""
                 "description": event_details.get("description", ""),
                 "duration_minutes": event_details.get("duration_minutes", 60),
                 "calendar_result": result if isinstance(result, dict) else {},
-                "created_at": datetime.utcnow(),
+                "created_at": now_ist(),
             }
             await db.collection("scheduled_events").document().set(event_doc)
         except Exception:
-            # Non-critical: don't fail the scheduling if persistence fails
             pass

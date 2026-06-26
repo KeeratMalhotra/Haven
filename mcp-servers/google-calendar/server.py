@@ -10,6 +10,7 @@ Provides tools for interacting with Google Calendar API:
 import json
 from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -19,6 +20,15 @@ from mcp.types import TextContent, Tool
 
 
 server = Server("google-calendar")
+
+# Hardcoded timezone for all calendar operations (for now).
+TIMEZONE_NAME = "Asia/Kolkata"
+IST = ZoneInfo(TIMEZONE_NAME)
+
+
+def now_ist() -> datetime:
+    """Current timezone-aware datetime in Asia/Kolkata (IST)."""
+    return datetime.now(IST)
 
 
 def get_calendar_service(auth_token: str):
@@ -216,18 +226,19 @@ async def _list_events(
     """
     try:
         service = get_calendar_service(auth_token)
-        now = datetime.utcnow()
+        now = now_ist()
         time_max = now + timedelta(days=days_ahead)
 
         events_result = (
             service.events()
             .list(
                 calendarId="primary",
-                timeMin=now.isoformat() + "Z",
-                timeMax=time_max.isoformat() + "Z",
+                timeMin=now.isoformat(),
+                timeMax=time_max.isoformat(),
                 maxResults=max_results,
                 singleEvents=True,
                 orderBy="startTime",
+                timeZone=TIMEZONE_NAME,
             )
             .execute()
         )
@@ -271,8 +282,8 @@ async def _create_event(auth_token: str, arguments: dict) -> dict:
         duration_minutes = arguments.get("duration_minutes", 60)
 
         if not start_time:
-            # Default to next available hour
-            now = datetime.utcnow()
+            # Default to the next available hour, in IST.
+            now = now_ist()
             start_time = now.replace(minute=0, second=0, microsecond=0) + timedelta(
                 hours=1
             )
@@ -280,6 +291,10 @@ async def _create_event(auth_token: str, arguments: dict) -> dict:
 
         if not end_time:
             start_dt = datetime.fromisoformat(start_time)
+            # Ensure the start is timezone-aware (assume IST when naive).
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=IST)
+                start_time = start_dt.isoformat()
             end_dt = start_dt + timedelta(minutes=duration_minutes)
             end_time = end_dt.isoformat()
 
@@ -287,8 +302,8 @@ async def _create_event(auth_token: str, arguments: dict) -> dict:
             "summary": arguments.get("summary", "New Event"),
             "description": arguments.get("description", ""),
             "location": arguments.get("location", ""),
-            "start": {"dateTime": start_time, "timeZone": "UTC"},
-            "end": {"dateTime": end_time, "timeZone": "UTC"},
+            "start": {"dateTime": start_time, "timeZone": TIMEZONE_NAME},
+            "end": {"dateTime": end_time, "timeZone": TIMEZONE_NAME},
         }
 
         # Add attendees if provided
@@ -330,7 +345,7 @@ async def _find_free_slots(
     """
     try:
         service = get_calendar_service(auth_token)
-        now = datetime.utcnow()
+        now = now_ist()
 
         # Fetch all events in the range
         time_max = now + timedelta(days=days_ahead)
@@ -338,24 +353,27 @@ async def _find_free_slots(
             service.events()
             .list(
                 calendarId="primary",
-                timeMin=now.isoformat() + "Z",
-                timeMax=time_max.isoformat() + "Z",
+                timeMin=now.isoformat(),
+                timeMax=time_max.isoformat(),
                 singleEvents=True,
                 orderBy="startTime",
+                timeZone=TIMEZONE_NAME,
             )
             .execute()
         )
         events = events_result.get("items", [])
 
-        # Build list of busy times
+        # Build list of busy times (timezone-aware in IST)
         busy_times = []
         for event in events:
             start = event.get("start", {}).get("dateTime")
             end = event.get("end", {}).get("dateTime")
             if start and end:
                 busy_times.append(
-                    (datetime.fromisoformat(start.replace("Z", "+00:00")),
-                     datetime.fromisoformat(end.replace("Z", "+00:00")))
+                    (
+                        datetime.fromisoformat(start.replace("Z", "+00:00")).astimezone(IST),
+                        datetime.fromisoformat(end.replace("Z", "+00:00")).astimezone(IST),
+                    )
                 )
 
         # Find free slots within working hours
@@ -366,11 +384,11 @@ async def _find_free_slots(
             check_date = current_day + timedelta(days=day_offset)
             day_start = datetime(
                 check_date.year, check_date.month, check_date.day,
-                working_hours_start, 0, 0,
+                working_hours_start, 0, 0, tzinfo=IST,
             )
             day_end = datetime(
                 check_date.year, check_date.month, check_date.day,
-                working_hours_end, 0, 0,
+                working_hours_end, 0, 0, tzinfo=IST,
             )
 
             # Skip if day_start is in the past
@@ -380,27 +398,24 @@ async def _find_free_slots(
             # Find gaps in this day
             slot_start = day_start
             for busy_start, busy_end in busy_times:
-                busy_start_naive = busy_start.replace(tzinfo=None)
-                busy_end_naive = busy_end.replace(tzinfo=None)
-
-                if busy_start_naive > day_end:
+                if busy_start > day_end:
                     break
-                if busy_end_naive < slot_start:
+                if busy_end < slot_start:
                     continue
 
                 # Check if there is a gap before this event
-                if busy_start_naive > slot_start:
-                    gap_minutes = (busy_start_naive - slot_start).total_seconds() / 60
+                if busy_start > slot_start:
+                    gap_minutes = (busy_start - slot_start).total_seconds() / 60
                     if gap_minutes >= duration_minutes:
                         free_slots.append(
                             {
                                 "start": slot_start.isoformat(),
-                                "end": busy_start_naive.isoformat(),
+                                "end": busy_start.isoformat(),
                                 "duration_minutes": int(gap_minutes),
                             }
                         )
 
-                slot_start = max(slot_start, busy_end_naive)
+                slot_start = max(slot_start, busy_end)
 
             # Check remaining time after last event
             if slot_start < day_end:

@@ -273,11 +273,17 @@ class TestSchedulerAgent:
 
         assert result["action"] == "create_event"
         assert "Meeting" in result["content"]
-        assert "Done!" in result["content"]
+        assert "Done" in result["content"]
+        # No clarification needed -> nothing pending.
+        assert result.get("pending_action") is None
 
-        # Verify start_time was passed to MCP
-        self.mock_mcp.call_tool.assert_called_once()
-        call_args = self.mock_mcp.call_tool.call_args[0]
+        # The scheduler runs a conflict check (list_events) then create_event.
+        create_calls = [
+            c for c in self.mock_mcp.call_tool.call_args_list
+            if c[0][1] == "create_event"
+        ]
+        assert len(create_calls) == 1
+        call_args = create_calls[0][0]
         assert call_args[0] == "google-calendar"
         assert call_args[1] == "create_event"
         tool_arguments = call_args[2]
@@ -285,26 +291,28 @@ class TestSchedulerAgent:
         assert "18:00:00" in tool_arguments["start_time"]
 
     async def test_scheduler_resolve_start_time_today(self):
-        """Test _resolve_start_time with 'today HH:MM' format."""
+        """Test _resolve_start_time with 'today HH:MM' format (IST-grounded)."""
         from app.agents.scheduler import SchedulerAgent
+        from app.utils.timectx import now_ist
         from datetime import datetime
 
         result = SchedulerAgent._resolve_start_time("today 18:00")
         dt = datetime.fromisoformat(result)
         assert dt.hour == 18
         assert dt.minute == 0
-        assert dt.date() == datetime.now().date()
+        assert dt.date() == now_ist().date()
 
     async def test_scheduler_resolve_start_time_tomorrow(self):
-        """Test _resolve_start_time with 'tomorrow HH:MM' format."""
+        """Test _resolve_start_time with 'tomorrow HH:MM' format (IST-grounded)."""
         from app.agents.scheduler import SchedulerAgent
+        from app.utils.timectx import now_ist
         from datetime import datetime, timedelta
 
         result = SchedulerAgent._resolve_start_time("tomorrow 15:00")
         dt = datetime.fromisoformat(result)
         assert dt.hour == 15
         assert dt.minute == 0
-        assert dt.date() == (datetime.now() + timedelta(days=1)).date()
+        assert dt.date() == (now_ist() + timedelta(days=1)).date()
 
     async def test_scheduler_resolve_start_time_iso_passthrough(self):
         """Test _resolve_start_time passes through ISO format."""
@@ -317,12 +325,13 @@ class TestSchedulerAgent:
     async def test_scheduler_resolve_start_time_fallback(self):
         """Test _resolve_start_time defaults to next hour on unparseable input."""
         from app.agents.scheduler import SchedulerAgent
+        from app.utils.timectx import now_ist
         from datetime import datetime
 
         result = SchedulerAgent._resolve_start_time("some random text")
         dt = datetime.fromisoformat(result)
-        # Should be in the future (next hour)
-        assert dt > datetime.now()
+        # Should be a timezone-aware IST datetime in the future (next hour).
+        assert dt > now_ist()
 
 
 class TestNotificationAgent:

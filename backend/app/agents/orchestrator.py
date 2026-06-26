@@ -5,6 +5,7 @@ Analyzes user intent using Gemini 2.5 Flash via Vertex AI and routes to speciali
 
 import json
 import logging
+import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase, AgentRegistry
 from app.config import settings
+from app.utils.timectx import time_context_string
 
 
 SYSTEM_PROMPT = """You are ChronAI's orchestrator agent. Your PRIMARY job is to route user requests to specialist agents. You are NOT a chatbot. You are a router.
@@ -49,6 +51,8 @@ EXAMPLES of correct routing:
 - "There's a team standup at 10am every Monday" -> scheduler with instruction "Create event: team standup, Monday at 10am"
 - "Add gym to my calendar at 7am" -> scheduler with instruction "Create event: gym, today at 7am"
 - "Move my 4pm meeting to 5pm" -> scheduler with instruction "Reschedule: move the 4pm event to 5pm today"
+- "Cancel my dentist appointment" -> scheduler with instruction "Delete event: dentist appointment"
+- "Delete the standup tomorrow" -> scheduler with instruction "Delete event: standup tomorrow"
 - "Hello!" -> direct_response: "Hey! I'm ChronAI, your AI productivity assistant. I can help you manage your calendar, tasks, emails, and reminders. What would you like to do?"
 
 Respond with a JSON object:
@@ -104,9 +108,25 @@ class OrchestratorAgent(AgentBase):
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
         conversation_history: list[dict] = task.get("conversation_history", [])
+        pending_action: dict | None = task.get("pending_action")
 
         # Add user message to per-connection history
         conversation_history.append({"role": "user", "content": message})
+
+        # If a clarification/confirmation is pending from a previous turn, try
+        # to interpret this message as the answer before any fresh routing.
+        if pending_action:
+            handled = await self._handle_pending(
+                message, pending_action, task, status_callback
+            )
+            if handled is not None:
+                conversation_history.append(
+                    {"role": "assistant", "content": handled["content"]}
+                )
+                return handled
+            # The user changed topic -> drop the stale pending action and route
+            # this message normally below.
+            logger.info("[orchestrator] Pending action abandoned; routing normally.")
 
         # Analyze intent with Gemini
         routing = await self._analyze_intent(message, conversation_history)
@@ -123,6 +143,7 @@ class OrchestratorAgent(AgentBase):
                 "content": response_content,
                 "agent": self.name,
                 "metadata": {"intent": routing.get("intent", ""), "routed_to": []},
+                "pending_action": None,
             }
 
         # Route to specialist agents
@@ -158,6 +179,13 @@ class OrchestratorAgent(AgentBase):
                 logger.info(f"[orchestrator] '{agent_name}' responded with {len(result.get('content', ''))} chars")
                 results.append(result)
 
+        # An agent may ask for clarification or confirmation; capture the first
+        # pending action so the caller can remember it for the next turn.
+        new_pending = next(
+            (r.get("pending_action") for r in results if r.get("pending_action")),
+            None,
+        )
+
         # Consolidate responses (single-agent answers are returned directly,
         # with NO extra Gemini call).
         consolidated = await self._consolidate_responses(message, results)
@@ -173,7 +201,126 @@ class OrchestratorAgent(AgentBase):
                 "intent": routing.get("intent", ""),
                 "routed_to": routing.get("agents", []),
             },
+            "pending_action": new_pending,
         }
+
+    async def _handle_pending(
+        self,
+        message: str,
+        pending_action: dict,
+        task: dict,
+        status_callback: Any = None,
+    ) -> dict | None:
+        """Try to resolve a pending clarification with the user's new message.
+
+        Returns a full result dict (with an updated/cleared ``pending_action``)
+        when the message is interpreted as an answer to the pending question.
+        Returns ``None`` when the user appears to have changed topic, signalling
+        the caller to drop the pending action and route normally.
+        """
+        resolution = await self._classify_pending_answer(message, pending_action)
+        if resolution == "new_topic":
+            return None
+
+        agent_name = pending_action.get("agent", "")
+        agent = AgentRegistry.get(agent_name)
+        if not agent:
+            return None
+
+        if status_callback:
+            try:
+                await status_callback(
+                    {
+                        "type": "status",
+                        "content": self._status_for(agent_name),
+                        "agent": agent_name,
+                    }
+                )
+            except Exception as e:
+                logger.warning(f"[orchestrator] status_callback failed: {e}")
+
+        logger.info(
+            f"[orchestrator] Completing pending '{pending_action.get('awaiting')}' "
+            f"with agent '{agent_name}'."
+        )
+        result = await agent.execute(
+            {
+                "message": message,
+                "original_message": message,
+                "auth_token": task.get("auth_token", ""),
+                "user_id": task.get("user", {}).get("sub", "")
+                if isinstance(task.get("user"), dict)
+                else "",
+                "pending_action": pending_action,
+            }
+        )
+        return {
+            "content": result.get("content", ""),
+            "agent": self.name,
+            "metadata": {
+                "intent": "pending_followup",
+                "routed_to": [agent_name],
+            },
+            "pending_action": result.get("pending_action"),
+        }
+
+    async def _classify_pending_answer(self, message: str, pending_action: dict) -> str:
+        """Decide whether ``message`` answers the pending question or is new.
+
+        Returns "answer" or "new_topic". Uses Gemini for nuance, with a
+        keyword/length heuristic fallback so it stays robust offline.
+        """
+        question = pending_action.get("question", "")
+        awaiting = pending_action.get("awaiting", "")
+
+        prompt = f"""A conversational assistant previously asked the user a question and is
+waiting for a specific piece of information.
+
+Assistant's pending question: "{question}"
+The kind of answer expected: {awaiting}
+
+The user just sent: "{message}"
+
+Decide if the user's message is ANSWERING that pending question (providing the
+requested detail, confirming, or declining), or if they have CHANGED THE TOPIC
+to a brand-new, unrelated request.
+
+Respond with JSON: {{"resolution": "answer"}} or {{"resolution": "new_topic"}}."""
+
+        text = await self.generate(
+            prompt,
+            generation_config={"response_mime_type": "application/json"},
+            fallback="",
+        )
+        try:
+            parsed = json.loads(text)
+            resolution = parsed.get("resolution", "")
+            if resolution in ("answer", "new_topic"):
+                return resolution
+        except Exception:
+            pass
+
+        # Heuristic fallback: short replies are almost always answers.
+        return self._heuristic_pending_answer(message)
+
+    @staticmethod
+    def _heuristic_pending_answer(message: str) -> str:
+        """Cheap fallback: treat short/affirmative/time-ish replies as answers."""
+        low = message.strip().lower()
+        words = low.split()
+        answerish = (
+            "yes", "yeah", "yep", "sure", "ok", "okay", "no", "nope", "cancel",
+            "anyway", "today", "tomorrow", "tonight", "monday", "tuesday",
+            "wednesday", "thursday", "friday", "saturday", "sunday", "am", "pm",
+            "noon", "midnight", "min", "minutes", "hour", "hours",
+        )
+        if any(w in low for w in answerish):
+            return "answer"
+        if re.search(r"\d", low) and len(words) <= 6:
+            return "answer"
+        if len(words) <= 3:
+            return "answer"
+        return "new_topic"
 
     @staticmethod
     def _status_for(agent_name: str) -> str:
@@ -205,6 +352,8 @@ class OrchestratorAgent(AgentBase):
                 history_text += f"{role}: {content}\n"
 
             prompt = f"""{SYSTEM_PROMPT}
+
+{time_context_string()}
 
 Conversation history:
 {history_text}
