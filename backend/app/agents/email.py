@@ -135,32 +135,8 @@ class EmailAgent(AgentBase):
         }
 
     async def _ensure_gmail_connected(self) -> None:
-        """Lazily connect the Gmail MCP server if it failed at startup."""
-        if not self.mcp_client:
-            return
-        if "google-gmail" in self.mcp_client.list_servers():
-            return  # Already connected
-
-        import logging
-        import sys
-        from pathlib import Path
-
-        logger = logging.getLogger(__name__)
-        logger.info("[email] Gmail MCP not connected — attempting lazy connection...")
-
-        base_dir = Path(__file__).resolve().parent.parent.parent  # backend/
-        from app.config import settings
-        gmail_path = str((base_dir / settings.MCP_GMAIL_PATH).resolve())
-
-        try:
-            await self.mcp_client.connect_server(
-                name="google-gmail",
-                command=sys.executable,
-                args=[gmail_path],
-            )
-            logger.info("[email] Gmail MCP connected successfully on retry!")
-        except Exception as e:
-            logger.error(f"[email] Gmail MCP lazy connection failed: {e}")
+        """Check if Gmail MCP is available. If not, we use direct API calls."""
+        pass  # Gmail now uses direct API calls as fallback — no MCP dependency required
 
     async def _plan_action(self, message: str) -> dict:
         """Use Gemini to determine which email action to take.
@@ -190,7 +166,7 @@ User instruction: {message}"""
             }
 
     async def _draft_email(self, auth_token: str, parameters: dict) -> dict:
-        """Create a draft email via MCP.
+        """Create a draft email via MCP or direct API.
 
         Args:
             auth_token: Google OAuth access token.
@@ -200,113 +176,110 @@ User instruction: {message}"""
             Draft creation result.
         """
         try:
-            result = await self.call_mcp_tool(
-                "google-gmail",
-                "draft_email",
-                {
-                    "auth_token": auth_token,
-                    "to": parameters.get("to", ""),
-                    "subject": parameters.get("subject", ""),
-                    "body": parameters.get("body", ""),
-                },
-            )
-            return result
+            # Try MCP first, fall back to direct API
+            if self.mcp_client and "google-gmail" in self.mcp_client.list_servers():
+                return await self.call_mcp_tool(
+                    "google-gmail", "draft_email",
+                    {"auth_token": auth_token, "to": parameters.get("to", ""),
+                     "subject": parameters.get("subject", ""), "body": parameters.get("body", "")},
+                )
+
+            # Direct Gmail API fallback
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+            from email.mime.text import MIMEText
+            import base64
+
+            credentials = Credentials(token=auth_token)
+            service = build("gmail", "v1", credentials=credentials)
+
+            msg = MIMEText(parameters.get("body", ""))
+            msg["to"] = parameters.get("to", "")
+            msg["subject"] = parameters.get("subject", "")
+            raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
+            draft = service.users().drafts().create(
+                userId="me", body={"message": {"raw": raw}}
+            ).execute()
+            return {"id": draft.get("id", ""), "success": True}
         except Exception as e:
             return {"error": str(e)}
 
     async def _send_email(self, auth_token: str, parameters: dict) -> dict:
-        """Send an email via MCP.
-
-        Args:
-            auth_token: Google OAuth access token.
-            parameters: Dict with 'to', 'subject', 'body'.
-
-        Returns:
-            Send result.
-        """
+        """Send an email via MCP or direct API."""
         try:
-            result = await self.call_mcp_tool(
-                "google-gmail",
-                "send_email",
-                {
-                    "auth_token": auth_token,
-                    "to": parameters.get("to", ""),
-                    "subject": parameters.get("subject", ""),
-                    "body": parameters.get("body", ""),
-                },
-            )
-            return result
+            if self.mcp_client and "google-gmail" in self.mcp_client.list_servers():
+                return await self.call_mcp_tool(
+                    "google-gmail", "send_email",
+                    {"auth_token": auth_token, "to": parameters.get("to", ""),
+                     "subject": parameters.get("subject", ""), "body": parameters.get("body", "")},
+                )
+
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+            from email.mime.text import MIMEText
+            import base64
+
+            credentials = Credentials(token=auth_token)
+            service = build("gmail", "v1", credentials=credentials)
+
+            msg = MIMEText(parameters.get("body", ""))
+            msg["to"] = parameters.get("to", "")
+            msg["subject"] = parameters.get("subject", "")
+            raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
+            sent = service.users().messages().send(
+                userId="me", body={"raw": raw}
+            ).execute()
+            return {"id": sent.get("id", ""), "success": True}
         except Exception as e:
             return {"error": str(e)}
 
     async def _summarize_emails(self, auth_token: str, parameters: dict) -> dict:
-        """List and summarize recent emails.
-
-        Args:
-            auth_token: Google OAuth access token.
-            parameters: Dict with optional 'max_results'.
-
-        Returns:
-            Summary of recent emails.
-        """
+        """List and summarize recent emails."""
         try:
-            # First, list recent emails
-            emails = await self.call_mcp_tool(
-                "google-gmail",
-                "list_emails",
-                {
-                    "auth_token": auth_token,
-                    "max_results": parameters.get("max_results", 10),
-                },
-            )
-            return {"emails": emails, "count": len(emails) if isinstance(emails, list) else 0}
+            if self.mcp_client and "google-gmail" in self.mcp_client.list_servers():
+                emails = await self.call_mcp_tool(
+                    "google-gmail", "list_emails",
+                    {"auth_token": auth_token, "max_results": parameters.get("max_results", 10)},
+                )
+                return {"emails": emails, "count": len(emails) if isinstance(emails, list) else 0}
+
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+
+            credentials = Credentials(token=auth_token)
+            service = build("gmail", "v1", credentials=credentials)
+            results = service.users().messages().list(
+                userId="me", maxResults=parameters.get("max_results", 10), labelIds=["INBOX"]
+            ).execute()
+            return {"emails": results.get("messages", []), "count": results.get("resultSizeEstimate", 0)}
         except Exception as e:
             return {"error": str(e)}
 
     async def _search_emails(self, auth_token: str, parameters: dict) -> dict:
-        """Search emails via MCP.
-
-        Args:
-            auth_token: Google OAuth access token.
-            parameters: Dict with 'query' and optional 'max_results'.
-
-        Returns:
-            Search results.
-        """
+        """Search emails."""
         try:
-            result = await self.call_mcp_tool(
-                "google-gmail",
-                "search_emails",
-                {
-                    "auth_token": auth_token,
-                    "query": parameters.get("query", ""),
-                    "max_results": parameters.get("max_results", 10),
-                },
-            )
-            return {"emails": result, "count": len(result) if isinstance(result, list) else 0}
+            if self.mcp_client and "google-gmail" in self.mcp_client.list_servers():
+                result = await self.call_mcp_tool(
+                    "google-gmail", "search_emails",
+                    {"auth_token": auth_token, "query": parameters.get("query", ""),
+                     "max_results": parameters.get("max_results", 10)},
+                )
+                return {"emails": result, "count": len(result) if isinstance(result, list) else 0}
+
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+
+            credentials = Credentials(token=auth_token)
+            service = build("gmail", "v1", credentials=credentials)
+            results = service.users().messages().list(
+                userId="me", q=parameters.get("query", ""), maxResults=parameters.get("max_results", 10)
+            ).execute()
+            return {"emails": results.get("messages", []), "count": results.get("resultSizeEstimate", 0)}
         except Exception as e:
             return {"error": str(e)}
 
     async def _list_emails(self, auth_token: str, parameters: dict) -> dict:
-        """List recent emails via MCP.
-
-        Args:
-            auth_token: Google OAuth access token.
-            parameters: Dict with optional 'max_results' and 'label_ids'.
-
-        Returns:
-            List of recent emails.
-        """
-        try:
-            result = await self.call_mcp_tool(
-                "google-gmail",
-                "list_emails",
-                {
-                    "auth_token": auth_token,
-                    "max_results": parameters.get("max_results", 10),
-                    "label_ids": parameters.get("label_ids", ["INBOX"]),
-                },
-            )
-            return {"emails": result, "count": len(result) if isinstance(result, list) else 0}
-        except Exception as e:
-            return {"error": str(e)}
+        """List recent emails."""
+        return await self._summarize_emails(auth_token, parameters)
