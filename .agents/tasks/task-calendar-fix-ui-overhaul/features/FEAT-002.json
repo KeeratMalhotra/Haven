@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Complete frontend UI overhaul - Particle system redesign (broken torus waveform), HUD labels, typing indicator, connection status panel, settings page, and dashboard layout improvements",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "PARTICLE SYSTEM REDESIGN - Update frontend/components/entity/ParticleSystem.tsx: Increase PARTICLE_COUNT to 6000. Change the position generation to create a torus/ring shape: for each particle, compute angle theta = (i / PARTICLE_COUNT) * 2*PI * tubeWindings, and phi = (i / PARTICLE_COUNT) * 2*PI. Base torus: majorRadius=2.0, tubeRadius=0.3. Add waveform distortion: tubeRadius += sin(theta*5)*0.15 + sin(theta*13)*0.08 + sin(theta*7)*0.1 to create the broken-sphere look. Add small random jitter (0.05). Store the angle 'theta' in the phases array for color gradient. Keep existing uniforms and mouse/audio logic.",
     "VERTEX SHADER REDESIGN - Rewrite frontend/components/entity/shaders/vertex.glsl: Keep all existing uniforms and attributes. Change the idle animation to use undulation: displace particles along their torus normal direction using sin waves that evolve with uTime. For audio reactivity, increase the displacement amplitude dramatically (multiply by uAudioBass * 2.0 and uAudioFrequency * 1.5). Mouse interaction should be REPULSION not attraction: compute direction from mouse to particle, apply force that pushes particles AWAY when within a distance threshold (smoothstep from 2.0 to 0.0). Add breathing: subtle radius pulsing with sin(uTime * 0.8). Set gl_PointSize to (2.0 + aRandom * 1.5 + uAudioBass * 2.0) * (250.0 / -mvPosition.z) for smaller, sharper particles. Color: use aPhase (which stores the angle around torus) to create gradient from vec3(1.0, 0.0, 0.8) (magenta) to vec3(0.0, 0.9, 1.0) (cyan) using mix based on aPhase.",
@@ -41,5 +41,5 @@
     "Verify BackgroundParticles exists: ls components/entity/BackgroundParticles.tsx"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 11 sub-tasks implemented successfully. Build passes with only img element lint warnings (not errors). Used inline shader strings for BackgroundParticles to avoid extra .glsl files. Settings page uses hardcoded connected status as specified. Typing indicator animation uses CSS @apply with custom keyframes in globals.css."
 }
