@@ -367,13 +367,43 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
     def _python_merge(message: str, partial: dict, awaiting: str) -> dict:
         """Best-effort, model-free merge of an answer into a partial event."""
         details = dict(partial)
+        reply = message.strip()
+
+        # Handle "same time" references: pull the time from the original event.
+        if any(phrase in reply.lower() for phrase in ("same time", "same", "keep the same", "keep it")):
+            original = details.get("original_time", "")
+            if original:
+                # Extract just the time portion from the original ISO datetime
+                # and combine with any new date context already in the partial.
+                try:
+                    orig_dt = datetime.fromisoformat(original.replace("Z", "+00:00"))
+                    if orig_dt.tzinfo is None:
+                        orig_dt = orig_dt.replace(tzinfo=IST)
+                    orig_dt = orig_dt.astimezone(IST)
+                    time_str = orig_dt.strftime("%H:%M")
+                    # If we have a stored date phrase, combine it with the original time.
+                    existing_date = (
+                        details.get("date_phrase") or details.get("start_time") or ""
+                    ).strip()
+                    if existing_date:
+                        combined = f"{existing_date} {time_str}"
+                    else:
+                        combined = original
+                    details["start_time"] = combined
+                    resolved = resolve_relative(combined, base=now_ist())
+                    if resolved:
+                        details["start_time"] = resolved
+                    intent = "reschedule" if details.get("match") else "create"
+                    return {"action": "reschedule_event" if intent == "reschedule" else "create_event", "event_details": details}
+                except (ValueError, AttributeError):
+                    pass
+
         # The stored date context may live in "date_phrase" (explicit) or in
         # "start_time" (the raw day/date the user originally gave, e.g.
         # "tomorrow"). We use date_phrase first if available.
         existing = (
             details.get("date_phrase") or details.get("start_time") or ""
         ).strip()
-        reply = message.strip()
 
         if awaiting == "date":
             # The reply provides the day; keep any existing time component.
@@ -386,7 +416,7 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
         if resolve_relative(combined, base=now_ist()) is None:
             return {
                 "action": "needs_info",
-                "question": "Sorry, I didn't catch the time — what time should I use?",
+                "question": "Sorry, I didn't catch the time -- what time should I use?",
                 "pending": details,
                 "awaiting": "time",
                 "intent": "create",
@@ -549,6 +579,8 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
 
         if new_iso is None:
             # We know which event but not the new time -> ask.
+            # Store the original event's start time so "same time" can reference it.
+            original_time = target.get("start", "")
             pending = {
                 "agent": self.name,
                 "intent": "reschedule",
@@ -557,6 +589,7 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
                 "partial": {
                     "summary": target.get("summary", "Event"),
                     "match": match,
+                    "original_time": original_time,
                 },
             }
             return self._result(pending["question"], "needs_info", pending)

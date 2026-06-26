@@ -24,9 +24,10 @@ export class WebSocketClient {
   private ws: WebSocket | null = null;
   private listeners: Map<EventType, EventHandler[]> = new Map();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
+  private maxReconnectAttempts = 10;
+  private reconnectDelay = 500;
   private shouldReconnect = true;
+  private pendingMessages: MessagePayload[] = [];
 
   constructor(url: string) {
     this.url = url;
@@ -65,6 +66,7 @@ export class WebSocketClient {
 
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;
+        this.flushPendingMessages();
         this.emit("open");
       };
 
@@ -91,13 +93,29 @@ export class WebSocketClient {
   }
 
   /**
-   * Send a message to the server.
+   * Send a message to the server. If disconnected, queue it for delivery on reconnect.
    */
   send(payload: MessagePayload): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(payload));
     } else {
-      console.warn("WebSocket is not connected. Message not sent.");
+      this.pendingMessages.push(payload);
+    }
+  }
+
+  /**
+   * Flush any messages that were queued while disconnected.
+   */
+  private flushPendingMessages(): void {
+    while (this.pendingMessages.length > 0) {
+      const payload = this.pendingMessages.shift()!;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify(payload));
+      } else {
+        // Connection lost again mid-flush; put it back and stop.
+        this.pendingMessages.unshift(payload);
+        break;
+      }
     }
   }
 
@@ -126,6 +144,7 @@ export class WebSocketClient {
       this.ws = null;
     }
     this.listeners.clear();
+    this.pendingMessages = [];
   }
 
   /**

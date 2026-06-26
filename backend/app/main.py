@@ -81,34 +81,42 @@ async def lifespan(app: FastAPI):
     # Store mcp_client on app state for dependency injection
     app.state.mcp_client = mcp_client
 
+    # Resolve MCP server paths relative to the backend directory so that
+    # relative paths (e.g. "../mcp-servers/...") work correctly on Windows.
+    base_dir = Path(__file__).resolve().parent.parent  # points to backend/
+    calendar_path = str((base_dir / settings.MCP_CALENDAR_PATH).resolve())
+    tasks_path = str((base_dir / settings.MCP_TASKS_PATH).resolve())
+    gmail_path = str((base_dir / settings.MCP_GMAIL_PATH).resolve())
+
+    logger = logging.getLogger(__name__)
+
     # Connect to MCP servers (they run as subprocesses)
     try:
         await mcp_client.connect_server(
             name="google-calendar",
             command="python",
-            args=[settings.MCP_CALENDAR_PATH],
+            args=[calendar_path],
         )
-    except Exception:
-        # Server will be connected when available
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to connect MCP server 'google-calendar': {e}")
 
     try:
         await mcp_client.connect_server(
             name="google-tasks",
             command="python",
-            args=[settings.MCP_TASKS_PATH],
+            args=[tasks_path],
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to connect MCP server 'google-tasks': {e}")
 
     try:
         await mcp_client.connect_server(
             name="google-gmail",
             command="python",
-            args=[settings.MCP_GMAIL_PATH],
+            args=[gmail_path],
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to connect MCP server 'google-gmail': {e}")
 
     # Register agents
     OrchestratorAgent(mcp_client=mcp_client)
