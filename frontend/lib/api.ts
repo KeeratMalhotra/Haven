@@ -75,3 +75,32 @@ export async function fetchCalendarEvents(
   );
   return Array.isArray(data.events) ? data.events : [];
 }
+
+export async function fetchOnboardingStatus(
+  authToken: string
+): Promise<{ complete: boolean }> {
+  if (!authToken) return { complete: false };
+  return safeGet<{ complete: boolean }>(
+    `/api/onboarding/status?auth_token=${encodeURIComponent(authToken)}`,
+    { complete: false }
+  );
+}
+
+export async function postOnboarding(
+  authToken: string,
+  profile: object
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(
+      `${getApiBase()}/api/onboarding?auth_token=${encodeURIComponent(authToken)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      }
+    );
+  } catch {
+    // silently fail
+  }
+}

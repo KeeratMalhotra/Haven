@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import AmbientBackground from "@/components/ui/AmbientBackground";
 import TopBar from "@/components/layout/TopBar";
 import SideDock, { type PanelKey } from "@/components/layout/SideDock";
@@ -11,12 +12,24 @@ import TasksDrawer from "@/components/drawers/TasksDrawer";
 import ScheduleDrawer from "@/components/drawers/ScheduleDrawer";
 import HabitsDrawer from "@/components/drawers/HabitsDrawer";
 import type { ConnectionState } from "@/hooks/useChatSocket";
+import { fetchOnboardingStatus } from "@/lib/api";
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const accessToken =
     ((session as Record<string, unknown> | null)?.accessToken as string) || "";
   const user = session?.user;
+
+  // Onboarding gate: redirect to /onboarding if profile is not complete
+  useEffect(() => {
+    if (status !== "authenticated" || !accessToken) return;
+    fetchOnboardingStatus(accessToken).then((data) => {
+      if (!data.complete) {
+        router.push("/onboarding");
+      }
+    });
+  }, [status, accessToken, router]);
 
   const [activePanel, setActivePanel] = useState<PanelKey | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("connecting");

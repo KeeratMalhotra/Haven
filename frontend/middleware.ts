@@ -4,7 +4,8 @@ import { getToken } from "next-auth/jwt";
 
 /**
  * Middleware to protect routes.
- * Redirects unauthenticated users to the landing page when accessing /dashboard.
+ * Redirects unauthenticated users to the landing page when accessing
+ * /dashboard or /onboarding.
  */
 export async function middleware(request: NextRequest) {
   const token = await getToken({
@@ -23,9 +24,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Protect /onboarding and all sub-routes
+  if (pathname.startsWith("/onboarding")) {
+    if (!token) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/onboarding/:path*"],
 };

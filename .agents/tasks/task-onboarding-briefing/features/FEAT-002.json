@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Frontend: Onboarding page with step-by-step flow, onboarding gate on dashboard, personalized greeting, and middleware protection",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "1. Create frontend/app/onboarding/page.tsx: A step-by-step onboarding flow (3-4 steps) with Framer Motion transitions. Step 1: Role selector (student/professional/entrepreneur/freelancer/other) + Occupation text input. Step 2: Work hours (start/end selectors), wake/sleep time, daily routine textarea. Step 3: Priority chips multi-select + Goals textarea. Step 4: Summary of selections + 'Start using ChronAI' button. Use premium dark aesthetic: glass panels (bg-white/5 backdrop-blur-xl border border-white/10), accent gradients, spacious layout. On completion: POST to backend /api/onboarding?auth_token=... with the profile data, then redirect to /dashboard.",
     "2. Update frontend/middleware.ts: Add /onboarding to the matcher and protected routes. If no token, redirect to /. The config.matcher should include '/onboarding/:path*'.",

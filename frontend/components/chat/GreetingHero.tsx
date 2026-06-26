@@ -12,6 +12,13 @@ const GREETINGS = [
   "What's next for you?",
 ];
 
+function getTimeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 /**
  * GreetingHero
  * A huge, soft gradient greeting centered on the canvas. It dissolves upward
@@ -23,6 +30,9 @@ export default function GreetingHero({ name }: { name?: string }) {
     []
   );
 
+  const timeGreeting = useMemo(() => getTimeOfDayGreeting(), []);
+  const firstName = name?.split(" ")[0];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16, scale: 0.98 }}
@@ -31,16 +41,14 @@ export default function GreetingHero({ name }: { name?: string }) {
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="pointer-events-none flex flex-col items-center justify-center px-6 text-center"
     >
-      {name && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.6 }}
-          className="mb-5 font-mono text-xs uppercase tracking-[0.35em] text-white/35"
-        >
-          Hello, {name.split(" ")[0]}
-        </motion.p>
-      )}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15, duration: 0.6 }}
+        className="mb-5 font-mono text-xs uppercase tracking-[0.35em] text-white/35"
+      >
+        {firstName ? `${timeGreeting}, ${firstName}` : timeGreeting}
+      </motion.p>
       <h1 className="gradient-text-soft max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl">
         {greeting}
       </h1>
