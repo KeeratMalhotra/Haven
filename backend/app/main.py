@@ -12,6 +12,7 @@ from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app.agents.base import AgentRegistry
 from app.agents.orchestrator import OrchestratorAgent
@@ -441,17 +442,25 @@ async def get_calendar_events(auth_token: str = "", days_ahead: int = 7):
     return {"events": []}
 
 
+class CreateEventRequest(BaseModel):
+    """Request body for creating a calendar event."""
+    summary: str
+    start_time: str
+    duration_minutes: int = 60
+    auth_token: str
+
+
 @app.post("/api/calendar/events")
-async def create_calendar_event(body: dict):
+async def create_calendar_event(body: CreateEventRequest):
     """Create a new calendar event.
 
     Args:
-        body: JSON body with summary, start_time, duration_minutes, and auth_token.
+        body: Validated JSON body with summary, start_time, duration_minutes, and auth_token.
 
     Returns:
         The created event or error message.
     """
-    auth_token = body.get("auth_token", "")
+    auth_token = body.auth_token
     if not auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -467,9 +476,9 @@ async def create_calendar_event(body: dict):
                 "create_event",
                 {
                     "auth_token": auth_token,
-                    "summary": body.get("summary", ""),
-                    "start_time": body.get("start_time", ""),
-                    "duration_minutes": body.get("duration_minutes", 60),
+                    "summary": body.summary,
+                    "start_time": body.start_time,
+                    "duration_minutes": body.duration_minutes,
                 },
             )
             return result

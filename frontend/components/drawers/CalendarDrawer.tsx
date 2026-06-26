@@ -115,7 +115,7 @@ export default function CalendarDrawer({
       subtitle="Plan your time"
       icon={<CalendarDays size={18} />}
     >
-      <div className="flex flex-col gap-4">
+      <div className="relative flex min-h-full flex-col gap-4 pb-20">
         {/* View Tabs */}
         <ViewTabs active={view} onChange={setView} />
 
@@ -166,17 +166,17 @@ export default function CalendarDrawer({
             </motion.div>
           </AnimatePresence>
         )}
-      </div>
 
-      {/* Floating Add Button */}
-      {!showAddForm && (
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="fixed bottom-6 right-6 z-[60] grid h-12 w-12 place-items-center rounded-full bg-accent-gradient shadow-glow transition-transform hover:scale-110 active:scale-95"
-        >
-          <Plus size={20} className="text-white" />
-        </button>
-      )}
+        {/* Floating Add Button */}
+        {!showAddForm && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="absolute bottom-6 right-6 z-[60] grid h-12 w-12 place-items-center rounded-full bg-accent-gradient shadow-glow transition-transform hover:scale-110 active:scale-95"
+          >
+            <Plus size={20} className="text-white" />
+          </button>
+        )}
+      </div>
     </Drawer>
   );
 }

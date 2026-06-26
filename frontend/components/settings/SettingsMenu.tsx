@@ -52,7 +52,7 @@ export default function SettingsMenu({ name, email, image, accessToken }: Settin
 
       const hasCalendar = scopeString.includes("https://www.googleapis.com/auth/calendar");
       const hasTasks = scopeString.includes("https://www.googleapis.com/auth/tasks");
-      const hasGmail = scopeString.includes("gmail");
+      const hasGmail = scopeString.includes("https://www.googleapis.com/auth/gmail");
 
       setServices([
         { key: "calendar", label: "Google Calendar", icon: Calendar, connected: hasCalendar },
