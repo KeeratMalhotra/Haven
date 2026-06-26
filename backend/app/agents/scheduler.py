@@ -298,6 +298,25 @@ class SchedulerAgent(AgentBase):
             refined["match"] = message
             return await self._do_delete(auth_token, refined)
 
+        # ----- Bug fix: preserve stored date context when completing -----
+        # The pending partial may store the date phrase in "date_phrase" or in
+        # "start_time" (e.g. "tomorrow"). When the user replies with just a
+        # time (e.g. "12 pm"), we must combine the stored date with the new
+        # time so the resolved datetime lands on the correct day.
+        stored_date = (
+            partial.get("date_phrase")
+            or partial.get("start_time")
+            or ""
+        ).strip()
+
+        if awaiting in ("time", None) and stored_date:
+            # Combine stored date phrase with the user's time answer before
+            # sending to _merge_pending, so even the Gemini path sees the full
+            # phrase context in the partial.
+            partial["date_phrase"] = stored_date
+            pending = dict(pending)
+            pending["partial"] = partial
+
         # Filling in a missing time/date for a create (or reschedule).
         merged = await self._merge_pending(message, pending)
         if merged.get("action") == "needs_info":
@@ -348,7 +367,12 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
     def _python_merge(message: str, partial: dict, awaiting: str) -> dict:
         """Best-effort, model-free merge of an answer into a partial event."""
         details = dict(partial)
-        existing = (details.get("start_time") or "").strip()
+        # The stored date context may live in "date_phrase" (explicit) or in
+        # "start_time" (the raw day/date the user originally gave, e.g.
+        # "tomorrow"). We use date_phrase first if available.
+        existing = (
+            details.get("date_phrase") or details.get("start_time") or ""
+        ).strip()
         reply = message.strip()
 
         if awaiting == "date":

@@ -151,6 +151,92 @@ class TestSchedulerClarification:
         expected_date = (now_ist().date()).fromordinal(now_ist().toordinal() + 1).isoformat()
         assert expected_date in start
 
+    async def test_pending_completion_preserves_date_phrase(self):
+        """Bug fix: date_phrase from partial must be used even with Gemini fallback.
+
+        When the scheduler asked 'What time is your meeting tomorrow?' and the
+        user replies '12 pm', the deterministic python_merge must combine
+        'tomorrow' (from partial) with '12 pm' (user's reply) to get
+        'tomorrow 12 pm' which resolves to tomorrow at noon.
+        """
+        # Simulate Gemini returning an empty/unparseable response so the
+        # deterministic _python_merge fallback is triggered.
+        self.mock_model.generate_content.return_value = _gemini("")
+
+        captured = {}
+
+        async def call_tool(server, tool, args):
+            if tool == "list_events":
+                return []
+            if tool == "create_event":
+                captured["args"] = args
+                return {"id": "e2", "summary": "Meeting", "start": args.get("start_time", "")}
+            return {}
+
+        self.mock_mcp.call_tool.side_effect = call_tool
+
+        pending = {
+            "agent": "scheduler",
+            "intent": "create",
+            "awaiting": "time",
+            "question": "What time is your meeting tomorrow?",
+            "partial": {"summary": "Meeting", "start_time": "tomorrow", "duration_minutes": 60},
+        }
+
+        result = await self.agent.execute({
+            "message": "12 pm",
+            "auth_token": "test-token",
+            "pending_action": pending,
+        })
+
+        assert result["action"] == "create_event"
+        assert result["pending_action"] is None
+        # The created event MUST resolve to TOMORROW at 12:00 IST, not today.
+        start = captured["args"]["start_time"]
+        assert "12:00:00" in start
+        expected_date = (now_ist().date()).fromordinal(now_ist().toordinal() + 1).isoformat()
+        assert expected_date in start, (
+            f"Expected tomorrow's date {expected_date} in start_time, got: {start}"
+        )
+
+    async def test_pending_completion_with_date_phrase_field(self):
+        """When partial stores date context in 'date_phrase' field explicitly."""
+        self.mock_model.generate_content.return_value = _gemini("")
+
+        captured = {}
+
+        async def call_tool(server, tool, args):
+            if tool == "list_events":
+                return []
+            if tool == "create_event":
+                captured["args"] = args
+                return {"id": "e3", "summary": "Standup", "start": args.get("start_time", "")}
+            return {}
+
+        self.mock_mcp.call_tool.side_effect = call_tool
+
+        # Scenario: partial has date_phrase explicitly set (not in start_time).
+        pending = {
+            "agent": "scheduler",
+            "intent": "create",
+            "awaiting": "time",
+            "question": "What time is the standup tomorrow?",
+            "partial": {"summary": "Standup", "date_phrase": "tomorrow", "duration_minutes": 30},
+        }
+
+        result = await self.agent.execute({
+            "message": "10 am",
+            "auth_token": "test-token",
+            "pending_action": pending,
+        })
+
+        assert result["action"] == "create_event"
+        assert result["pending_action"] is None
+        start = captured["args"]["start_time"]
+        assert "10:00:00" in start
+        expected_date = (now_ist().date()).fromordinal(now_ist().toordinal() + 1).isoformat()
+        assert expected_date in start
+
     async def test_conflict_detection_asks_before_creating(self):
         """An overlapping event triggers a confirmation instead of a silent create."""
         self.mock_model.generate_content.return_value = _gemini(json.dumps({
@@ -560,3 +646,124 @@ class TestOrchestratorPending:
         # Pending was dropped; planner doesn't set a new one.
         assert result["pending_action"] is None
         mock_planner.execute.assert_called_once()
+
+    async def test_multi_intent_pending_completion(self):
+        """Bug fix: multi-intent messages handle both the answer AND additional requests.
+
+        Example: User says '12 pm and I also need to prepare a presentation'.
+        The pending (scheduler asking for time) should be completed with '12 pm',
+        AND the planner should be invoked for the presentation task.
+        """
+        from app.agents.base import AgentRegistry
+
+        pending = {
+            "agent": "scheduler",
+            "intent": "create",
+            "awaiting": "time",
+            "question": "What time is your meeting tomorrow?",
+            "partial": {"summary": "Meeting", "start_time": "tomorrow"},
+        }
+
+        mock_scheduler = AsyncMock()
+        mock_scheduler.execute = AsyncMock(return_value={
+            "content": 'Done - "Meeting" scheduled for tomorrow at 12:00 PM IST.',
+            "agent": "scheduler",
+            "action": "create_event",
+            "pending_action": None,
+        })
+        AgentRegistry._agents["scheduler"] = mock_scheduler
+
+        mock_planner = AsyncMock()
+        mock_planner.execute = AsyncMock(return_value={
+            "content": 'Added task: "Prepare presentation".',
+            "agent": "planner",
+            "action": "create_tasks",
+            "pending_action": None,
+        })
+        AgentRegistry._agents["planner"] = mock_planner
+
+        # First Gemini call: classify as "answer" (it contains the time).
+        # Second Gemini call: re-route intent analysis picks up planner task.
+        self.mock_model.generate_content.side_effect = [
+            _gemini(json.dumps({"resolution": "answer"})),
+            _gemini(json.dumps({
+                "intent": "multi_intent",
+                "agents": ["scheduler", "planner"],
+                "tasks": [
+                    {"agent": "scheduler", "instruction": "Create event: meeting tomorrow at 12 pm"},
+                    {"agent": "planner", "instruction": "Create task: prepare a presentation"},
+                ],
+                "direct_response": None,
+            })),
+        ]
+
+        result = await self.agent.execute({
+            "message": "12 pm and I also need to prepare a presentation",
+            "auth_token": "test-token",
+            "conversation_history": [],
+            "pending_action": pending,
+        })
+
+        # The scheduler was called to complete the pending action.
+        mock_scheduler.execute.assert_called_once()
+        scheduler_task = mock_scheduler.execute.call_args[0][0]
+        assert scheduler_task["pending_action"] == pending
+
+        # The planner was ALSO called for the additional intent.
+        mock_planner.execute.assert_called_once()
+        planner_task = mock_planner.execute.call_args[0][0]
+        assert "presentation" in planner_task["message"]
+
+        # Response combines both results.
+        assert "Meeting" in result["content"]
+        assert "presentation" in result["content"].lower()
+        # No pending left.
+        assert result["pending_action"] is None
+
+    async def test_multi_intent_no_duplicate_same_agent(self):
+        """After pending completion, do not re-route to the same agent that just handled it."""
+        from app.agents.base import AgentRegistry
+
+        pending = {
+            "agent": "scheduler",
+            "intent": "create",
+            "awaiting": "time",
+            "question": "What time is your meeting tomorrow?",
+            "partial": {"summary": "Meeting", "start_time": "tomorrow"},
+        }
+
+        mock_scheduler = AsyncMock()
+        mock_scheduler.execute = AsyncMock(return_value={
+            "content": 'Done - "Meeting" scheduled.',
+            "agent": "scheduler",
+            "action": "create_event",
+            "pending_action": None,
+        })
+        AgentRegistry._agents["scheduler"] = mock_scheduler
+
+        # First Gemini call: classify as answer.
+        # Second Gemini call: intent analysis only routes to scheduler (the
+        # same agent that just completed). Should NOT double-invoke scheduler.
+        self.mock_model.generate_content.side_effect = [
+            _gemini(json.dumps({"resolution": "answer"})),
+            _gemini(json.dumps({
+                "intent": "create_event",
+                "agents": ["scheduler"],
+                "tasks": [
+                    {"agent": "scheduler", "instruction": "Create event: meeting tomorrow at 3pm"},
+                ],
+                "direct_response": None,
+            })),
+        ]
+
+        result = await self.agent.execute({
+            "message": "3pm",
+            "auth_token": "test-token",
+            "conversation_history": [],
+            "pending_action": pending,
+        })
+
+        # Scheduler should only be called ONCE (the pending completion).
+        assert mock_scheduler.execute.call_count == 1
+        assert "Meeting" in result["content"]
+        assert result["pending_action"] is None

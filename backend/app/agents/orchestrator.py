@@ -217,6 +217,10 @@ class OrchestratorAgent(AgentBase):
         when the message is interpreted as an answer to the pending question.
         Returns ``None`` when the user appears to have changed topic, signalling
         the caller to drop the pending action and route normally.
+
+        After completing the pending action, if the user's message contains
+        additional intents beyond the answer, those are re-routed through normal
+        intent analysis so all requests get handled (multi-intent support).
         """
         resolution = await self._classify_pending_answer(message, pending_action)
         if resolution == "new_topic":
@@ -254,14 +258,89 @@ class OrchestratorAgent(AgentBase):
                 "pending_action": pending_action,
             }
         )
+
+        pending_result_content = result.get("content", "")
+        new_pending = result.get("pending_action")
+
+        # --- Multi-intent support ---
+        # If the pending action was resolved (no further pending) and the
+        # user's message might contain additional requests beyond the answer,
+        # re-route the full message through intent analysis to handle them.
+        # We skip re-routing to the same agent+action that was just completed
+        # to avoid duplicate processing.
+        additional_content = ""
+        if not new_pending:
+            completed_agent = agent_name
+            completed_action = result.get("action", "")
+
+            conversation_history: list[dict] = task.get("conversation_history", [])
+            routing = await self._analyze_intent(message, conversation_history)
+
+            # Filter out tasks targeting the same agent that just completed the
+            # pending action (to avoid re-creating the same event/task).
+            remaining_tasks = [
+                t for t in routing.get("tasks", [])
+                if t.get("agent", "") != completed_agent
+            ]
+
+            if remaining_tasks:
+                logger.info(
+                    f"[orchestrator] Multi-intent: pending resolved by '{completed_agent}', "
+                    f"re-routing {len(remaining_tasks)} additional task(s): "
+                    f"{[t.get('agent') for t in remaining_tasks]}"
+                )
+                additional_results = []
+                for agent_task in remaining_tasks:
+                    extra_agent_name = agent_task.get("agent", "")
+                    instruction = agent_task.get("instruction", message)
+                    extra_agent = AgentRegistry.get(extra_agent_name)
+                    if extra_agent:
+                        if status_callback:
+                            try:
+                                await status_callback(
+                                    {
+                                        "type": "status",
+                                        "content": self._status_for(extra_agent_name),
+                                        "agent": extra_agent_name,
+                                    }
+                                )
+                            except Exception:
+                                pass
+                        extra_result = await extra_agent.execute(
+                            {
+                                "message": instruction,
+                                "original_message": message,
+                                "auth_token": task.get("auth_token", ""),
+                                "user_id": task.get("user", {}).get("sub", "")
+                                if isinstance(task.get("user"), dict)
+                                else "",
+                            }
+                        )
+                        additional_results.append(extra_result)
+
+                        # If any additional agent sets a pending, capture it.
+                        if extra_result.get("pending_action"):
+                            new_pending = extra_result["pending_action"]
+
+                if additional_results:
+                    additional_content = "\n\n".join(
+                        r.get("content", "") for r in additional_results if r.get("content")
+                    )
+
+        # Combine the pending completion result with any additional results.
+        if additional_content:
+            combined_content = f"{pending_result_content}\n\n{additional_content}"
+        else:
+            combined_content = pending_result_content
+
         return {
-            "content": result.get("content", ""),
+            "content": combined_content,
             "agent": self.name,
             "metadata": {
                 "intent": "pending_followup",
                 "routed_to": [agent_name],
             },
-            "pending_action": result.get("pending_action"),
+            "pending_action": new_pending,
         }
 
     async def _classify_pending_answer(self, message: str, pending_action: dict) -> str:
