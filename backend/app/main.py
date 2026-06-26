@@ -42,6 +42,23 @@ mcp_client: MCPClient | None = None
 _scheduler_task: asyncio.Task | None = None
 
 
+def _make_status_callback(websocket: WebSocket):
+    """Build an async status callback bound to a WebSocket connection.
+
+    The orchestrator calls this before each slow agent dispatch so the user
+    sees real-time progress (e.g. "Checking your calendar...").
+    """
+
+    async def _status_callback(payload: dict) -> None:
+        try:
+            await websocket.send_json(payload)
+        except Exception:
+            # Never let a status update break the main response flow.
+            pass
+
+    return _status_callback
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown lifecycle.
@@ -171,7 +188,7 @@ async def websocket_chat(websocket: WebSocket):
                 except HTTPException:
                     await websocket.send_json(
                         {
-                            "type": "text",
+                            "type": "error",
                             "content": "Authentication failed. Please sign in again.",
                             "agent": "system",
                         }
@@ -196,7 +213,8 @@ async def websocket_chat(websocket: WebSocket):
                             "auth_token": auth_token,
                             "user": user,
                             "conversation_history": conversation_history,
-                        }
+                        },
+                        status_callback=_make_status_callback(websocket),
                     )
 
                     # Send text response first
@@ -233,7 +251,8 @@ async def websocket_chat(websocket: WebSocket):
                             "auth_token": auth_token,
                             "user": user,
                             "conversation_history": conversation_history,
-                        }
+                        },
+                        status_callback=_make_status_callback(websocket),
                     )
 
                     # Determine response type

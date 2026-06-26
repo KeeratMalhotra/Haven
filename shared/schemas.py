@@ -20,6 +20,8 @@ class ResponseType(str, Enum):
     TEXT = "text"
     AUDIO = "audio"
     TASK_UPDATE = "task_update"
+    STATUS = "status"
+    ERROR = "error"
 
 
 class WebSocketMessage(BaseModel):
