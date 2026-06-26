@@ -118,14 +118,21 @@ async def lifespan(app: FastAPI):
     import asyncio as _asyncio
     await _asyncio.sleep(1.0)
 
+    # Gmail MCP has persistent connection issues on Windows during lifespan
+    # startup (subprocess stdio handshake race). Connect it lazily on first
+    # use instead. Store the path for deferred connection.
+    app.state.gmail_mcp_path = gmail_path
+    app.state.gmail_mcp_connected = False
+
     try:
         await mcp_client.connect_server(
             name="google-gmail",
             command=python_cmd,
             args=[gmail_path],
         )
+        app.state.gmail_mcp_connected = True
     except Exception as e:
-        logger.warning(f"Failed to connect MCP server 'google-gmail': {e}")
+        logger.warning(f"Gmail MCP deferred — will retry on first use: {e}")
 
     # Register agents
     OrchestratorAgent(mcp_client=mcp_client)

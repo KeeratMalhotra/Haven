@@ -84,6 +84,9 @@ class EmailAgent(AgentBase):
         message = task.get("message", "")
         auth_token = task.get("auth_token", "")
 
+        # Lazy-connect Gmail MCP if it failed at startup (Windows race condition)
+        await self._ensure_gmail_connected()
+
         # Use Gemini to determine the action
         action_plan = await self._plan_action(message)
 
@@ -130,6 +133,34 @@ class EmailAgent(AgentBase):
             "action": action,
             "result": result,
         }
+
+    async def _ensure_gmail_connected(self) -> None:
+        """Lazily connect the Gmail MCP server if it failed at startup."""
+        if not self.mcp_client:
+            return
+        if "google-gmail" in self.mcp_client.list_servers():
+            return  # Already connected
+
+        import logging
+        import sys
+        from pathlib import Path
+
+        logger = logging.getLogger(__name__)
+        logger.info("[email] Gmail MCP not connected — attempting lazy connection...")
+
+        base_dir = Path(__file__).resolve().parent.parent.parent  # backend/
+        from app.config import settings
+        gmail_path = str((base_dir / settings.MCP_GMAIL_PATH).resolve())
+
+        try:
+            await self.mcp_client.connect_server(
+                name="google-gmail",
+                command=sys.executable,
+                args=[gmail_path],
+            )
+            logger.info("[email] Gmail MCP connected successfully on retry!")
+        except Exception as e:
+            logger.error(f"[email] Gmail MCP lazy connection failed: {e}")
 
     async def _plan_action(self, message: str) -> dict:
         """Use Gemini to determine which email action to take.
