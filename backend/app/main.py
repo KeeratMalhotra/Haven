@@ -113,6 +113,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Failed to connect MCP server 'google-tasks': {e}")
 
+    # Small delay before third server — works around a Windows asyncio race
+    # condition where rapid subprocess spawning causes "Connection closed".
+    import asyncio as _asyncio
+    await _asyncio.sleep(1.0)
+
     try:
         await mcp_client.connect_server(
             name="google-gmail",
