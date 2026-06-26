@@ -1,0 +1,7 @@
+{
+  "task_id": "task-onboarding-briefing",
+  "task_description": "Build an onboarding system and daily briefing feature for ChronAI. Adds UserProfile model, onboarding API endpoints, user context injection into agent prompts, daily briefing generation, frontend onboarding flow with step-by-step wizard, onboarding gate on dashboard, and personalized greeting.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

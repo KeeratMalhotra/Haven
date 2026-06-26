@@ -1,0 +1,36 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Backend: UserProfile model, onboarding API, user_context utility, and daily briefing agent with tests",
+  "status": "in_progress",
+  "steps": [
+    "1. Update backend/app/db/models.py: Add UserProfile(BaseModel) class with fields role, occupation, work_hours_start (default 9), work_hours_end (default 18), wake_time (default 7), sleep_time (default 23), priorities (list[str]), daily_routine (str), goals (list[str]), onboarding_complete (bool=False). Add 'profile: UserProfile = Field(default_factory=UserProfile)' to the User model.",
+    "2. Create backend/app/api/ directory (does not exist yet). Create backend/app/api/__init__.py (empty).",
+    "3. Create backend/app/api/onboarding.py with a FastAPI APIRouter: POST /api/onboarding (accepts profile fields in body, requires auth_token as query param or header, saves to Firestore by updating user doc's profile field), GET /api/onboarding/status (returns {complete: bool} based on user profile.onboarding_complete), GET /api/profile (returns full profile dict). Use verify_google_token for auth. Use UserRepository to fetch/update user. If user not found, create one.",
+    "4. Register the onboarding router in backend/app/main.py using app.include_router(...).",
+    "5. Create backend/app/utils/user_context.py with async function get_user_context(user_id: str) -> str. Fetch user via UserRepository.get_by_id. If no profile or not onboarding_complete, return 'User has not completed onboarding.' Otherwise return formatted string with role, occupation, work hours, priorities, goals, daily routine.",
+    "6. Update backend/app/agents/orchestrator.py _analyze_intent method: import get_user_context, call it with user_id extracted from conversation_history context or task dict, inject the result alongside time_context_string() in the prompt. The user_id comes from the 'user' dict in task (task.get('user', {}).get('sub', '')).",
+    "7. Create backend/app/agents/briefing.py with async function generate_daily_briefing(user_id: str, auth_token: str, mcp_client) -> str. It fetches today's calendar events (via mcp_client.call_tool('google-calendar', 'list_events', ...)), pending tasks (via mcp_client.call_tool('google-tasks', 'list_tasks', ...)), user profile (via UserRepository). Uses Gemini (GenerativeModel) to compose a personalized morning briefing. Warm, concise, actionable. Handle errors gracefully.",
+    "8. Create backend/app/api/briefing.py with a FastAPI APIRouter: GET /api/briefing (requires auth_token, calls generate_daily_briefing, returns {briefing: str}). Register this router in main.py.",
+    "9. In orchestrator.py: detect when user says 'hello'/'hi'/'hey'/'good morning' AND it is a new day (check against a simple heuristic or just always provide briefing on greeting if profile exists), respond with the daily briefing instead of generic greeting. Modify the direct_response handling or add a check before routing.",
+    "10. Create backend/tests/test_onboarding.py: Test POST /api/onboarding (saves profile), GET /api/onboarding/status (returns correct boolean), GET /api/profile (returns profile data). Use app_client fixture and mock_firestore from conftest.",
+    "11. Create backend/tests/test_user_context.py: Test get_user_context returns correct string when profile exists, returns 'not completed' when no profile.",
+    "12. Create backend/tests/test_briefing.py: Test generate_daily_briefing with mocked MCP calls and Gemini. Verify it returns a string."
+  ],
+  "acceptance_criteria": [
+    "python -c 'import app.main' succeeds without errors",
+    "python -m pytest tests/ -v passes all existing 75 tests plus new tests",
+    "POST /api/onboarding with valid token saves profile to Firestore mock",
+    "GET /api/onboarding/status returns correct complete boolean",
+    "GET /api/profile returns full user profile",
+    "GET /api/briefing returns a briefing string",
+    "Orchestrator prompt now includes user context alongside time context",
+    "New test files (test_onboarding.py, test_user_context.py, test_briefing.py) all pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -c 'import app.main'",
+    "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -v"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Frontend: Onboarding page with step-by-step flow, onboarding gate on dashboard, personalized greeting, and middleware protection",
+  "status": "pending",
+  "steps": [
+    "1. Create frontend/app/onboarding/page.tsx: A step-by-step onboarding flow (3-4 steps) with Framer Motion transitions. Step 1: Role selector (student/professional/entrepreneur/freelancer/other) + Occupation text input. Step 2: Work hours (start/end selectors), wake/sleep time, daily routine textarea. Step 3: Priority chips multi-select + Goals textarea. Step 4: Summary of selections + 'Start using ChronAI' button. Use premium dark aesthetic: glass panels (bg-white/5 backdrop-blur-xl border border-white/10), accent gradients, spacious layout. On completion: POST to backend /api/onboarding?auth_token=... with the profile data, then redirect to /dashboard.",
+    "2. Update frontend/middleware.ts: Add /onboarding to the matcher and protected routes. If no token, redirect to /. The config.matcher should include '/onboarding/:path*'.",
+    "3. Update frontend/app/dashboard/page.tsx: On mount, check GET /api/onboarding/status?auth_token=... (using getApiBase() from lib/api.ts). If not complete, redirect to /onboarding using next/navigation router.push.",
+    "4. Update frontend/components/chat/GreetingHero.tsx: Add time-of-day greeting logic. Before 12 = 'Good morning', before 17 = 'Good afternoon', else 'Good evening'. Show user name if available. Keep existing structure but prepend time-based greeting.",
+    "5. Add helper function to frontend/lib/api.ts: fetchOnboardingStatus(authToken: string) -> Promise<{complete: boolean}> and postOnboarding(authToken: string, profile: object) -> Promise<void>."
+  ],
+  "acceptance_criteria": [
+    "pnpm build succeeds without TypeScript errors",
+    "Onboarding page at /onboarding renders with 4 steps using Framer Motion",
+    "Dashboard page checks onboarding status on mount and redirects if incomplete",
+    "Middleware protects /onboarding route (requires auth)",
+    "GreetingHero shows time-of-day greeting with user name",
+    "API helpers fetchOnboardingStatus and postOnboarding exist in lib/api.ts"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

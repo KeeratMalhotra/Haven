@@ -20,6 +20,8 @@ from app.agents.scheduler import SchedulerAgent
 from app.agents.notification import NotificationAgent
 from app.agents.voice import VoiceAgent
 from app.agents.email import EmailAgent
+from app.api.onboarding import router as onboarding_router
+from app.api.briefing import router as briefing_router
 from app.auth import verify_google_token
 from app.config import settings
 from app.db.firestore import init_firestore
@@ -142,6 +144,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API routers
+app.include_router(onboarding_router)
+app.include_router(briefing_router)
 
 
 @app.websocket("/ws")

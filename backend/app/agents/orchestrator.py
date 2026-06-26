@@ -16,6 +16,7 @@ from vertexai.generative_models import GenerativeModel
 from app.agents.base import AgentBase, AgentRegistry
 from app.config import settings
 from app.utils.timectx import time_context_string
+from app.utils.user_context import get_user_context
 
 
 SYSTEM_PROMPT = """You are ChronAI's orchestrator agent. Your PRIMARY job is to route user requests to specialist agents. You are NOT a chatbot. You are a router.
@@ -129,12 +130,27 @@ class OrchestratorAgent(AgentBase):
             logger.info("[orchestrator] Pending action abandoned; routing normally.")
 
         # Analyze intent with Gemini
-        routing = await self._analyze_intent(message, conversation_history)
+        user_id = task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else ""
+        routing = await self._analyze_intent(message, conversation_history, user_id)
 
         logger.info(f"[orchestrator] Routing: intent={routing.get('intent')}, agents={routing.get('agents', [])}")
 
-        # If direct response (no agents needed)
+        # Check if this is a greeting and user has a profile -> generate briefing
         if routing.get("direct_response") and not routing.get("agents"):
+            is_greeting = self._is_greeting(message)
+            if is_greeting and user_id:
+                briefing_text = await self._try_generate_briefing(user_id, task.get("auth_token", ""))
+                if briefing_text:
+                    conversation_history.append(
+                        {"role": "assistant", "content": briefing_text}
+                    )
+                    return {
+                        "content": briefing_text,
+                        "agent": self.name,
+                        "metadata": {"intent": "greeting_briefing", "routed_to": []},
+                        "pending_action": None,
+                    }
+
             response_content = routing["direct_response"]
             conversation_history.append(
                 {"role": "assistant", "content": response_content}
@@ -274,7 +290,8 @@ class OrchestratorAgent(AgentBase):
             completed_action = result.get("action", "")
 
             conversation_history: list[dict] = task.get("conversation_history", [])
-            routing = await self._analyze_intent(message, conversation_history)
+            user_id = task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else ""
+            routing = await self._analyze_intent(message, conversation_history, user_id)
 
             # Filter out tasks targeting the same agent that just completed the
             # pending action (to avoid re-creating the same event/task).
@@ -412,12 +429,13 @@ Respond with JSON: {{"resolution": "answer"}} or {{"resolution": "new_topic"}}."
             "voice": "Preparing a voice response...",
         }.get(agent_name, f"Working with {agent_name}...")
 
-    async def _analyze_intent(self, message: str, conversation_history: list[dict]) -> dict:
+    async def _analyze_intent(self, message: str, conversation_history: list[dict], user_id: str = "") -> dict:
         """Use Gemini to analyze user intent and determine routing.
 
         Args:
             message: The user's message to analyze.
             conversation_history: Per-connection conversation history.
+            user_id: The user's ID for fetching profile context.
 
         Returns:
             Routing dictionary with intent, agents, tasks, and direct_response.
@@ -430,9 +448,14 @@ Respond with JSON: {{"resolution": "answer"}} or {{"resolution": "new_topic"}}."
                 content = msg["content"]
                 history_text += f"{role}: {content}\n"
 
+            # Fetch user context
+            user_context = await get_user_context(user_id)
+
             prompt = f"""{SYSTEM_PROMPT}
 
 {time_context_string()}
+
+{user_context}
 
 Conversation history:
 {history_text}
@@ -493,3 +516,41 @@ Be concise but include all relevant information."""
         # Fallback to plain concatenation if the model is slow or errors.
         fallback = "\n\n".join(r.get("content", "") for r in results)
         return await self.generate(prompt, fallback=fallback)
+
+    @staticmethod
+    def _is_greeting(message: str) -> bool:
+        """Check if the message is a simple greeting.
+
+        Args:
+            message: The user's message.
+
+        Returns:
+            True if the message is a greeting.
+        """
+        greetings = {"hello", "hi", "hey", "good morning", "good afternoon",
+                     "good evening", "morning", "howdy", "greetings"}
+        low = message.strip().lower().rstrip("!.,?")
+        return low in greetings
+
+    async def _try_generate_briefing(self, user_id: str, auth_token: str) -> str | None:
+        """Attempt to generate a daily briefing if user has a profile.
+
+        Args:
+            user_id: The user's ID.
+            auth_token: Auth token for MCP calls.
+
+        Returns:
+            Briefing text if user has completed onboarding, None otherwise.
+        """
+        from app.agents.briefing import generate_daily_briefing
+        from app.db.repositories import UserRepository
+
+        user = await UserRepository.get_by_id(user_id)
+        if not user or not user.profile.onboarding_complete:
+            return None
+
+        try:
+            return await generate_daily_briefing(user_id, auth_token, self.mcp_client)
+        except Exception as e:
+            logger.warning(f"[orchestrator] Briefing generation failed: {e}")
+            return None
