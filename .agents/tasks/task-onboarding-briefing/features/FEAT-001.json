@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Backend: UserProfile model, onboarding API, user_context utility, and daily briefing agent with tests",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Update backend/app/db/models.py: Add UserProfile(BaseModel) class with fields role, occupation, work_hours_start (default 9), work_hours_end (default 18), wake_time (default 7), sleep_time (default 23), priorities (list[str]), daily_routine (str), goals (list[str]), onboarding_complete (bool=False). Add 'profile: UserProfile = Field(default_factory=UserProfile)' to the User model.",
     "2. Create backend/app/api/ directory (does not exist yet). Create backend/app/api/__init__.py (empty).",
@@ -32,5 +32,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -v"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 93 tests pass (75 original + 18 new). The briefing generator uses vertexai.generative_models.GenerativeModel accessed through the vertexai module namespace (not a direct from-import) so that conftest mock_vertexai_model fixture properly intercepts it. UserProfile model added to models.py with profile field on User. Onboarding API supports both query param auth_token and Authorization Bearer header. Orchestrator now injects user_context alongside time_context_string and generates briefing on greeting when user has completed onboarding."
 }
