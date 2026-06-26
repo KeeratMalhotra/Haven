@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Habit Tracking System - Backend: HabitAgent, routes, orchestrator integration, and Task Completion via Chat (planner update)",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Update backend/app/db/models.py: add target_days field (int, default 7) to Habit model for frequency tracking",
     "2. Update backend/app/db/repositories.py: add delete method to HabitRepository, and a get_by_name_and_user method for fuzzy matching habits by name",
@@ -29,5 +29,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -v"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 107 tests pass (93 original + 14 new). python -c 'import app.main' works. No issues encountered. The complete_task MCP tool takes auth_token and task_id. The planner lists tasks first, matches by title substring, then calls complete_task."
 }
