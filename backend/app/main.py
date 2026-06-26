@@ -91,10 +91,14 @@ async def lifespan(app: FastAPI):
     logger = logging.getLogger(__name__)
 
     # Connect to MCP servers (they run as subprocesses)
+    # Use sys.executable to ensure the same Python interpreter (and venv) is used.
+    import sys as _sys
+    python_cmd = _sys.executable
+
     try:
         await mcp_client.connect_server(
             name="google-calendar",
-            command="python",
+            command=python_cmd,
             args=[calendar_path],
         )
     except Exception as e:
@@ -103,7 +107,7 @@ async def lifespan(app: FastAPI):
     try:
         await mcp_client.connect_server(
             name="google-tasks",
-            command="python",
+            command=python_cmd,
             args=[tasks_path],
         )
     except Exception as e:
@@ -112,7 +116,7 @@ async def lifespan(app: FastAPI):
     try:
         await mcp_client.connect_server(
             name="google-gmail",
-            command="python",
+            command=python_cmd,
             args=[gmail_path],
         )
     except Exception as e:
