@@ -20,8 +20,10 @@ export default function ChatPanel() {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string>("");
+  const [statusText, setStatusText] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocketClient | null>(null);
 
@@ -40,11 +42,14 @@ export default function ChatPanel() {
     const ws = new WebSocketClient(wsUrl);
     wsRef.current = ws;
 
-    ws.on("open", () => setIsConnected(true));
+    ws.on("open", () => {
+      setIsConnected(true);
+      setHasConnectedOnce(true);
+    });
     ws.on("close", () => setIsConnected(false));
 
     ws.on("message", (data: { type: string; content: string; agent?: string }) => {
-      if (data.type === "text") {
+      if (data.type === "text" || data.type === "task_update") {
         const aiMessage: ChatMessage = {
           id: crypto.randomUUID(),
           content: data.content,
@@ -53,8 +58,28 @@ export default function ChatPanel() {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, aiMessage]);
+        // Final answer arrived — clear the typing indicator and status text.
         setIsTyping(false);
+        setStatusText("");
         setActiveAgent(data.agent || "");
+      } else if (data.type === "status") {
+        // Real-time progress update from the orchestrator. Keep typing true
+        // and surface the status text on the indicator.
+        setActiveAgent(data.agent || "");
+        setStatusText(data.content || "");
+        setIsTyping(true);
+      } else if (data.type === "error") {
+        // Show timeout/auth errors as a friendly inline chat message.
+        const errMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          content: data.content,
+          role: "ai",
+          agent: data.agent || "system",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errMessage]);
+        setIsTyping(false);
+        setStatusText("");
       } else if (data.type === "audio") {
         playAudioBase64(data.content);
       }
@@ -84,6 +109,8 @@ export default function ChatPanel() {
       auth_token: accessToken,
     });
     setIsTyping(true);
+    setStatusText("");
+    setActiveAgent("");
     setInput("");
   }, [input, accessToken]);
 
@@ -117,6 +144,8 @@ export default function ChatPanel() {
           auth_token: accessToken,
         });
         setIsTyping(true);
+        setStatusText("");
+        setActiveAgent("");
       }
     } finally {
       setIsListening(false);
@@ -131,11 +160,19 @@ export default function ChatPanel() {
         <div className="flex items-center gap-2">
           <div
             className={`w-2 h-2 rounded-full ${
-              isConnected ? "bg-neon-cyan" : "bg-red-500"
+              isConnected
+                ? "bg-neon-cyan"
+                : hasConnectedOnce
+                ? "bg-red-500"
+                : "bg-yellow-400 animate-pulse"
             }`}
           />
           <span className="text-xs text-gray-500">
-            {isConnected ? "Connected" : "Disconnected"}
+            {isConnected
+              ? "Connected"
+              : hasConnectedOnce
+              ? "Disconnected"
+              : "Connecting..."}
           </span>
         </div>
       </div>
@@ -164,7 +201,15 @@ export default function ChatPanel() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 chat-scroll">
-        {messages.length === 0 && (
+        {!hasConnectedOnce && !isConnected && (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
+              <span>Connecting to ChronAI...</span>
+            </div>
+          </div>
+        )}
+        {hasConnectedOnce && messages.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500 text-sm text-center">
               Say hello to start a conversation with ChronAI
@@ -181,7 +226,7 @@ export default function ChatPanel() {
           />
         ))}
         {isTyping && (
-          <div className="flex justify-start mb-3">
+          <div className="flex justify-start mb-3 animate-message-in">
             <div className="bg-dark-700 border border-dark-600 rounded-2xl px-4 py-3">
               <div className="text-xs text-neon-purple font-medium mb-1">
                 {activeAgent || "chronai"}
@@ -191,7 +236,13 @@ export default function ChatPanel() {
                 <span className="typing-dot animation-delay-200" />
                 <span className="typing-dot animation-delay-400" />
                 <span className="text-xs text-gray-400 ml-2">
-                  {activeAgent ? `${activeAgent} is thinking...` : "thinking..."}
+                  {statusText
+                    ? activeAgent
+                      ? `${activeAgent} is ${statusText.charAt(0).toLowerCase()}${statusText.slice(1)}`
+                      : statusText
+                    : activeAgent
+                    ? `${activeAgent} is thinking...`
+                    : "thinking..."}
                 </span>
               </div>
             </div>

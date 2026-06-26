@@ -61,3 +61,19 @@ body {
     opacity: 1;
   }
 }
+
+/* Smooth fade + slide-in for newly added chat messages */
+@keyframes message-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-message-in {
+  animation: message-in 0.28s ease-out both;
+}

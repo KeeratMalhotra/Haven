@@ -1,7 +1,7 @@
 /**
  * WebSocket client for real-time communication with the backend.
  * Sends JSON messages: { type: "chat"|"voice", content: string, auth_token: string }
- * Receives: { type: "text"|"audio"|"task_update", content: string|base64_audio, agent: string }
+ * Receives: { type: "text"|"audio"|"task_update"|"status"|"error", content: string|base64_audio, agent: string }
  */
 
 type MessagePayload = {
@@ -11,7 +11,7 @@ type MessagePayload = {
 };
 
 type ResponsePayload = {
-  type: "text" | "audio" | "task_update";
+  type: "text" | "audio" | "task_update" | "status" | "error";
   content: string;
   agent?: string;
 };
