@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Backend Power Features: Priority Engine, Smart Scheduling, and Subtask Decomposition. Create the PriorityAgent, enhance SchedulerAgent with suggest_time/focus actions, enhance PlannerAgent with decompose action, update orchestrator routing, add GET /api/priorities endpoint, register new agent in main.py, and add tests.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create backend/app/agents/priority.py - PriorityAgent inheriting AgentBase. Use generate() to rank tasks by urgency x importance. Fetch tasks via call_mcp_tool('google-tasks','list_tasks') and events via call_mcp_tool('google-calendar','list_events'). Return prioritized list with emoji indicators (red/yellow/green). Consider deadline proximity, meeting prep, user profile priorities.",
     "Add GET /api/priorities endpoint in backend/app/main.py that authenticates via auth_token query param, calls PriorityAgent.execute(), and returns the ranked task list.",
@@ -26,5 +26,5 @@
     "cd /projects/sandbox/ChronAI/backend && python3.11 -m pytest tests/ -v"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 128 tests pass (119 existing + 9 new). Python 3.11 requires pyenv path setup: export PATH=$HOME/.pyenv/versions/3.11.15/bin:$PATH. pip install -r requirements.txt needed for module imports. The user_context import was added to scheduler.py for the suggest_time feature. The decompose action enforces max 6 subtasks by truncating the Gemini response."
 }

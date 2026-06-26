@@ -1,0 +1,14 @@
+{
+  "task_id": "task-sprint2-power-features",
+  "task_description": "Implement Sprint 2 Power Features for ChronAI: Priority Engine, Smart Scheduling, Subtask Decomposition (backend), Command Palette and Focus Mode (frontend).",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Backend: 128 tests pass (119 existing + 9 new), import check clean. Frontend: pnpm build succeeds with optimized production build."
+  }
+}

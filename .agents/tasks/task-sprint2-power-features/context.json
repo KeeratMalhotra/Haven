@@ -1,0 +1,32 @@
+{
+  "project_type": "Full-stack AI productivity app (Python FastAPI backend + Next.js React frontend)",
+  "language": "Python 3.11 (backend), TypeScript (frontend)",
+  "build_system": "pip/pyproject (backend), pnpm + Next.js (frontend)",
+  "test_framework": "pytest with async tests and conftest.py fixtures (backend), jest (frontend)",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && pnpm build",
+  "test_command": "cd /projects/sandbox/ChronAI/backend && python3.11 -m pytest tests/ -v",
+  "verification_instructions": "1. python3.11 -c 'import app.main' (backend import check) 2. python3.11 -m pytest tests/ -v (119 existing tests pass) 3. pnpm build (frontend builds)",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "Backend: cd backend && python3.11 -c 'import app.main'. Frontend: cd frontend && pnpm install && pnpm build",
+  "environment_constraints": "OPEN_INTERNET network. Node 22 via nvm, Python 3.11 via pyenv, pnpm available.",
+  "contribution_requirements": "All agents use AgentBase pattern. Tests mock vertexai and MCP. Orchestrator SYSTEM_PROMPT updated for new routes.",
+  "key_patterns": "Agents: inherit AgentBase, set name/description/capabilities, implement execute(task:dict)->dict, use self.generate() for Gemini, self.call_mcp_tool() for MCP. Registered in main.py lifespan. Orchestrator routes via SYSTEM_PROMPT JSON. Tests: fixture classes with setup_*, mock_vertexai_model, mock_mcp_client. Frontend: React components with Framer Motion, TailwindCSS, lucide-react icons, cmdk already installed.",
+  "relevant_files": [
+    "backend/app/agents/base.py",
+    "backend/app/agents/orchestrator.py",
+    "backend/app/agents/planner.py",
+    "backend/app/agents/scheduler.py",
+    "backend/app/main.py",
+    "backend/app/config.py",
+    "backend/app/utils/timectx.py",
+    "backend/app/utils/user_context.py",
+    "backend/tests/conftest.py",
+    "backend/tests/test_agents.py",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/components/chat/ChatExperience.tsx",
+    "frontend/components/layout/SideDock.tsx",
+    "frontend/hooks/useChatSocket.ts",
+    "frontend/package.json"
+  ],
+  "directory_structure": "backend/app/agents/ (all agent files), backend/app/utils/ (timectx, user_context), backend/app/db/ (models, repositories, firestore), backend/tests/ (pytest), frontend/app/dashboard/ (main page), frontend/components/ (chat/, drawers/, layout/, ui/, voice/), frontend/hooks/ (useChatSocket), frontend/lib/ (api, ws, voice), mcp-servers/ (google-calendar, google-tasks, google-gmail)"
+}
