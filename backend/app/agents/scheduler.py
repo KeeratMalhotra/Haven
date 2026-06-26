@@ -5,7 +5,6 @@ and manages the calendar through the Google Calendar MCP server.
 Optionally persists scheduled events to Firestore.
 """
 
-import asyncio
 import json
 import logging
 from datetime import datetime
@@ -72,7 +71,7 @@ class SchedulerAgent(AgentBase):
         """
         super().__init__(mcp_client)
         vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
-        self.model = GenerativeModel("gemini-2.5-flash")
+        self.model = GenerativeModel(settings.GEMINI_MODEL)
 
     async def execute(self, task: dict) -> dict:
         """Handle a scheduling request.
@@ -91,37 +90,104 @@ class SchedulerAgent(AgentBase):
 
         logger.info(f"[scheduler] Executing action={task.get('message', '')[:50]}, has_mcp={bool(self.mcp_client)}, has_token={bool(auth_token)}")
 
-        # Use Gemini to understand the scheduling request
+        # Use Gemini to understand the scheduling request (single LLM call).
         schedule_plan = await self._analyze_scheduling_request(message)
         action = schedule_plan.get("action", "find_slots")
-        print(f"[SCHEDULER DEBUG] action={action}, has_mcp={bool(self.mcp_client)}, has_token={bool(auth_token)}, plan={schedule_plan}")
 
-        # Execute the appropriate calendar operation
+        # Execute the appropriate calendar operation, formatting results with
+        # pure Python (no second Gemini call).
         if self.mcp_client and auth_token:
             if action == "list_events":
                 result = await self._list_events(auth_token)
-                if result:
-                    schedule_plan["response"] += f"\n\nYour upcoming events: {json.dumps(result, default=str)}"
+                schedule_plan["response"] = self._format_events(result)
 
             elif action == "find_slots":
                 result = await self._find_free_slots(auth_token, schedule_plan.get("event_details", {}))
-                if result:
-                    schedule_plan["response"] += f"\n\nAvailable slots: {json.dumps(result, default=str)}"
+                schedule_plan["response"] = self._format_free_slots(
+                    result, schedule_plan.get("response", "")
+                )
 
             elif action == "create_event":
                 event_details = schedule_plan.get("event_details", {})
                 result = await self._create_event(auth_token, event_details)
-                if result:
-                    schedule_plan["response"] += "\n\nEvent created successfully!"
+                if result and not (isinstance(result, dict) and result.get("error")):
+                    schedule_plan["response"] = (
+                        schedule_plan.get("response", "")
+                        + "\n\nEvent created successfully!"
+                    ).strip()
                     # Optionally persist created event to Firestore
                     if user_id:
                         await self._persist_event_to_firestore(user_id, event_details, result)
+                else:
+                    schedule_plan["response"] = (
+                        "I couldn't create that event. Please try again in a moment."
+                    )
 
         return {
             "content": schedule_plan.get("response", "I can help you with scheduling."),
             "agent": self.name,
             "action": action,
         }
+
+    @staticmethod
+    def _format_events(events: list[dict]) -> str:
+        """Format calendar events into a readable bulleted list.
+
+        Args:
+            events: List of event dicts with summary/start/end fields.
+
+        Returns:
+            A friendly summary string, handling the empty state.
+        """
+        real_events = [
+            e for e in (events or []) if isinstance(e, dict) and not e.get("error")
+        ]
+
+        if not real_events:
+            return "Your calendar is clear this week!"
+
+        lines = [f"You have {len(real_events)} event(s) coming up:"]
+        for e in real_events:
+            summary = e.get("summary") or "Untitled event"
+            when = SchedulerAgent._format_when(e.get("start", ""))
+            lines.append(f"• {when}{summary}" if when else f"• {summary}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _format_when(start: str) -> str:
+        """Turn an ISO start string into a short prefix like 'Mon 2pm — '."""
+        if not start:
+            return ""
+        try:
+            dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            return ""
+        day = dt.strftime("%a")
+        hour = dt.hour % 12 or 12
+        ampm = "am" if dt.hour < 12 else "pm"
+        if dt.minute:
+            return f"{day} {hour}:{dt.minute:02d}{ampm} — "
+        return f"{day} {hour}{ampm} — "
+
+    @staticmethod
+    def _format_free_slots(slots: list[dict], intro: str) -> str:
+        """Format available time slots into a readable list."""
+        real_slots = [
+            s for s in (slots or []) if isinstance(s, dict) and not s.get("error")
+        ]
+
+        if not real_slots:
+            return "I couldn't find any open slots in that window. Want me to widen the search?"
+
+        lines = [intro.strip() or "Here are some open slots:"]
+        for s in real_slots[:5]:
+            when = SchedulerAgent._format_when(s.get("start", ""))
+            mins = s.get("duration_minutes", "")
+            label = f"• {when}".rstrip(" —") if when else "• slot"
+            if mins:
+                label += f" ({mins} min free)"
+            lines.append(label)
+        return "\n".join(lines)
 
     async def _analyze_scheduling_request(self, message: str) -> dict:
         """Use Gemini to analyze a scheduling request.
@@ -132,17 +198,17 @@ class SchedulerAgent(AgentBase):
         Returns:
             Scheduling plan with action and event details.
         """
-        try:
-            prompt = f"""{SCHEDULER_PROMPT}
+        prompt = f"""{SCHEDULER_PROMPT}
 
 Scheduling request: {message}"""
 
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt,
-                generation_config={"response_mime_type": "application/json"},
-            )
-            return json.loads(response.text)
+        text = await self.generate(
+            prompt,
+            generation_config={"response_mime_type": "application/json"},
+            fallback="",
+        )
+        try:
+            return json.loads(text)
         except Exception:
             return {
                 "action": "find_slots",

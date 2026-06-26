@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     GCP_PROJECT_ID: str = ""
     GCP_REGION: str = "us-central1"
 
+    # Gemini model used by all agents. gemini-2.0-flash is significantly
+    # faster than gemini-2.5-flash for our routing/formatting workloads.
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+
     # Firestore configuration
     FIRESTORE_PROJECT_ID: str = ""  # Defaults to GCP_PROJECT_ID if empty
     FIRESTORE_DATABASE: str = "(default)"

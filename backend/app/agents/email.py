@@ -4,7 +4,6 @@ Handles drafting, summarizing, searching, and sending emails
 using the Gmail MCP server and Vertex AI Gemini for content generation.
 """
 
-import asyncio
 import json
 from typing import Any
 
@@ -69,7 +68,7 @@ class EmailAgent(AgentBase):
         """
         super().__init__(mcp_client)
         vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
-        self.model = GenerativeModel("gemini-2.5-flash")
+        self.model = GenerativeModel(settings.GEMINI_MODEL)
 
     async def execute(self, task: dict) -> dict:
         """Handle email-related instructions.
@@ -146,12 +145,12 @@ class EmailAgent(AgentBase):
 
 User instruction: {message}"""
 
-            response = await asyncio.to_thread(
-                self.model.generate_content,
+            text = await self.generate(
                 prompt,
                 generation_config={"response_mime_type": "application/json"},
+                fallback="",
             )
-            return json.loads(response.text)
+            return json.loads(text)
         except Exception:
             return {
                 "action": "list_emails",

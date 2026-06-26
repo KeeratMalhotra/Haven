@@ -1,10 +1,15 @@
 """Base class for all ChronAI agents."""
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# Default timeout (seconds) for any single Vertex AI Gemini generation call.
+# Kept below the MCP timeout (30s) so a slow model never blocks the whole turn.
+GEMINI_TIMEOUT_SECONDS = 25.0
 
 
 class AgentRegistry:
@@ -71,6 +76,9 @@ class AgentBase(ABC):
         """
         self.mcp_client = mcp_client
         self._tools: dict[str, dict] = {}
+        # Subclasses that use Vertex AI Gemini set self.model to a
+        # GenerativeModel instance. Agents without an LLM leave it as None.
+        self.model: Any = None
         AgentRegistry.register(self)
 
     @abstractmethod
@@ -86,6 +94,48 @@ class AgentBase(ABC):
             with the response text or data, and 'agent' with this agent's name.
         """
         ...
+
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        fallback: str = "",
+        timeout: float = GEMINI_TIMEOUT_SECONDS,
+        **kwargs: Any,
+    ) -> str:
+        """Run a Gemini generation with a hard timeout and safe fallback.
+
+        Wraps ``self.model.generate_content`` in ``asyncio.to_thread`` (the SDK
+        call is blocking) and bounds it with ``asyncio.wait_for``. Any timeout
+        or error is logged and the provided ``fallback`` string is returned so
+        a slow or failing model never hangs the user's turn.
+
+        Args:
+            prompt: The prompt text to send to the model.
+            fallback: Text returned if the call times out or errors. Callers
+                typically pass "" and let their own JSON-parse fallback handle it.
+            timeout: Maximum seconds to wait for the model.
+            **kwargs: Extra keyword args forwarded to ``generate_content``
+                (e.g. ``generation_config``).
+
+        Returns:
+            The model response text on success, otherwise ``fallback``.
+        """
+        if self.model is None:
+            logger.error(f"[{self.name}] generate() called but no model is configured.")
+            return fallback
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(self.model.generate_content, prompt, **kwargs),
+                timeout=timeout,
+            )
+            return response.text
+        except asyncio.TimeoutError:
+            logger.error(f"[{self.name}] Gemini generation timed out after {timeout}s.")
+            return fallback
+        except Exception as e:
+            logger.error(f"[{self.name}] Gemini generation failed: {e}", exc_info=True)
+            return fallback
 
     async def call_mcp_tool(self, server_name: str, tool_name: str, arguments: dict) -> Any:
         """Call an MCP tool through the client.

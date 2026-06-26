@@ -3,7 +3,6 @@
 Analyzes user intent using Gemini 2.5 Flash via Vertex AI and routes to specialist agents.
 """
 
-import asyncio
 import json
 import logging
 from typing import Any
@@ -79,14 +78,18 @@ class OrchestratorAgent(AgentBase):
         """
         super().__init__(mcp_client)
         vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
-        self.model = GenerativeModel("gemini-2.5-flash")
+        self.model = GenerativeModel(settings.GEMINI_MODEL)
 
-    async def execute(self, task: dict) -> dict:
+    async def execute(self, task: dict, status_callback: Any = None) -> dict:
         """Analyze user message and route to appropriate agents.
 
         Args:
             task: Dict with 'message' (user input), 'auth_token', 'user_id',
                   and 'conversation_history' (per-connection list managed by caller).
+            status_callback: Optional async callable invoked with a status dict
+                  (``{"type": "status", "content": ..., "agent": ...}``) before
+                  each slow agent dispatch, so the caller can stream progress
+                  to the user over the WebSocket.
 
         Returns:
             Dict with 'content' (response text), 'agent' (this agent's name),
@@ -101,7 +104,6 @@ class OrchestratorAgent(AgentBase):
 
         # Analyze intent with Gemini
         routing = await self._analyze_intent(message, conversation_history)
-        print(f"[ORCHESTRATOR DEBUG] routing_result: intent={routing.get('intent')}, agents={routing.get('agents')}, has_direct={bool(routing.get('direct_response'))}")
 
         logger.info(f"[orchestrator] Routing: intent={routing.get('intent')}, agents={routing.get('agents', [])}")
 
@@ -125,19 +127,33 @@ class OrchestratorAgent(AgentBase):
             agent = AgentRegistry.get(agent_name)
 
             if agent:
+                # Emit a real-time status update before the slow agent work.
+                if status_callback:
+                    try:
+                        await status_callback(
+                            {
+                                "type": "status",
+                                "content": self._status_for(agent_name),
+                                "agent": agent_name,
+                            }
+                        )
+                    except Exception as e:
+                        logger.warning(f"[orchestrator] status_callback failed: {e}")
+
                 logger.info(f"[orchestrator] Dispatching to '{agent_name}': {instruction}")
                 result = await agent.execute(
                     {
                         "message": instruction,
                         "original_message": message,
                         "auth_token": auth_token,
+                        "user_id": task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else "",
                     }
                 )
                 logger.info(f"[orchestrator] '{agent_name}' responded with {len(result.get('content', ''))} chars")
                 results.append(result)
-                print(f"[ORCHESTRATOR DEBUG] Agent '{agent_name}' returned: {result.get('content', '')[:100]}")
 
-        # Consolidate responses
+        # Consolidate responses (single-agent answers are returned directly,
+        # with NO extra Gemini call).
         consolidated = await self._consolidate_responses(message, results)
 
         conversation_history.append(
@@ -152,6 +168,17 @@ class OrchestratorAgent(AgentBase):
                 "routed_to": routing.get("agents", []),
             },
         }
+
+    @staticmethod
+    def _status_for(agent_name: str) -> str:
+        """Return a friendly, present-tense status message for an agent."""
+        return {
+            "scheduler": "Checking your calendar...",
+            "planner": "Organizing your tasks...",
+            "notification": "Reviewing your reminders...",
+            "email": "Looking through your email...",
+            "voice": "Preparing a voice response...",
+        }.get(agent_name, f"Working with {agent_name}...")
 
     async def _analyze_intent(self, message: str, conversation_history: list[dict]) -> dict:
         """Use Gemini to analyze user intent and determine routing.
@@ -180,13 +207,12 @@ Current user message: {message}
 
 Analyze the intent and decide routing."""
 
-            response = await asyncio.to_thread(
-                self.model.generate_content,
+            text = await self.generate(
                 prompt,
                 generation_config={"response_mime_type": "application/json"},
+                fallback="",
             )
-
-            return json.loads(response.text)
+            return json.loads(text)
         except Exception as e:
             logger.error(f"[orchestrator] Intent analysis failed: {e}", exc_info=True)
             # Fallback: treat as direct response
@@ -212,17 +238,17 @@ Analyze the intent and decide routing."""
         if not results:
             return "I wasn't able to process that request. Could you try rephrasing?"
 
+        # Single-agent answers are returned verbatim — NO extra Gemini call.
         if len(results) == 1:
             return results[0].get("content", "")
 
         # Multiple agent results - use Gemini to consolidate
-        try:
-            results_text = "\n\n".join(
-                f"[{r.get('agent', 'unknown')} agent]: {r.get('content', '')}"
-                for r in results
-            )
+        results_text = "\n\n".join(
+            f"[{r.get('agent', 'unknown')} agent]: {r.get('content', '')}"
+            for r in results
+        )
 
-            prompt = f"""The user asked: "{original_message}"
+        prompt = f"""The user asked: "{original_message}"
 
 Multiple specialist agents provided responses:
 {results_text}
@@ -230,11 +256,6 @@ Multiple specialist agents provided responses:
 Consolidate these into a single coherent and helpful response for the user.
 Be concise but include all relevant information."""
 
-            response = await asyncio.to_thread(
-                self.model.generate_content,
-                prompt,
-            )
-            return response.text
-        except Exception:
-            # Fallback: concatenate
-            return "\n\n".join(r.get("content", "") for r in results)
+        # Fallback to plain concatenation if the model is slow or errors.
+        fallback = "\n\n".join(r.get("content", "") for r in results)
+        return await self.generate(prompt, fallback=fallback)

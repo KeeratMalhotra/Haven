@@ -5,7 +5,6 @@ proximity. Provides proactive suggestions using Vertex AI Gemini.
 Uses Firestore as a fallback source for task data when MCP is unavailable.
 """
 
-import asyncio
 import json
 from datetime import datetime, timedelta
 from typing import Any
@@ -63,7 +62,7 @@ class NotificationAgent(AgentBase):
         """
         super().__init__(mcp_client)
         vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.GCP_REGION)
-        self.model = GenerativeModel("gemini-2.5-flash")
+        self.model = GenerativeModel(settings.GEMINI_MODEL)
 
     async def execute(self, task: dict) -> dict:
         """Generate notifications and suggestions.
@@ -155,12 +154,12 @@ Current tasks: {tasks_text}
 
 Generate appropriate notifications and proactive suggestions."""
 
-            response = await asyncio.to_thread(
-                self.model.generate_content,
+            text = await self.generate(
                 prompt,
                 generation_config={"response_mime_type": "application/json"},
+                fallback="",
             )
-            return json.loads(response.text)
+            return json.loads(text)
         except Exception:
             return {
                 "notifications": [],
