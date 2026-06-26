@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix Calendar MCP integration - Add error logging, timeout handling, and debug output to the scheduler agent flow so calendar data issues are diagnosable",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In backend/app/mcp/client.py: Add 'import logging' at top, create logger = logging.getLogger(__name__). In the call_tool method, wrap the existing `await server.session.call_tool(tool_name, arguments)` call with asyncio.wait_for using a 30-second timeout. Catch asyncio.TimeoutError and raise RuntimeError with descriptive message. Add logging.info before calling the tool (log server_name, tool_name) and logging.info/error after (log success/failure).",
     "In backend/app/agents/base.py: Add 'import logging' at top, create logger = logging.getLogger(__name__). In call_mcp_tool method, add logger.info before calling self.mcp_client.call_tool (log server_name, tool_name, agent name). Wrap in try/except, log exceptions with logger.error and re-raise.",
@@ -22,5 +22,5 @@
     "Run: cd /projects/sandbox/ChronAI/backend && grep -n 'logger.error' app/agents/scheduler.py to confirm error logging"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All four files modified successfully. Python AST verification passes. Used python3 (not python) for verification as pyenv doesn't have a default python set."
 }
