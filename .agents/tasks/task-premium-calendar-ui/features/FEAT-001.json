@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Backend CRUD endpoints for calendar events (create + delete) and frontend API helpers",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In backend/app/main.py, add a POST /api/calendar/events endpoint that accepts JSON body {summary, start_time, duration_minutes, auth_token}. It should verify the auth token, then call mcp_client.call_tool('google-calendar', 'create_event', {...}) to create the event and return the result.",
     "In backend/app/main.py, add a DELETE /api/calendar/events/{event_id} endpoint that accepts query param auth_token. It should verify the auth token, then call mcp_client.call_tool('google-calendar', 'delete_event', {'auth_token': auth_token, 'event_id': event_id}) and return success.",
@@ -20,5 +20,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Both endpoints follow the existing GET /api/calendar/events pattern. The POST endpoint uses a dict body param (no Pydantic model) to keep it simple and consistent with the existing patterns in main.py. Frontend helpers follow the same getApiBase() + fetch pattern as existing functions."
 }
