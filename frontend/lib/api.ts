@@ -103,3 +103,51 @@ export async function postOnboarding(
     throw new Error(`Onboarding save failed (${res.status})`);
   }
 }
+
+export async function createCalendarEvent(
+  authToken: string,
+  data: { summary: string; start_time: string; duration_minutes: number }
+): Promise<CalendarEvent> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(`${getApiBase()}/api/calendar/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      summary: data.summary,
+      start_time: data.start_time,
+      duration_minutes: data.duration_minutes,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create event (${res.status})`);
+  }
+  return (await res.json()) as CalendarEvent;
+}
+
+export async function deleteCalendarEvent(
+  authToken: string,
+  eventId: string
+): Promise<void> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/calendar/events/${encodeURIComponent(eventId)}?auth_token=${encodeURIComponent(authToken)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to delete event (${res.status})`);
+  }
+}
+
+export async function checkTokenScopes(accessToken: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+    );
+    if (!res.ok) return "";
+    const data = await res.json();
+    return (data.scope as string) || "";
+  } catch {
+    return "";
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Backend CRUD endpoints for calendar events (create + delete) and frontend API helpers",
+  "status": "in_progress",
+  "steps": [
+    "In backend/app/main.py, add a POST /api/calendar/events endpoint that accepts JSON body {summary, start_time, duration_minutes, auth_token}. It should verify the auth token, then call mcp_client.call_tool('google-calendar', 'create_event', {...}) to create the event and return the result.",
+    "In backend/app/main.py, add a DELETE /api/calendar/events/{event_id} endpoint that accepts query param auth_token. It should verify the auth token, then call mcp_client.call_tool('google-calendar', 'delete_event', {'auth_token': auth_token, 'event_id': event_id}) and return success.",
+    "In frontend/lib/api.ts, add a createCalendarEvent(authToken, data: {summary, start_time, duration_minutes}) function that POSTs to /api/calendar/events with the body including auth_token.",
+    "In frontend/lib/api.ts, add a deleteCalendarEvent(authToken, eventId) function that calls DELETE /api/calendar/events/{eventId}?auth_token=...",
+    "In frontend/lib/api.ts, add a checkTokenScopes(accessToken) function that calls GET https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=... and returns the parsed scope string (for TASK 2)."
+  ],
+  "acceptance_criteria": [
+    "backend/app/main.py imports correctly: python -c 'import app.main' succeeds",
+    "frontend/lib/api.ts exports createCalendarEvent, deleteCalendarEvent, and checkTokenScopes functions",
+    "Frontend build passes: cd frontend && pnpm build"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -c 'import app.main'",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

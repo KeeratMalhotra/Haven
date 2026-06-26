@@ -441,6 +441,89 @@ async def get_calendar_events(auth_token: str = "", days_ahead: int = 7):
     return {"events": []}
 
 
+@app.post("/api/calendar/events")
+async def create_calendar_event(body: dict):
+    """Create a new calendar event.
+
+    Args:
+        body: JSON body with summary, start_time, duration_minutes, and auth_token.
+
+    Returns:
+        The created event or error message.
+    """
+    auth_token = body.get("auth_token", "")
+    if not auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    await verify_google_token(auth_token)
+
+    if mcp_client:
+        try:
+            result = await mcp_client.call_tool(
+                "google-calendar",
+                "create_event",
+                {
+                    "auth_token": auth_token,
+                    "summary": body.get("summary", ""),
+                    "start_time": body.get("start_time", ""),
+                    "duration_minutes": body.get("duration_minutes", 60),
+                },
+            )
+            return result
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create event: {e}",
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="MCP client not available",
+    )
+
+
+@app.delete("/api/calendar/events/{event_id}")
+async def delete_calendar_event(event_id: str, auth_token: str = ""):
+    """Delete a calendar event.
+
+    Args:
+        event_id: The ID of the event to delete.
+        auth_token: Google OAuth token for authentication.
+
+    Returns:
+        Status indicating deletion success.
+    """
+    if not auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    await verify_google_token(auth_token)
+
+    if mcp_client:
+        try:
+            await mcp_client.call_tool(
+                "google-calendar",
+                "delete_event",
+                {"auth_token": auth_token, "event_id": event_id},
+            )
+            return {"status": "deleted"}
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete event: {e}",
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="MCP client not available",
+    )
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
