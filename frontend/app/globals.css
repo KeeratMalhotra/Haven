@@ -3,70 +3,179 @@
 @tailwind utilities;
 
 :root {
-  --neon-cyan: #00f5ff;
-  --neon-purple: #b400ff;
-  --neon-pink: #ff00e6;
-  --bg-dark: #0a0a0f;
+  --accent-magenta: #ff2daf;
+  --accent-magenta-2: #e11d8f;
+  --accent-cyan: #22d3ee;
+  --accent-cyan-2: #00e5ff;
+  --base: #06080f;
+  --panel: #0d1119;
 }
 
 html {
   color-scheme: dark;
 }
 
+html,
 body {
-  background-color: var(--bg-dark);
-  color: #e0e0e0;
+  height: 100%;
+}
+
+body {
+  background-color: var(--base);
+  color: #e7ecf3;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Ambient background ---------- */
+.ambient-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   overflow: hidden;
 }
 
-/* Custom scrollbar for chat */
-.chat-scroll::-webkit-scrollbar {
-  width: 4px;
+.ambient-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.5;
+  will-change: transform;
 }
 
-.chat-scroll::-webkit-scrollbar-track {
+.ambient-blob--magenta {
+  width: 50vw;
+  height: 50vw;
+  left: -12vw;
+  top: -16vh;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 45, 175, 0.5),
+    transparent 65%
+  );
+  animation: float 14s ease-in-out infinite;
+}
+
+.ambient-blob--cyan {
+  width: 48vw;
+  height: 48vw;
+  right: -14vw;
+  bottom: -18vh;
+  background: radial-gradient(
+    circle at center,
+    rgba(34, 211, 238, 0.42),
+    transparent 65%
+  );
+  animation: float 18s ease-in-out infinite reverse;
+}
+
+.ambient-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px
+  );
+  background-size: 40px 40px;
+  mask-image: radial-gradient(circle at 50% 40%, black, transparent 80%);
+}
+
+/* ---------- Glass surfaces ---------- */
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045),
+    rgba(255, 255, 255, 0.015)
+  );
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 17, 25, 0.85),
+    rgba(9, 12, 21, 0.92)
+  );
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* ---------- Gradient text ---------- */
+.gradient-text {
+  background: linear-gradient(110deg, #ff2daf 0%, #b552d6 45%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-text-soft {
+  background: linear-gradient(
+    110deg,
+    rgba(255, 45, 175, 0.92) 0%,
+    rgba(186, 120, 220, 0.85) 50%,
+    rgba(34, 211, 238, 0.92) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Thinking shimmer ---------- */
+.thinking-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 45, 175, 0) 0%,
+    rgba(255, 45, 175, 0.9) 25%,
+    rgba(34, 211, 238, 0.9) 60%,
+    rgba(34, 211, 238, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.6s linear infinite;
+}
+
+.thinking-text {
+  background: linear-gradient(
+    90deg,
+    rgba(231, 236, 243, 0.35) 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(231, 236, 243, 0.35) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.8s linear infinite;
+}
+
+/* ---------- Scrollbar ---------- */
+.scroll-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.chat-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 245, 255, 0.3);
-  border-radius: 2px;
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
 }
 
-.chat-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 245, 255, 0.5);
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* Typing indicator animation */
-.typing-dot {
-  @apply w-1.5 h-1.5 rounded-full bg-gray-400;
-  animation: typing-bounce 1.4s infinite ease-in-out both;
-}
-
-.typing-dot.animation-delay-200 {
-  animation-delay: 0.2s;
-}
-
-.typing-dot.animation-delay-400 {
-  animation-delay: 0.4s;
-}
-
-@keyframes typing-bounce {
-  0%, 80%, 100% {
-    transform: scale(0.6);
-    opacity: 0.4;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Smooth fade + slide-in for newly added chat messages */
+/* ---------- Animations ---------- */
 @keyframes message-in {
   0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   100% {
     opacity: 1;
@@ -74,6 +183,58 @@ body {
   }
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(2%, -3%) scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
 .animate-message-in {
-  animation: message-in 0.28s ease-out both;
+  animation: message-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Streaming caret */
+.stream-caret::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: linear-gradient(180deg, #ff2daf, #22d3ee);
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
