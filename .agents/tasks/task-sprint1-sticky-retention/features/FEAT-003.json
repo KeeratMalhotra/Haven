@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Frontend: Replace HabitsDrawer with real data, add API helpers for habits/review, streak ring SVG, check-in animation, add-habit form",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Update frontend/lib/api.ts: add interfaces HabitItem (id, name, frequency, target_days, streak, last_completed, history), WeeklyReview (content: string). Add API functions: fetchHabits(authToken) -> GET /api/habits, checkinHabit(authToken, habitId) -> POST /api/habits/checkin, createHabit(authToken, name, frequency, targetDays) -> POST /api/habits, deleteHabit(authToken, habitId) -> DELETE /api/habits/{id}, fetchWeeklyReview(authToken) -> GET /api/review/weekly.",
     "2. Rewrite frontend/components/drawers/HabitsDrawer.tsx completely: remove hardcoded HABITS array, fetch real habits from API using useEffect+useState. Show each habit with: name, streak (flame icon + number), 7-day completion dots (derive from history array - check which of last 7 days have a completion entry). Add SVG streak ring showing weekly completion rate (completions_this_week / target_days as percentage, circular progress). Add check-in button per habit that calls checkinHabit API. Add framer-motion animation on check-in (scale pulse + color flash). Add inline add-habit form at bottom with name input + frequency selector (daily / 2x-7x per week dropdown). Use existing Drawer component as wrapper.",
@@ -21,5 +21,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Updated dashboard/page.tsx to pass accessToken prop to HabitsDrawer. Build passes cleanly. Used same patterns as TasksDrawer/CalendarDrawer for data fetching."
 }
