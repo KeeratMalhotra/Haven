@@ -216,7 +216,16 @@ User message: {message}"""
             }
 
         # Record the completion (increments streak + appends to history)
-        await HabitRepository.record_completion(habit.id)
+        # Returns False if already completed today (same-day deduplication).
+        recorded = await HabitRepository.record_completion(habit.id)
+
+        if not recorded:
+            return {
+                "content": f"You've already checked in '{habit.name}' today! Your streak is {habit.streak} days. Keep it up tomorrow!",
+                "agent": self.name,
+                "action": "check_in",
+                "streak": habit.streak,
+            }
 
         new_streak = habit.streak + 1
         celebration = self._celebration_message(new_streak)
