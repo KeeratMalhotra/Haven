@@ -7,7 +7,8 @@ Optionally persists scheduled events to Firestore.
 
 import json
 import logging
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,8 @@ ACTION SELECTION RULES:
 - If the user asks what's on their calendar, what events they have, or wants to see their schedule -> action: "list_events"
 - If the user wants to find free time, available slots, or asks "when can I..." -> action: "find_slots"  
 - If the user wants to create, schedule, or book an event/meeting -> action: "create_event"
+- If the user says they HAVE a meeting/event/appointment at a specific time (e.g. "I have a meeting at 6pm", "there's a standup at 10am") -> action: "create_event". This is an implicit create request.
+- If the instruction starts with "Create event:" -> action: "create_event". Extract the title and time from the instruction.
 
 When given a scheduling request, respond with a JSON object:
 {
@@ -36,6 +39,7 @@ When given a scheduling request, respond with a JSON object:
   "event_details": {
     "summary": "event title",
     "description": "event description",
+    "start_time": "today 18:00 or tomorrow 15:00 or ISO format",
     "duration_minutes": 60,
     "preferred_time": "morning|afternoon|evening|any",
     "date_range_days": 7
@@ -47,6 +51,10 @@ EXAMPLES:
 - "What's on my calendar this week?" -> action: "list_events", response: "Let me check your calendar for this week."
 - "Find me a free slot tomorrow" -> action: "find_slots"
 - "Schedule a meeting at 2pm" -> action: "create_event"
+- "Create event: meeting, today at 6pm" -> action: "create_event", event_details: {"summary": "Meeting", "start_time": "today 18:00", "duration_minutes": 60}
+- "Create event: dentist appointment, tomorrow at 3pm" -> action: "create_event", event_details: {"summary": "Dentist appointment", "start_time": "tomorrow 15:00", "duration_minutes": 60}
+- "I have a meeting at 6pm" -> action: "create_event", event_details: {"summary": "Meeting", "start_time": "today 18:00", "duration_minutes": 60}
+- "There's a standup at 10am" -> action: "create_event", event_details: {"summary": "Standup", "start_time": "today 10:00", "duration_minutes": 60}
 
 Default working hours: 9 AM - 6 PM. Default break: 30 min between meetings.
 """
@@ -111,10 +119,9 @@ class SchedulerAgent(AgentBase):
                 event_details = schedule_plan.get("event_details", {})
                 result = await self._create_event(auth_token, event_details)
                 if result and not (isinstance(result, dict) and result.get("error")):
-                    schedule_plan["response"] = (
-                        schedule_plan.get("response", "")
-                        + "\n\nEvent created successfully!"
-                    ).strip()
+                    schedule_plan["response"] = self._format_create_confirmation(
+                        event_details, result
+                    )
                     # Optionally persist created event to Firestore
                     if user_id:
                         await self._persist_event_to_firestore(user_id, event_details, result)
@@ -188,6 +195,50 @@ class SchedulerAgent(AgentBase):
                 label += f" ({mins} min free)"
             lines.append(label)
         return "\n".join(lines)
+
+    @staticmethod
+    def _format_create_confirmation(event_details: dict, result: dict) -> str:
+        """Format a friendly confirmation message after creating an event.
+
+        Args:
+            event_details: The planned event details (summary, start_time, etc.).
+            result: The result from the MCP create_event tool.
+
+        Returns:
+            A human-friendly confirmation string.
+        """
+        summary = event_details.get("summary", "Event")
+        # Capitalize first letter of summary for display
+        display_summary = summary[0].upper() + summary[1:] if summary else "Event"
+
+        # Try to format the time from the result or from event_details
+        start_iso = ""
+        if isinstance(result, dict):
+            start_iso = result.get("start", "")
+        if not start_iso:
+            start_iso = event_details.get("start_time", "")
+
+        time_display = ""
+        if start_iso:
+            try:
+                dt = datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
+                hour = dt.hour % 12 or 12
+                ampm = "AM" if dt.hour < 12 else "PM"
+                minute_str = f":{dt.minute:02d}" if dt.minute else ""
+                today = datetime.now().date()
+                if dt.date() == today:
+                    time_display = f"today at {hour}{minute_str} {ampm}"
+                elif dt.date() == today + timedelta(days=1):
+                    time_display = f"tomorrow at {hour}{minute_str} {ampm}"
+                else:
+                    day_name = dt.strftime("%A, %B %-d")
+                    time_display = f"on {day_name} at {hour}{minute_str} {ampm}"
+            except (ValueError, AttributeError):
+                pass
+
+        if time_display:
+            return f'Done! I\'ve added "{display_summary}" to your calendar {time_display}.'
+        return f'Done! I\'ve added "{display_summary}" to your calendar.'
 
     async def _analyze_scheduling_request(self, message: str) -> dict:
         """Use Gemini to analyze a scheduling request.
@@ -264,25 +315,85 @@ Scheduling request: {message}"""
 
         Args:
             auth_token: Google OAuth token for API access.
-            details: Event details including summary, start, end, etc.
+            details: Event details including summary, start_time, duration, etc.
 
         Returns:
             Created event data or empty dict on failure.
         """
         try:
+            # Resolve start_time from relative phrases to ISO format
+            start_time_raw = details.get("start_time", "")
+            start_time_iso = self._resolve_start_time(start_time_raw) if start_time_raw else None
+
+            tool_args = {
+                "auth_token": auth_token,
+                "summary": details.get("summary", "New Event"),
+                "description": details.get("description", ""),
+                "duration_minutes": details.get("duration_minutes", 60),
+            }
+            if start_time_iso:
+                tool_args["start_time"] = start_time_iso
+
             return await self.call_mcp_tool(
                 "google-calendar",
                 "create_event",
-                {
-                    "auth_token": auth_token,
-                    "summary": details.get("summary", "New Event"),
-                    "description": details.get("description", ""),
-                    "duration_minutes": details.get("duration_minutes", 60),
-                },
+                tool_args,
             )
         except Exception as e:
             logger.error(f"[scheduler] _create_event failed: {e}", exc_info=True)
             return {}
+
+    @staticmethod
+    def _resolve_start_time(time_str: str) -> str:
+        """Convert relative time phrases to ISO format datetime strings.
+
+        Handles:
+        - "today 18:00" -> today's date at 18:00
+        - "tomorrow 15:00" -> tomorrow's date at 15:00
+        - "2024-01-15T09:00:00" -> pass through as-is
+        - If parsing fails, default to next available hour.
+
+        Args:
+            time_str: A time string like "today 18:00", "tomorrow 15:00", or ISO.
+
+        Returns:
+            ISO format datetime string (e.g. "2024-01-15T18:00:00").
+        """
+        time_str = time_str.strip()
+
+        # Already in ISO format - pass through
+        if re.match(r"^\d{4}-\d{2}-\d{2}T", time_str):
+            return time_str
+
+        now = datetime.now()
+
+        # Match "today HH:MM" or "today HH"
+        today_match = re.match(r"^today\s+(\d{1,2}):?(\d{2})?$", time_str, re.IGNORECASE)
+        if today_match:
+            hour = int(today_match.group(1))
+            minute = int(today_match.group(2) or 0)
+            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            return target.isoformat()
+
+        # Match "tomorrow HH:MM" or "tomorrow HH"
+        tomorrow_match = re.match(r"^tomorrow\s+(\d{1,2}):?(\d{2})?$", time_str, re.IGNORECASE)
+        if tomorrow_match:
+            hour = int(tomorrow_match.group(1))
+            minute = int(tomorrow_match.group(2) or 0)
+            target = (now + timedelta(days=1)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+            return target.isoformat()
+
+        # Try parsing as a bare time "HH:MM" (assume today)
+        bare_time_match = re.match(r"^(\d{1,2}):(\d{2})$", time_str)
+        if bare_time_match:
+            hour = int(bare_time_match.group(1))
+            minute = int(bare_time_match.group(2))
+            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            return target.isoformat()
+
+        # Fallback: default to next available hour
+        target = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        return target.isoformat()
 
     async def _persist_event_to_firestore(
         self, user_id: str, event_details: dict, result: dict

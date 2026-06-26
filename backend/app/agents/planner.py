@@ -24,13 +24,15 @@ logger = logging.getLogger(__name__)
 
 PLANNER_PROMPT = """You are a task planning specialist. You either READ the user's existing tasks or CREATE new tasks. You must choose exactly one action.
 
-ACTION SELECTION RULES (read carefully — this is critical):
+ACTION SELECTION RULES (read carefully - this is critical):
 - READ intent -> action: "list_tasks". The user wants to SEE, VIEW, or CHECK tasks that already exist. They are NOT asking you to make anything. In this case you MUST NOT create any tasks; return an EMPTY "tasks" array.
   Examples of READ: "what tasks do I have today?", "show my tasks", "list my todos", "do I have anything due?", "what's on my to-do list?", "any tasks for me?", "what do I need to do today?"
-- WRITE intent -> action: "create_tasks". The user explicitly wants to ADD or CREATE something, or asks you to break a goal into steps.
-  Examples of WRITE: "add a task to call the dentist", "create a task: finish report by Friday", "remind me to buy milk", "help me plan a launch party", "I need to prepare for the interview".
+- WRITE intent -> action: "create_tasks". The user explicitly wants to ADD or CREATE something, or asks you to break a goal into steps. Also triggered when the user STATES they have a deadline or deliverable (implicit write).
+  Examples of WRITE: "add a task to call the dentist", "create a task: finish report by Friday", "remind me to buy milk", "help me plan a launch party", "I need to prepare for the interview", "I have a deadline Friday", "I have a report due next week", "there's a submission deadline on Monday"
 - When the user only wants to look at existing tasks, ALWAYS choose "list_tasks". Creating junk tasks for a read request is a serious error.
+- When the user STATES they have a deadline or deliverable ("I have X due by Y", "there's a deadline on Y") -> action: "create_tasks". This IS a create request even though they didn't say "create" or "add". Create a single task with the appropriate deadline.
 - For "create_tasks", create ONLY the tasks the user actually asked for. A single simple request = a single task. Only decompose into multiple subtasks when the user gives a broad goal that genuinely needs a plan. Never spam many tasks for a simple query.
+- If the instruction starts with "Create task:" -> action: "create_tasks". Extract the title and deadline from the instruction.
 
 Respond with a JSON object:
 {
