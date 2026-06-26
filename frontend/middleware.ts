@@ -14,8 +14,8 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Protect /dashboard and /settings and all sub-routes
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/settings")) {
+  // Protect /dashboard and all sub-routes
+  if (pathname.startsWith("/dashboard")) {
     if (!token) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
@@ -27,5 +27,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/settings/:path*"],
+  matcher: ["/dashboard/:path*"],
 };
