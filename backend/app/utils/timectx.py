@@ -62,8 +62,15 @@ def time_context_string() -> str:
          (Asia/Kolkata, UTC+5:30). Today is 2025-06-28."
     """
     n = now_ist()
-    # %-I and %-d are POSIX (Linux) directives for non-zero-padded values.
-    pretty = n.strftime("%A, %-d %B %Y, %-I:%M %p")
+    # Use platform-independent formatting to avoid %-d issues on Windows.
+    day_name = n.strftime("%A")
+    day = n.day
+    month = n.strftime("%B")
+    year = n.year
+    hour = n.hour % 12 or 12
+    minute = f":{n.minute:02d}" if n.minute else ""
+    ampm = "AM" if n.hour < 12 else "PM"
+    pretty = f"{day_name}, {day} {month} {year}, {hour}{minute} {ampm}"
     iso_date = n.strftime("%Y-%m-%d")
     return (
         f"Current date and time: {pretty} IST (Asia/Kolkata, UTC+5:30). "
