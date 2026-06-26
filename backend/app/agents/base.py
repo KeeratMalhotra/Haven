@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Default timeout (seconds) for any single Vertex AI Gemini generation call.
 # Kept below the MCP timeout (30s) so a slow model never blocks the whole turn.
-GEMINI_TIMEOUT_SECONDS = 25.0
+GEMINI_TIMEOUT_SECONDS = 60.0
 
 
 class AgentRegistry:
