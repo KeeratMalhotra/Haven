@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Backend OAuth integration endpoints for incremental Google service scopes and Spotify OAuth. Adds new API router at backend/app/api/integrations.py with endpoints for connecting/disconnecting Google services (Calendar, Tasks, Gmail, Slides) and Spotify. Stores granted scopes and tokens per user in Firestore. Also adds Spotify config to backend/app/config.py.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI to backend/app/config.py Settings class (with empty string defaults). Add GOOGLE_REDIRECT_URI for the integrations callback.",
     "Add 'connected_services' field (dict, default empty) and 'spotify_tokens' field (dict, default empty) to the User model in backend/app/db/models.py. The connected_services dict will map service names to their granted scopes and token data.",
@@ -24,5 +24,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/api/integrations.py"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 4 files modified/created successfully. py_compile passes for all files. Router registered in main.py alongside existing routers."
 }
