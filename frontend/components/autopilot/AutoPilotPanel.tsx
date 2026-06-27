@@ -13,7 +13,6 @@ import {
   Check,
   Loader2,
   Eye,
-  EyeOff,
 } from "lucide-react";
 
 import { Modal } from "@/components/ui/Modal";
@@ -230,32 +229,81 @@ export default function AutoPilotPanel({
           </button>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 mb-5">
-          <div className="flex items-center gap-2.5">
-            {mode === "ask_permission" ? (
-              <Eye size={16} strokeWidth={1.5} className="text-accent-500" />
-            ) : (
-              <EyeOff size={16} strokeWidth={1.5} className="text-warning-500" />
+        {/* Mode Selection Cards */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          {/* Suggest Mode Card */}
+          <button
+            onClick={() => updateMode("ask_permission")}
+            className={`relative rounded-xl border-2 p-4 text-left transition-all ${
+              mode === "ask_permission"
+                ? "border-accent-500 bg-accent-500/5 shadow-sm shadow-accent-500/10"
+                : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--text-tertiary)]/30"
+            }`}
+          >
+            {mode === "ask_permission" && (
+              <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent-500">
+                <Check size={12} strokeWidth={2.5} className="text-white" />
+              </div>
             )}
-            <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                {mode === "ask_permission" ? "Ask Permission" : "Full Auto"}
-              </p>
-              <p className="text-xs text-[var(--text-tertiary)]">
-                {mode === "ask_permission"
-                  ? "AI shows the plan, you approve"
-                  : "AI plans and executes automatically"}
-              </p>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500/10 mb-3">
+              <Eye size={16} strokeWidth={1.5} className="text-accent-500" />
             </div>
-          </div>
-          <Toggle
-            checked={mode === "full_auto"}
-            onChange={(checked) =>
-              updateMode(checked ? "full_auto" : "ask_permission")
-            }
-          />
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Suggest Mode
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1 leading-relaxed">
+              AI plans your day and asks for your approval before making changes
+            </p>
+          </button>
+
+          {/* Auto Mode Card */}
+          <button
+            onClick={() => updateMode("full_auto")}
+            className={`relative rounded-xl border-2 p-4 text-left transition-all ${
+              mode === "full_auto"
+                ? "border-warning-500 bg-warning-500/5 shadow-sm shadow-warning-500/10"
+                : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--text-tertiary)]/30"
+            }`}
+          >
+            {mode === "full_auto" && (
+              <div className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-warning-500">
+                <Check size={12} strokeWidth={2.5} className="text-white" />
+              </div>
+            )}
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-500/10 mb-3">
+              <Zap size={16} strokeWidth={1.5} className="text-warning-500" />
+            </div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Auto Mode
+            </p>
+            <p className="text-xs text-[var(--text-tertiary)] mt-1 leading-relaxed">
+              AI automatically plans and executes changes
+            </p>
+          </button>
         </div>
+
+        {/* Auto Mode Warning - always visible when auto mode is selected */}
+        <AnimatePresence>
+          {mode === "full_auto" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden mb-5"
+            >
+              <div className="flex items-start gap-2.5 rounded-lg border border-warning-500/20 bg-warning-500/5 px-3.5 py-2.5">
+                <AlertTriangle
+                  size={14}
+                  strokeWidth={1.5}
+                  className="text-warning-500 flex-shrink-0 mt-0.5"
+                />
+                <p className="text-xs text-warning-600 dark:text-warning-400 leading-relaxed">
+                  This may change your current schedules
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Error message */}
         <AnimatePresence>

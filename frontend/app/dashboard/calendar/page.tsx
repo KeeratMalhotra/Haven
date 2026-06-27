@@ -360,6 +360,10 @@ export default function CalendarPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  // Scroll container refs for day/week views
+  const weekScrollRef = useRef<HTMLDivElement>(null);
+  const dayScrollRef = useRef<HTMLDivElement>(null);
+
   // Debounce ref for PATCH calls during rapid drag (500ms)
   const patchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatchRef = useRef<{
@@ -521,6 +525,22 @@ export default function CalendarPage() {
     }
     load();
   }, [accessToken, view, currentDate]);
+
+  // Scroll to current time (or 8am if before 8am) when day/week view mounts
+  useEffect(() => {
+    if (view !== "day" && view !== "week") return;
+    // Small delay to allow DOM to render
+    const timer = setTimeout(() => {
+      const container = view === "day" ? dayScrollRef.current : weekScrollRef.current;
+      if (!container) return;
+      const now = new Date();
+      const targetHour = now.getHours() < 8 ? 8 : now.getHours();
+      // Scroll to: (targetHour - 6) * ROW_HEIGHT, minus some padding so it's not at the very top
+      const scrollTarget = Math.max(0, (targetHour - 6) * ROW_HEIGHT - 32);
+      container.scrollTo({ top: scrollTarget, behavior: "smooth" });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [view, currentDate]);
 
   // Navigation
   const navigatePrev = () => {
@@ -902,8 +922,8 @@ export default function CalendarPage() {
               )}
               {/* Time grid */}
               <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-[56px_repeat(7,1fr)] relative">
+                <div ref={weekScrollRef} className="flex-1 overflow-y-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
+                  <div className="grid grid-cols-[56px_repeat(7,1fr)] relative pt-2">
                     {/* Time labels */}
                     <div>
                       {HOURS.map((hour) => (
@@ -996,8 +1016,8 @@ export default function CalendarPage() {
                 </div>
               )}
               <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-[56px_1fr] relative">
+                <div ref={dayScrollRef} className="flex-1 overflow-y-auto" style={{ maxHeight: "calc(100vh - 220px)" }}>
+                  <div className="grid grid-cols-[56px_1fr] relative pt-2">
                     {/* Time labels */}
                     <div>
                       {HOURS.map((hour) => (

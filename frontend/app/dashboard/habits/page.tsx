@@ -260,7 +260,7 @@ function HabitCard({
                   }
                 : {}
             }
-            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            transition={checking ? { type: "tween", duration: 0.5 } : { type: "spring", stiffness: 400, damping: 15 }}
             className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-emerald-500/40 bg-emerald-500/10 text-emerald-500 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
           >
             <Check size={22} strokeWidth={2.5} />
