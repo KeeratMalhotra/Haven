@@ -255,6 +255,20 @@ export default function DashboardPage() {
     );
   }
 
+  // Redirect unauthenticated users to login
+  if (status === "unauthenticated") {
+    router.push("/");
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center h-full"
+      >
+        <p className="text-sm text-[var(--text-tertiary)]">Redirecting to login...</p>
+      </motion.div>
+    );
+  }
+
   const firstName = user?.name?.split(" ")[0] || "there";
   const todayFormatted = format(new Date(), "EEEE, MMMM d");
   const pendingTasks = tasks.filter((t) => !t.completed);

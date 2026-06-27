@@ -456,12 +456,13 @@ export default function CalendarPage() {
     }
   };
 
-  // Load events
+  // Load events - smart fetch scoping based on view
   useEffect(() => {
     async function load() {
       setLoading(true);
+      const days = view === "day" ? 1 : view === "week" ? 7 : 30;
       try {
-        const fetched = await fetchCalendarEvents(accessToken, 60);
+        const fetched = await fetchCalendarEvents(accessToken, days);
         setEvents(fetched);
       } catch {
         setEvents([]);
@@ -469,7 +470,7 @@ export default function CalendarPage() {
       setLoading(false);
     }
     load();
-  }, [accessToken]);
+  }, [accessToken, view]);
 
   // Navigation
   const navigatePrev = () => {
@@ -826,11 +827,11 @@ export default function CalendarPage() {
                         {(() => {
                           const dayEvents = getEventsForDay(day);
                           const overlaps = computeOverlaps(dayEvents);
-                          return dayEvents.map((event, i) => {
+                          return dayEvents.map((event) => {
                             const key = `${event.id || event.summary}-${event.start}`;
                             return (
                               <TimeBlock
-                                key={event.id || i}
+                                key={key}
                                 event={event}
                                 dayStart={day}
                                 onClick={() => openEditModal(event)}
@@ -890,11 +891,11 @@ export default function CalendarPage() {
                       {(() => {
                         const dayEvents = getEventsForDay(currentDate);
                         const overlaps = computeOverlaps(dayEvents);
-                        return dayEvents.map((event, i) => {
+                        return dayEvents.map((event) => {
                           const key = `${event.id || event.summary}-${event.start}`;
                           return (
                             <TimeBlock
-                              key={event.id || i}
+                              key={key}
                               event={event}
                               dayStart={currentDate}
                               onClick={() => openEditModal(event)}

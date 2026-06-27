@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Rebuild calendar time-grid event positioning and drag-drop time update. Fix multi-hour events to span correctly using precise pixel math (height = duration_minutes / 60 * 64px). Update the time text on the event card when events are dragged to new time slots. Also implement smart fetch scoping: Day view fetches 1 day, Week view 7 days, Month view 30 days.",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/app/dashboard/calendar/page.tsx, refactor the TimeBlock component to ensure multi-hour events span perfectly: height = Math.max(24, (duration / 60) * ROW_HEIGHT) where ROW_HEIGHT = 64. The top position = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT. This logic already exists but verify it works for events like 2pm-5pm (should be 192px height, top at 8*64=512px).",
+    "Fix the handleDragEnd function: after computing newStart/newEnd and updating local state, the TimeBlock component must re-render showing the NEW time text (format(newStart, 'h:mm a') - format(newEnd, 'h:mm a')). Currently the event data in state is updated (start/end ISO strings change) but verify the TimeBlock reads from the event prop's start/end. The time text display line uses format(startDate, 'h:mm a') - format(endDate, 'h:mm a') where startDate = parseISO(event.start) - this should already update reactively. If there is a bug where it does not update, investigate if it is a key/identity issue with React reconciliation.",
+    "Implement smart fetch scoping: change the useEffect that fetches events. Currently it fetches 60 days always. Change to: if view === 'day' fetch 1 day, if view === 'week' fetch 7 days, if view === 'month' fetch 30 days. Pass the view state as a dependency to the fetch useEffect. Use the existing fetchCalendarEvents(accessToken, days) signature.",
+    "Fix the dashboard page (frontend/app/dashboard/page.tsx) to never render blank. The current code handles loading and empty states well, but ensure that if status is 'unauthenticated' it still shows something (redirect to login or show a fallback). Add a fallback case for unauthenticated status that renders either a redirect or a message instead of nothing.",
+    "CSS color audit: ensure all text uses var(--text-primary), var(--text-secondary), or var(--text-tertiary) so it is always visible against both light and dark backgrounds. Check the calendar page components for any hardcoded colors that might be invisible."
+  ],
+  "acceptance_criteria": [
+    "A 3-hour event (e.g., 2pm-5pm) visually spans exactly 192px (3 * 64px) in height in day/week view",
+    "A 30-minute event spans exactly 32px in height",
+    "When an event is dragged from 2pm to 4pm, the time text on the card updates to show '4:00 PM - 7:00 PM' (for a 3-hour event)",
+    "Day view fetches 1 day of events, Week view fetches 7, Month view fetches 30",
+    "Dashboard page never shows a blank screen - always renders loading skeleton, content, or empty state",
+    "npm run build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
