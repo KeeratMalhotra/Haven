@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Fix AI greeting response - when user says hey/hi/hello, the orchestrator generates a full daily briefing which is too verbose. Change to return a concise 2-3 line warm greeting with an option to see the full briefing.",
+  "status": "pending",
+  "steps": [
+    "Edit `backend/app/agents/orchestrator.py` in the `execute()` method where `_is_greeting()` is true: Instead of calling `_try_generate_briefing()` which returns a massive wall of text, generate a short 2-3 line warm response. The response should acknowledge the user warmly, mention 1 key thing (e.g. 'You have X events today' or 'Your next task is Y' if available), and end with an offer like 'Want me to show your full briefing?' or 'Say \"brief me\" for your full daily overview.'",
+    "Create a new method `_generate_short_greeting(self, user_id: str, auth_token: str) -> str` that: 1) Fetches user name from UserRepository, 2) Optionally fetches task count and next event (quick, lightweight calls), 3) Returns a formatted 2-3 line string without calling Gemini (to keep it fast). Example: 'Hey {name}! You have {n} tasks and {m} events today. Say \"brief me\" if you want your full daily overview.'",
+    "Keep the `_try_generate_briefing` method intact for when users explicitly ask for briefing (e.g. via 'brief me' or 'give me my briefing' which routes through the existing agent system)",
+    "Verify syntax: `cd /projects/sandbox/ChronAI/backend && python -m py_compile app/agents/orchestrator.py`"
+  ],
+  "acceptance_criteria": [
+    "When user sends 'hey'/'hi'/'hello', the response is 2-3 concise lines, NOT a full briefing",
+    "The short greeting mentions key stats (task/event counts) when available",
+    "The greeting offers an option to get the full briefing",
+    "orchestrator.py compiles without syntax errors",
+    "The _try_generate_briefing method still exists for explicit briefing requests"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/agents/orchestrator.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

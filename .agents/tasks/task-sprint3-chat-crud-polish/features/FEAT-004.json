@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Connect Task CRUD to Google Tasks via real API endpoints. Add backend POST /api/tasks, DELETE /api/tasks/{id}, PATCH /api/tasks/{id} endpoints, create frontend lib/api-extended.ts with helper functions, and wire the tasks page to use real API calls instead of localStorage-only.",
+  "status": "pending",
+  "steps": [
+    "Add three new endpoints in `backend/app/main.py`: 1) `POST /api/tasks` - accepts {auth_token, title, notes?, due_days_from_now?} and calls MCP google-tasks create_task. 2) `DELETE /api/tasks/{task_id}` with query param auth_token - calls MCP google-tasks delete_task. 3) `PATCH /api/tasks/{task_id}` - accepts {auth_token, completed?} and calls MCP google-tasks complete_task when completed=true.",
+    "Create Pydantic request models: CreateTaskRequest(auth_token, title, notes='', due_days_from_now=7), UpdateTaskRequest(auth_token, completed=None).",
+    "Create `frontend/lib/api-extended.ts` that exports: createTask(authToken, data), deleteTask(authToken, taskId), updateTask(authToken, taskId, data), fetchAiPriorities(authToken), fetchSuggestions(authToken). Import and re-export getApiBase from lib/api (or duplicate the helper since we cannot modify lib/api.ts).",
+    "Update `frontend/app/dashboard/tasks/page.tsx`: 1) Replace localStorage-only create with calling createTask API first (fall back to local on failure). 2) Replace local-only delete with calling deleteTask API (fall back to local removal on failure). 3) Wire the 'Ask AI to Prioritize' button to call fetchAiPriorities and display the AI-ranked list. 4) Keep localStorage as a cache layer for offline resilience. 5) On initial load, always try API first (fetchTasks from lib/api.ts), then merge with localStorage for local-only state (status, priority).",
+    "Verify: `cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py`",
+    "Verify: `cd /projects/sandbox/ChronAI/frontend && npm run build`"
+  ],
+  "acceptance_criteria": [
+    "POST /api/tasks endpoint exists and creates tasks via MCP google-tasks",
+    "DELETE /api/tasks/{task_id} endpoint exists and deletes via MCP google-tasks",
+    "PATCH /api/tasks/{task_id} endpoint exists and completes tasks via MCP google-tasks",
+    "frontend/lib/api-extended.ts exists with createTask, deleteTask, updateTask, fetchAiPriorities functions",
+    "Tasks page calls real API for create/delete operations (with localStorage fallback)",
+    "AI Prioritize button calls /api/priorities and updates the task order",
+    "Backend compiles: python -m py_compile app/main.py",
+    "Frontend builds: npm run build passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py",
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

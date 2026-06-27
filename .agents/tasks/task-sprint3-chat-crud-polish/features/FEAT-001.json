@@ -1,0 +1,20 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Remove Next.js dev toolbar logo and set up environment. Disable devIndicators in next.config.ts.",
+  "status": "in_progress",
+  "steps": [
+    "Run `cd /projects/sandbox/ChronAI/frontend && npm install` to ensure dependencies are installed",
+    "Edit `frontend/next.config.ts` to add `devIndicators: false` (or `devIndicators: { appIsrStatus: false, buildActivity: false }`) to suppress the Next.js logo in the bottom left corner",
+    "Run `npm run build` to verify the config change does not break the build"
+  ],
+  "acceptance_criteria": [
+    "next.config.ts includes devIndicators configuration to disable the Next.js logo",
+    "`npm run build` passes in frontend/"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm install && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

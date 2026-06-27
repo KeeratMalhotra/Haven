@@ -1,0 +1,7 @@
+{
+  "task_id": "task-sprint3-chat-crud-polish",
+  "task_description": "Sprint 3: Remove Next.js dev logo, redesign AI chat UI with matte/Notion styling and markdown support, fix verbose greeting response, connect task CRUD to Google Tasks API, add proactive suggestions endpoint, and create email notification utility.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

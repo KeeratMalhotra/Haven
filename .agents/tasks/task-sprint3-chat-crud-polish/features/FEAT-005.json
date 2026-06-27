@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Add proactive AI suggestions endpoint (GET /api/suggest) and email notification foundation utility for task deadline reminders. The suggestions endpoint returns 2-3 smart nudges based on user tasks/calendar. The email utility provides a reusable function for sending formatted deadline reminder emails.",
+  "status": "pending",
+  "steps": [
+    "Add `GET /api/suggest` endpoint in `backend/app/main.py` that: 1) Takes auth_token query param, 2) Verifies the token, 3) Fetches user tasks (via planner.list_tasks) and calendar events (via MCP), 4) Uses Gemini to generate 2-3 smart, actionable suggestions (e.g. 'You have a meeting in 1 hour - prepare notes', 'Your report deadline is tomorrow - start now'), 5) Returns {suggestions: [{text: '...', type: 'reminder'|'productivity'|'preparation'}]}. Keep the Gemini prompt short and focused.",
+    "Create `backend/app/utils/email_notifications.py` - a utility module that provides: 1) `async def send_task_reminder(user_email: str, task_title: str, deadline: str, google_tokens: dict) -> bool` - sends an HTML email via Gmail API (similar to the pattern in proactive.py _send_nudge_email but more focused on task reminders with a cleaner template). 2) `async def send_daily_digest(user_email: str, tasks: list, events: list, google_tokens: dict) -> bool` - sends a morning digest email. These are utility functions the proactive scheduler or future notification agent can call.",
+    "Add the `fetchSuggestions` function to `frontend/lib/api-extended.ts` that calls GET /api/suggest?auth_token=...",
+    "Optionally wire the suggestions into the dashboard page (a small 'AI Suggestions' card below the stats that shows 2-3 suggestion chips) - update `frontend/app/dashboard/page.tsx` to fetch and display suggestions when available.",
+    "Verify backend: `cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py && python -m py_compile app/utils/email_notifications.py`",
+    "Verify frontend: `cd /projects/sandbox/ChronAI/frontend && npm run build`"
+  ],
+  "acceptance_criteria": [
+    "GET /api/suggest endpoint exists, returns suggestions array with text and type fields",
+    "backend/app/utils/email_notifications.py exists with send_task_reminder and send_daily_digest functions",
+    "Email functions use Gmail API pattern (Credentials + service build + send)",
+    "frontend/lib/api-extended.ts has fetchSuggestions function",
+    "Dashboard page shows AI suggestions when available",
+    "All Python files compile without errors",
+    "Frontend builds without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py && python -m py_compile app/utils/email_notifications.py",
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

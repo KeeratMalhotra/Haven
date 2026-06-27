@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Complete AI Chat UI redesign - Notion-style matte bubbles, clean composer without glass effects or gradients, proper font sizing, better message spacing, markdown rendering for AI responses, and matte ThinkingShimmer. Install react-markdown + remark-gfm for markdown rendering.",
+  "status": "pending",
+  "steps": [
+    "Install react-markdown and remark-gfm: `cd /projects/sandbox/ChronAI/frontend && npm install react-markdown remark-gfm`",
+    "Redesign `frontend/components/chat/ChatComposer.tsx`: Remove `glass-strong` class, remove the gradient focus rim div, remove `shadow-glow-cyan`, remove `accent-gradient` from the send button. Replace with matte surface styling using CSS variables: bg-[var(--surface)], border border-[var(--border)], focused state uses border-[var(--border-focus)]. Send button should use bg-accent-500 (solid, not gradient). Voice button should use text-[var(--text-tertiary)] hover:text-accent-500. Keep the same functionality and textarea auto-grow logic.",
+    "Redesign `frontend/components/chat/MessageBubble.tsx`: Remove the `bg-gradient-to-br from-accent-magenta to-accent-cyan shadow-glow` AI presence dot. Replace with a small solid accent-500 dot (h-1.5 w-1.5 rounded-full bg-accent-500). User bubble: replace `bg-white/[0.06] ring-1 ring-white/10` with `bg-[var(--surface-hover)] border border-[var(--border)]`. AI text: replace `text-white/85` with `text-[var(--text-primary)]`. Add markdown rendering for AI messages using react-markdown with remark-gfm. Wrap AI content in a prose-like container with proper typography (headings, lists, code blocks, paragraphs get appropriate styling). Keep the streaming/reveal logic intact but apply it to a MarkdownRenderer component.",
+    "Redesign `frontend/components/chat/ThinkingShimmer.tsx`: Remove the magenta/cyan gradient breathing orb. Replace with a simpler matte design: 3 small dots that animate (pulse) using accent-500 color. Remove the shimmer gradient line. The status label should use `text-[var(--text-secondary)]` with no gradient text effect. Keep framer-motion entry/exit animations.",
+    "Update `frontend/components/chat/MessageList.tsx` if needed to adjust gap/spacing between messages (gap-5 instead of gap-6, adjust padding).",
+    "Run `npm run build` to verify all changes compile correctly"
+  ],
+  "acceptance_criteria": [
+    "ChatComposer uses no glass-strong, no accent-gradient, no gradient focus rim - uses matte surface styling with CSS variables",
+    "MessageBubble renders AI messages as markdown (headings, lists, code blocks, links work)",
+    "MessageBubble uses matte styling - no gradients, no glow shadows, no white/[0.06] backgrounds",
+    "ThinkingShimmer uses a simple dot pulse animation - no magenta/cyan gradient orb",
+    "`npm run build` passes",
+    "`npm run lint` passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
