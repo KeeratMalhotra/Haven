@@ -109,3 +109,35 @@ export async function fetchSuggestions(
     return { suggestions: [] };
   }
 }
+
+/**
+ * Fetch a contextual AI suggestion based on a user action.
+ */
+export async function fetchContextSuggestion(
+  authToken: string,
+  actionType: string,
+  actionData: Record<string, any>,
+  context?: Record<string, any>
+): Promise<{ suggestion: string | null; type: string; actions: any[] }> {
+  if (!authToken) return { suggestion: null, type: "info", actions: [] };
+  try {
+    const res = await fetch(`${getApiBase()}/api/context-suggest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auth_token: authToken,
+        action_type: actionType,
+        action_data: actionData,
+        context: context || {},
+      }),
+    });
+    if (!res.ok) return { suggestion: null, type: "info", actions: [] };
+    return (await res.json()) as {
+      suggestion: string | null;
+      type: string;
+      actions: any[];
+    };
+  } catch {
+    return { suggestion: null, type: "info", actions: [] };
+  }
+}

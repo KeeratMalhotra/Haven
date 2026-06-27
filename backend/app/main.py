@@ -1004,6 +1004,111 @@ async def get_suggestions(auth_token: str = ""):
         return {"suggestions": []}
 
 
+class ContextSuggestRequest(BaseModel):
+    """Request body for contextual AI suggestion."""
+    auth_token: str
+    action_type: str
+    action_data: dict = {}
+    context: dict = {}
+
+
+@app.post("/api/context-suggest")
+async def context_suggest(body: ContextSuggestRequest):
+    """Get a contextual AI suggestion based on a user action.
+
+    Evaluates the user's action and context, then uses Gemini to decide
+    whether to offer a helpful suggestion or stay silent.
+
+    Args:
+        body: Validated JSON body with auth_token, action_type, action_data, context.
+
+    Returns:
+        Dict with suggestion (string or null), type, and actions list.
+    """
+    if not body.auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    await verify_google_token(body.auth_token)
+
+    # Sanitize inputs
+    action_type = str(body.action_type)[:100]
+    action_data_str = str(body.action_data)[:500]
+    context_str = str(body.context)[:500]
+
+    prompt = (
+        "You are a smart productivity assistant observing user actions. "
+        "Based on the action below, decide if you should offer a brief, helpful suggestion.\n\n"
+        f"Action type: {action_type}\n"
+        f"Action data: ```{action_data_str}```\n"
+        f"Context: ```{context_str}```\n\n"
+        "If a suggestion is warranted, respond with JSON:\n"
+        '{"suggestion": "your brief suggestion text", "type": "info|action|warning", '
+        '"actions": [{"label": "button text", "action": "action_id"}]}\n\n'
+        "If no suggestion is needed, respond with:\n"
+        '{"suggestion": null}\n\n'
+        "Rules:\n"
+        "- Only suggest when genuinely helpful (do not be annoying)\n"
+        "- Keep suggestions under 100 characters\n"
+        "- type should be 'info' for tips, 'action' for actionable suggestions, 'warning' for potential issues\n"
+        "- actions array can be empty if no button is needed\n"
+        "- Return ONLY valid JSON, no markdown or explanation"
+    )
+
+    try:
+        import vertexai.generative_models as genai
+        import json
+
+        model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        response = await asyncio.wait_for(
+            model.generate_content_async(prompt),
+            timeout=3.0,
+        )
+        raw_text = response.text.strip()
+
+        # Handle potential markdown code blocks
+        if raw_text.startswith("```"):
+            lines = raw_text.split("\n")
+            raw_text = "\n".join(
+                lines[1:-1] if lines[-1].startswith("```") else lines[1:]
+            )
+            raw_text = raw_text.strip()
+
+        result = json.loads(raw_text)
+
+        suggestion = result.get("suggestion")
+        if suggestion is None:
+            return {"suggestion": None, "type": "info", "actions": []}
+
+        # Validate type
+        valid_types = {"info", "action", "warning"}
+        s_type = result.get("type", "info")
+        if s_type not in valid_types:
+            s_type = "info"
+
+        # Validate actions
+        actions = result.get("actions", [])
+        if not isinstance(actions, list):
+            actions = []
+        validated_actions = []
+        for a in actions:
+            if isinstance(a, dict) and "label" in a and "action" in a:
+                validated_actions.append(
+                    {"label": str(a["label"])[:50], "action": str(a["action"])[:50]}
+                )
+
+        return {
+            "suggestion": str(suggestion)[:200],
+            "type": s_type,
+            "actions": validated_actions,
+        }
+    except (asyncio.TimeoutError, Exception) as e:
+        logger.debug(f"Context suggest failed or timed out: {e}")
+        return {"suggestion": None, "type": "info", "actions": []}
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""

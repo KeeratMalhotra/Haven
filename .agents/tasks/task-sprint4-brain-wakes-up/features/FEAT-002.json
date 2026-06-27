@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Build the AI Context Layer: AIContextProvider (React context), AIToast component, AISuggestionBanner component, and the backend POST /api/context-suggest endpoint. This creates the omnipresent AI awareness system.",
+  "status": "in_progress",
+  "steps": [
+    "Create frontend/components/ai/AIContextProvider.tsx: A React context that wraps the dashboard. Exports useAI() hook with: reportAction(actionType: string, actionData: object) function, suggestions state (array of suggestion objects), dismissSuggestion(id) function. Internally debounces reportAction calls (300ms), sends to POST /api/context-suggest via fetch. On response, adds suggestion to suggestions state array. Each suggestion has: id, text, type ('info'|'action'|'warning'), actions (array of {label, action}), timestamp, dismissed boolean.",
+    "Create frontend/components/ai/AIToast.tsx: A small, dismissible popup that appears in the bottom-right corner. Uses framer-motion AnimatePresence for enter/exit animations. Matte styling: bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg. Shows suggestion text, optional action buttons, and X dismiss button. Auto-dismisses after 8 seconds. Stacks multiple toasts vertically with gap.",
+    "Create frontend/components/ai/AISuggestionBanner.tsx: An inline banner component for page views. Props: suggestion text, type, onDismiss, onAction. Matte card styling matching existing Card component pattern. Shows a Sparkles icon, suggestion text, action button(s), and dismiss X. Subtle enter animation with framer-motion.",
+    "Add POST /api/context-suggest endpoint in backend/app/main.py: Request body model ContextSuggestRequest with fields: auth_token (str), action_type (str), action_data (dict), context (dict, optional). Validates auth token. Uses Gemini (settings.GEMINI_MODEL) with a prompt that describes the action and asks whether to suggest something. Has a 3-second timeout - if Gemini takes longer, returns {suggestion: null}. Returns {suggestion: string|null, type: 'info'|'action'|'warning', actions: list}. Follow the same Gemini call pattern as the existing /api/suggestions endpoint.",
+    "Add fetchContextSuggestion function to frontend/lib/api-extended.ts: POST to /api/context-suggest, returns the suggestion response.",
+    "Update frontend/app/dashboard/layout.tsx: Import and wrap DashboardShell children with AIContextProvider. Import AIToast and render it inside the provider (reads suggestions from useAI context).",
+    "Verify build and lint pass."
+  ],
+  "acceptance_criteria": [
+    "AIContextProvider exists and exports useAI() hook with reportAction, suggestions, dismissSuggestion",
+    "AIToast renders suggestions from context as dismissible popups with matte styling",
+    "AISuggestionBanner is a reusable inline banner component",
+    "Backend /api/context-suggest endpoint exists, validates auth, calls Gemini, returns suggestion or null",
+    "api-extended.ts has fetchContextSuggestion function",
+    "Dashboard layout wraps content with AIContextProvider and renders AIToast",
+    "npm run build passes",
+    "npm run lint passes",
+    "python -m py_compile app/main.py passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

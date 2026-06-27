@@ -7,6 +7,8 @@ import {
   ConnectionProvider,
   useConnectionState,
 } from "@/components/chat/ConnectionContext";
+import { AIContextProvider } from "@/components/ai/AIContextProvider";
+import AIToast from "@/components/ai/AIToast";
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -22,7 +24,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AppShell connected={connected} userImage={userImage}>
-      {children}
+      <AIContextProvider>
+        {children}
+        <AIToast />
+      </AIContextProvider>
       <SpotifyMiniPlayer />
     </AppShell>
   );
