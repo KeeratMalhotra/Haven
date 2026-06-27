@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mic, X } from "lucide-react";
 import { startListening } from "@/lib/voice";
-
-// The 3D particle entity is heavy and WebGL-only — load it lazily and ONLY
-// when voice mode is active. It never appears on the default canvas.
-const EntityCanvas = dynamic(
-  () => import("@/components/entity/EntityCanvas"),
-  { ssr: false }
-);
 
 interface VoiceModeProps {
   active: boolean;
@@ -26,9 +18,8 @@ type VoicePhase = "idle" | "listening" | "processing";
 
 /**
  * VoiceMode
- * A full-screen overlay that materializes the audio-reactive particle entity
- * at center stage. Tapping the mic captures speech and sends it as a voice
- * message; the entity reacts to TTS playback via the shared audio element.
+ * A full-screen matte overlay for voice interaction. Tapping the mic captures
+ * speech and sends it as a voice message.
  */
 export default function VoiceMode({
   active,
@@ -57,7 +48,7 @@ export default function VoiceMode({
     if (listeningRef.current) return;
     listeningRef.current = true;
     setPhase("listening");
-    setHint("Listening…");
+    setHint("Listening...");
     try {
       const transcript = await startListening();
       if (transcript) {
@@ -66,7 +57,7 @@ export default function VoiceMode({
         setHint("");
       } else {
         setPhase("idle");
-        setHint("Didn't catch that — tap to try again");
+        setHint("Didn't catch that - tap to try again");
       }
     } catch {
       setPhase("idle");
@@ -83,42 +74,28 @@ export default function VoiceMode({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 45%, rgba(13,17,25,0.7), rgba(3,4,9,0.96))",
-            backdropFilter: "blur(8px)",
-          }}
+          transition={{ duration: 0.4 }}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg)]/95 backdrop-blur-xl"
         >
           {/* Close */}
           <button
             onClick={onClose}
             aria-label="Exit voice"
-            className="absolute right-6 top-6 grid h-11 w-11 place-items-center rounded-full text-white/60 ring-1 ring-white/10 transition-colors hover:bg-white/5 hover:text-white"
+            className="absolute right-6 top-6 grid h-11 w-11 place-items-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={20} />
           </button>
 
-          {/* The entity materializes */}
-          <motion.div
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.6, opacity: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="relative h-[55vh] w-full max-w-3xl"
-          >
-            <EntityCanvas />
-          </motion.div>
-
           {/* Status / hint */}
-          <div className="mt-2 flex h-8 items-center">
+          <div className="mb-8 flex h-8 items-center">
             {thinking || phase === "processing" ? (
-              <span className="thinking-text text-sm font-medium tracking-tight">
+              <span className="text-sm font-medium tracking-tight text-[var(--text-secondary)]">
                 {statusLabel || "One moment"}
               </span>
             ) : (
-              <span className="text-sm text-white/45">{hint}</span>
+              <span className="text-sm text-[var(--text-tertiary)]">
+                {hint}
+              </span>
             )}
           </div>
 
@@ -126,24 +103,34 @@ export default function VoiceMode({
           <motion.button
             onClick={handleMic}
             whileTap={{ scale: 0.92 }}
-            className="relative mt-8 grid h-20 w-20 place-items-center rounded-full"
+            className="relative grid h-20 w-20 place-items-center rounded-full border border-[var(--border)] bg-[var(--surface-hover)] transition-colors hover:border-[var(--text-tertiary)]"
             aria-label="Speak"
           >
-            <span
-              className={`absolute inset-0 rounded-full bg-accent-gradient ${
-                phase === "listening" ? "animate-pulse-soft" : ""
-              }`}
-              style={{ filter: "blur(2px)", opacity: 0.9 }}
-            />
             {phase === "listening" && (
               <motion.span
-                className="absolute inset-0 rounded-full ring-2 ring-accent-cyan/50"
-                animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
-                transition={{ duration: 1.4, repeat: Infinity }}
+                className="absolute inset-0 rounded-full border-2 border-[var(--text-secondary)]"
+                animate={{ scale: [1, 1.4], opacity: [0.5, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
               />
             )}
-            <Mic size={28} className="relative z-10 text-white" />
+            <Mic
+              size={28}
+              className={
+                phase === "listening"
+                  ? "relative z-10 text-[var(--text-primary)]"
+                  : "relative z-10 text-[var(--text-secondary)]"
+              }
+            />
           </motion.button>
+
+          {/* Phase indicator */}
+          <p className="mt-6 text-xs text-[var(--text-tertiary)]">
+            {phase === "listening"
+              ? "Speak now"
+              : phase === "processing"
+                ? "Processing..."
+                : "Voice mode"}
+          </p>
         </motion.div>
       )}
     </AnimatePresence>

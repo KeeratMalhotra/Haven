@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix GreetingHero and rebuild VoiceMode. GreetingHero currently uses gradient-text-soft class which creates a glowing purple gradient on text - replace with flat matte styling matching Notion theme. Reduce text sizes. VoiceMode currently uses radial gradients, accent-gradient backgrounds, and imports EntityCanvas from components/entity/ - completely rebuild with matte theme, simple mic button with subtle pulse animation, no Three.js.",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/components/chat/GreetingHero.tsx: Remove the 'gradient-text-soft' class from the h1. Replace with simple 'text-[var(--text-primary)]' styling. Reduce text sizes from text-4xl/sm:text-5xl/md:text-6xl to text-2xl/sm:text-3xl/md:text-4xl. The subtitle text-white/40 should become text-[var(--text-tertiary)]. The monospace greeting line should use text-[var(--text-tertiary)] instead of text-white/35. Keep framer-motion animations but make them subtler.",
+    "In frontend/components/voice/VoiceMode.tsx: Complete rebuild. Remove the EntityCanvas import and usage entirely. Remove the radial-gradient background. Remove the accent-gradient span on the mic button. Build a new matte overlay: background should be var(--bg)/95 with backdrop-blur. Mic button should be a simple circle with bg-[var(--surface-hover)] and a subtle ring. When listening, add a gentle pulsing ring animation (not accent-gradient). Status text uses var(--text-secondary). Close button uses standard matte styling. Keep the same props interface (active, onClose, onSpeak, statusLabel, thinking) and same logic flow (idle/listening/processing phases, startListening call).",
+    "Verify the build passes with npm run build and npm run lint in the frontend directory."
+  ],
+  "acceptance_criteria": [
+    "GreetingHero no longer uses gradient-text-soft class",
+    "GreetingHero text sizes are reduced (max text-4xl at md breakpoint)",
+    "VoiceMode does not import or reference EntityCanvas or anything from components/entity/",
+    "VoiceMode does not use radial-gradient, accent-gradient, or any heavy gradient styling",
+    "VoiceMode uses matte theme variables (--bg, --surface, --border, --text-primary/secondary)",
+    "VoiceMode maintains the same props interface and voice capture logic",
+    "npm run build passes",
+    "npm run lint passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
