@@ -144,6 +144,10 @@ function SettingsContent() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
+  // Error state for surfacing failures to the user
+  const [integrationError, setIntegrationError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   // Notification preferences (localStorage + backend)
   const [emailDeadlineReminders, setEmailDeadlineReminders] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(false);
@@ -290,12 +294,14 @@ function SettingsContent() {
   const handleConnectService = async (service: string) => {
     if (!authToken) return;
     setConnectingService(service);
+    setIntegrationError(null);
     try {
       const { auth_url } = await connectService(authToken, service);
       // Open OAuth popup
       const popup = window.open(auth_url, "_blank", "width=600,height=700,popup=yes");
       oauthPopupRef.current = popup;
     } catch {
+      setIntegrationError(`Failed to connect ${service}. Please try again.`);
       setConnectingService(null);
     }
   };
@@ -303,6 +309,7 @@ function SettingsContent() {
   const handleDisconnectService = async (service: string) => {
     if (!authToken) return;
     setConnectingService(service);
+    setIntegrationError(null);
     try {
       await disconnectService(authToken, service);
       setIntegrationStatus((prev) => ({
@@ -310,7 +317,7 @@ function SettingsContent() {
         [service]: { connected: false, scopes: [] },
       }));
     } catch {
-      // Silent fail
+      setIntegrationError(`Failed to disconnect ${service}. Please try again.`);
     } finally {
       setConnectingService(null);
     }
@@ -319,11 +326,13 @@ function SettingsContent() {
   const handleConnectSpotify = async () => {
     if (!authToken) return;
     setConnectingService("spotify");
+    setIntegrationError(null);
     try {
       const { auth_url } = await getSpotifyAuthUrl(authToken);
       const popup = window.open(auth_url, "_blank", "width=600,height=700,popup=yes");
       oauthPopupRef.current = popup;
     } catch {
+      setIntegrationError("Failed to connect Spotify. Please try again.");
       setConnectingService(null);
     }
   };
@@ -331,6 +340,7 @@ function SettingsContent() {
   const handleDisconnectSpotify = async () => {
     if (!authToken) return;
     setConnectingService("spotify");
+    setIntegrationError(null);
     try {
       await disconnectSpotify(authToken);
       setIntegrationStatus((prev) => ({
@@ -340,7 +350,7 @@ function SettingsContent() {
       localStorage.setItem("chronai-spotify-connected", "false");
       dispatchStorageChange("chronai-spotify-connected", "false");
     } catch {
-      // Silent fail
+      setIntegrationError("Failed to disconnect Spotify. Please try again.");
     } finally {
       setConnectingService(null);
     }
@@ -357,12 +367,13 @@ function SettingsContent() {
   const handleSaveProfile = async () => {
     if (!authToken) return;
     setProfileSaving(true);
+    setProfileError(null);
     try {
       await updateProfile(authToken, { name: displayName, timezone });
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 3000);
     } catch {
-      // Silent fail
+      setProfileError("Failed to save profile. Please try again.");
     } finally {
       setProfileSaving(false);
     }
@@ -510,6 +521,11 @@ function SettingsContent() {
                 Profile saved!
               </span>
             )}
+            {profileError && (
+              <span className="text-xs text-red-500 font-medium">
+                {profileError}
+              </span>
+            )}
           </div>
         </div>
       </Card>
@@ -639,6 +655,11 @@ function SettingsContent() {
             Integrations
           </h2>
         </div>
+        {integrationError && (
+          <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-500">
+            {integrationError}
+          </div>
+        )}
         <div className="space-y-4">
           {/* Google Account (always connected via login OAuth) */}
           <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">

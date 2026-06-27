@@ -265,8 +265,10 @@ export default function SpotifyMiniPlayer() {
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleExpand(); }}
       >
         <Music size={16} strokeWidth={1.5} className="text-gray-300" />
-        {/* Connected indicator dot */}
-        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-gray-900/80" />
+        {/* Connected indicator dot - only show when actually connected */}
+        {connected && (
+          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-gray-900/80" />
+        )}
       </motion.div>
     );
   }
