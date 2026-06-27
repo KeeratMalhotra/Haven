@@ -21,6 +21,10 @@ export function useNotificationSocket() {
     function connect() {
       if (!mountedRef.current) return;
 
+      // Get a fresh token at connection time to avoid using stale tokens
+      const currentToken = (session as { accessToken?: string } | null)?.accessToken;
+      if (!currentToken) return;
+
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -29,7 +33,7 @@ export function useNotificationSocket() {
         ws.send(
           JSON.stringify({
             type: "ping",
-            auth_token: accessToken,
+            auth_token: currentToken,
           })
         );
       };
@@ -37,6 +41,18 @@ export function useNotificationSocket() {
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+
+          // Handle auth failure: close and retry with backoff
+          if (message.type === "error" && typeof message.content === "string" &&
+              message.content.toLowerCase().includes("authentication")) {
+            ws.close();
+            // Reconnect after a longer delay to allow token refresh
+            if (mountedRef.current) {
+              reconnectTimeoutRef.current = setTimeout(connect, 10000);
+            }
+            return;
+          }
+
           if (message.type === "notification") {
             addNotification({
               id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,

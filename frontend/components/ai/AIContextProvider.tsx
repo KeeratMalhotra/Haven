@@ -37,10 +37,9 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingActionRef = useRef<{
-    actionType: string;
-    actionData: Record<string, any>;
-  } | null>(null);
+  const actionQueueRef = useRef<
+    Array<{ actionType: string; actionData: Record<string, any> }>
+  >([]);
 
   const dismissSuggestion = useCallback((id: string) => {
     setSuggestions((prev) =>
@@ -63,24 +62,38 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
 
   const reportAction = useCallback(
     (actionType: string, actionData: Record<string, any>) => {
-      pendingActionRef.current = { actionType, actionData };
+      // Queue the action instead of overwriting (batch approach)
+      actionQueueRef.current.push({ actionType, actionData });
 
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
 
       debounceRef.current = setTimeout(async () => {
-        const pending = pendingActionRef.current;
-        if (!pending) return;
+        const batch = actionQueueRef.current;
+        actionQueueRef.current = [];
+        if (batch.length === 0) return;
 
         const accessToken = (session as any)?.accessToken;
         if (!accessToken) return;
 
+        // Send the most recent action as primary, with earlier actions in context
+        const primary = batch[batch.length - 1];
+        const contextActions = batch.length > 1 ? batch.slice(0, -1) : [];
+
         try {
           const result = await fetchContextSuggestion(
             accessToken,
-            pending.actionType,
-            pending.actionData
+            primary.actionType,
+            primary.actionData,
+            contextActions.length > 0
+              ? {
+                  recentActions: contextActions.map((a) => ({
+                    type: a.actionType,
+                    data: a.actionData,
+                  })),
+                }
+              : undefined
           );
 
           if (result.suggestion) {
@@ -105,8 +118,6 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // Silently fail - AI suggestions are non-critical
         }
-
-        pendingActionRef.current = null;
       }, 500);
     },
     [session]

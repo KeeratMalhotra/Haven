@@ -745,25 +745,26 @@ export default function TasksPage() {
   };
 
   const handleToggleTask = useCallback((taskId: string) => {
-    setTasks((prev) => {
-      const task = prev.find((t) => t.id === taskId);
-      const newCompleted = task ? task.status !== "done" : false;
+    // Find the task before updating state so we can report action outside updater
+    const task = tasks.find((t) => t.id === taskId);
+    const newCompleted = task ? task.status !== "done" : false;
 
-      // Report action when marking as done
-      if (newCompleted && task) {
-        reportAction("task_completed", { taskId, title: task.title });
-      }
+    // Report action outside setTasks updater to avoid stale closure issues
+    if (newCompleted && task) {
+      reportAction("task_completed", { taskId, title: task.title });
+    }
 
-      // Call API to sync completion state
-      if (accessToken && taskId) {
-        apiUpdateTask(accessToken, taskId, { completed: newCompleted }).catch(
-          () => {
-            // API failed - local state already updated
-          }
-        );
-      }
+    // Call API to sync completion state
+    if (accessToken && taskId) {
+      apiUpdateTask(accessToken, taskId, { completed: newCompleted }).catch(
+        () => {
+          // API failed - local state already updated
+        }
+      );
+    }
 
-      return prev.map((t) =>
+    setTasks((prev) =>
+      prev.map((t) =>
         t.id === taskId
           ? {
               ...t,
@@ -771,9 +772,9 @@ export default function TasksPage() {
               completed: t.status !== "done",
             }
           : t
-      );
-    });
-  }, [accessToken, reportAction]);
+      )
+    );
+  }, [accessToken, reportAction, tasks]);
 
   const handleUpdateTask = useCallback((updated: LocalTask) => {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -787,14 +788,13 @@ export default function TasksPage() {
   }, []);
 
   const handleDeleteTask = useCallback((taskId: string) => {
-    // Report to AI context
-    setTasks((prev) => {
-      const task = prev.find((t) => t.id === taskId);
-      if (task) {
-        reportAction("task_deleted", { taskId, title: task.title });
-      }
-      return prev.filter((t) => t.id !== taskId);
-    });
+    // Find task and report action outside the updater to avoid stale closure
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      reportAction("task_deleted", { taskId, title: task.title });
+    }
+
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
     setSelectedTask(null);
     setDeleteTarget(null);
 
@@ -804,7 +804,7 @@ export default function TasksPage() {
         // API failed - task already removed locally
       });
     }
-  }, [accessToken, reportAction]);
+  }, [accessToken, reportAction, tasks]);
 
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -970,10 +970,6 @@ export default function TasksPage() {
                 suggestion={activeSuggestion.text}
                 type={activeSuggestion.type}
                 onDismiss={() => dismissSuggestion(activeSuggestion.id)}
-                actions={activeSuggestion.actions?.map((a) => ({
-                  label: a.label,
-                  onClick: () => dismissSuggestion(activeSuggestion.id),
-                }))}
               />
             </AnimatePresence>
           </div>

@@ -46,9 +46,10 @@ function ToastItem({
               {suggestion.actions.map((action, i) => (
                 <button
                   key={i}
+                  onClick={onDismiss}
                   className="text-xs text-[var(--text-primary)] hover:text-[var(--text-secondary)] transition-colors"
                 >
-                  {action.label}
+                  Got it
                 </button>
               ))}
             </div>

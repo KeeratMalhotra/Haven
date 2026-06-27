@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Address code review issues: prompt injection sanitization, debounce queue instead of last-write-wins, action button no-ops, notification socket auth failure handling, calendar reportAction timing, stale reportAction closures in tasks page.",
+  "status": "in_progress",
+  "steps": [
+    "Fix prompt injection in backend /api/context-suggest: Separate user data from instructions using system/user message roles or structural sanitization. Strip instruction-boundary characters from action_data and context.",
+    "Fix debounce dropping actions: Replace last-write-wins pendingActionRef with a queue that batches all actions within the 500ms window and sends them together.",
+    "Fix action button no-ops: Either remove action buttons from banner/toast or make them clearly dismiss-only with honest label text (e.g., 'Dismiss' or 'Got it' instead of misleading 'Reschedule').",
+    "Fix notification socket auth failure: Detect auth error messages in onmessage handler and trigger reconnection with fresh token.",
+    "Fix calendar reportAction timing: Move reportAction call after successful API response in handleCreateEvent.",
+    "Fix stale reportAction closures: Move reportAction calls outside setTasks updater in handleToggleTask and handleDeleteTask."
+  ],
+  "acceptance_criteria": [
+    "Backend context-suggest endpoint sanitizes user data to mitigate prompt injection",
+    "AIContextProvider debounce uses a queue/batch approach instead of last-write-wins",
+    "Action buttons in banner and toast either dismiss honestly or are suppressed",
+    "Notification socket detects auth failure and retries with fresh token",
+    "Calendar page calls reportAction after successful event creation API call",
+    "Tasks page reportAction calls are outside setTasks updater callbacks",
+    "npm run build passes",
+    "npm run lint passes",
+    "python3 -m py_compile app/main.py passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "cd /projects/sandbox/ChronAI/backend && python3 -m py_compile app/main.py"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}

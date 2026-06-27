@@ -293,12 +293,6 @@ export default function CalendarPage() {
     if (!newSummary.trim() || !newDate) return;
     const startTime = `${newDate}T${newTime}:00`;
 
-    reportAction("event_created", {
-      summary: newSummary.trim(),
-      startTime: startTime,
-      duration: newDuration,
-    });
-
     try {
       const created = await createCalendarEvent(accessToken, {
         summary: newSummary.trim(),
@@ -306,8 +300,14 @@ export default function CalendarPage() {
         duration_minutes: newDuration,
       });
       setEvents((prev) => [...prev, created]);
+      // Report action only after successful API call
+      reportAction("event_created", {
+        summary: newSummary.trim(),
+        startTime: startTime,
+        duration: newDuration,
+      });
     } catch {
-      // If API fails, add locally
+      // If API fails, add locally but do not report to AI (event may not exist)
       const startISO = new Date(startTime).toISOString();
       const endISO = new Date(
         new Date(startTime).getTime() + newDuration * 60000
@@ -441,10 +441,6 @@ export default function CalendarPage() {
                 suggestion={activeSuggestion.text}
                 type={activeSuggestion.type}
                 onDismiss={() => dismissSuggestion(activeSuggestion.id)}
-                actions={activeSuggestion.actions?.map((a) => ({
-                  label: a.label,
-                  onClick: () => dismissSuggestion(activeSuggestion.id),
-                }))}
               />
             </AnimatePresence>
           </div>
