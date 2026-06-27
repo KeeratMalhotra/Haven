@@ -20,6 +20,8 @@ import {
   Tag,
   Flag,
   BookTemplate,
+  Mail,
+  Presentation,
 } from "lucide-react";
 import {
   DndContext,
@@ -69,6 +71,9 @@ import {
 } from "@/components/tasks/TaskContextMenu";
 import { TemplateLibrary } from "@/components/templates/TemplateLibrary";
 import { type TemplateTask } from "@/lib/templates";
+import { GmailScanModal } from "@/components/gmail/GmailScanModal";
+import { SlidesGeneratorModal } from "@/components/slides/SlidesGeneratorModal";
+import { type GmailActionItem } from "@/lib/api-extended";
 
 // Recurrence config
 export interface RecurrenceConfig {
@@ -659,12 +664,14 @@ function TaskDetailPanel({
   onUpdate,
   onDelete,
   allLabels,
+  onCreatePresentation,
 }: {
   task: LocalTask;
   onClose: () => void;
   onUpdate: (updated: LocalTask) => void;
   onDelete: () => void;
   allLabels: TaskLabel[];
+  onCreatePresentation?: () => void;
 }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes || "");
@@ -902,6 +909,18 @@ function TaskDetailPanel({
             </div>
           </div>
         </div>
+        {/* Create Presentation action */}
+        {onCreatePresentation && (
+          <div className="pt-3 border-t border-[var(--border)]">
+            <button
+              onClick={onCreatePresentation}
+              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-accent-500 hover:bg-accent-500/5 border border-[var(--border)] hover:border-accent-500/30 transition-colors"
+            >
+              <Presentation size={15} strokeWidth={1.5} />
+              Create Presentation
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -944,6 +963,10 @@ export default function TasksPage() {
 
   // Template Library state
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
+  // Gmail & Slides modal state
+  const [showGmailScan, setShowGmailScan] = useState(false);
+  const [showSlidesGenerator, setShowSlidesGenerator] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -1463,6 +1486,14 @@ export default function TasksPage() {
             <BookTemplate size={14} strokeWidth={1.5} />
             Templates
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowGmailScan(true)}
+          >
+            <Mail size={14} strokeWidth={1.5} />
+            Scan Inbox
+          </Button>
         </div>
       </div>
 
@@ -1687,6 +1718,7 @@ export default function TasksPage() {
               onUpdate={handleUpdateTask}
               onDelete={() => setDeleteTarget(selectedTask)}
               allLabels={allLabels}
+              onCreatePresentation={() => setShowSlidesGenerator(true)}
             />
           </>
         )}
@@ -1833,6 +1865,41 @@ export default function TasksPage() {
           onUseTemplate={handleUseTemplate}
           onClose={() => setShowTemplateLibrary(false)}
         />
+      </Modal>
+
+      {/* Gmail Scan Modal */}
+      <Modal open={showGmailScan} onClose={() => setShowGmailScan(false)}>
+        <GmailScanModal
+          accessToken={accessToken}
+          onAccept={(item) => {
+            const newTask: LocalTask = {
+              id: `task-gmail-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              title: item.suggested_title,
+              notes: item.suggested_notes,
+              completed: false,
+              status: "todo",
+              priority: "medium",
+              due: null,
+              subtasks: [],
+              labels: [],
+            };
+            setTasks((prev) => [newTask, ...prev]);
+          }}
+          onClose={() => setShowGmailScan(false)}
+        />
+      </Modal>
+
+      {/* Slides Generator Modal */}
+      <Modal open={showSlidesGenerator} onClose={() => setShowSlidesGenerator(false)}>
+        {selectedTask && (
+          <SlidesGeneratorModal
+            accessToken={accessToken}
+            taskTitle={selectedTask.title}
+            taskNotes={selectedTask.notes || ""}
+            taskSubtasks={(selectedTask.subtasks || []).map((s) => s.title)}
+            onClose={() => setShowSlidesGenerator(false)}
+          />
+        )}
       </Modal>
     </motion.div>
   );

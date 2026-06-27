@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Settings Toggles for EVERYTHING: Add comprehensive settings toggles for all new integrations. Gmail on/off, Google Slides on/off, Spotify on/off + playlist URL input, Email deadline reminders on/off, Daily digest on/off, Weekly review on/off, preserve existing AI suggestions toggle, Auto-Pilot default mode selector. All persist via localStorage and backend user preferences endpoint.",
+  "status": "pending",
+  "steps": [
+    "1. Create backend endpoint GET/PUT /api/preferences in backend/app/main.py or a new router backend/app/api/preferences.py. GET returns the user's current preferences and notification_preferences from Firestore. PUT accepts a partial update object and persists to Firestore via UserRepository.update().",
+    "2. Add frontend API functions in frontend/lib/api-extended.ts: fetchPreferences(authToken) and updatePreferences(authToken, prefs).",
+    "3. Rewrite the Settings page (frontend/app/dashboard/settings/page.tsx) Integrations section to add toggles for: Gmail integration on/off (key: chronai-gmail-enabled), Google Slides on/off (key: chronai-slides-enabled), Spotify on/off + text input for playlist URL (key: chronai-spotify-playlist-url). Keep existing Spotify connect/disconnect pattern but enhance it.",
+    "4. Add a new 'Notifications' section in the Settings page with toggles for: Email deadline reminders on/off (key: chronai-email-deadline-reminders), Daily digest email on/off (key: chronai-daily-digest), Weekly review email on/off (key: chronai-weekly-review). These should save both to localStorage AND to the backend preferences endpoint.",
+    "5. Ensure the existing AI Suggestions toggle and Auto-Pilot mode selector remain as-is in the AI Preferences section. Add the Auto-Pilot default mode note if not already there.",
+    "6. Make sure all toggles dispatch StorageEvents so other components (like SpotifyMiniPlayer, GmailScanModal button visibility) can react to changes. The Gmail scan button on tasks page should check localStorage 'chronai-gmail-enabled' before showing. The Slides button should check 'chronai-slides-enabled'.",
+    "7. On settings page mount, call fetchPreferences to load backend-stored preferences and sync them to localStorage. On any toggle change, update both localStorage and call updatePreferences to persist to backend."
+  ],
+  "acceptance_criteria": [
+    "Backend GET/PUT /api/preferences endpoints compile and work with Firestore",
+    "Settings page has dedicated Integrations section with Gmail, Slides, Spotify toggles",
+    "Settings page has Notifications section with Email reminders, Daily digest, Weekly review toggles",
+    "Spotify section includes text input for custom playlist URL",
+    "All toggles persist to both localStorage and backend",
+    "Existing AI Suggestions and Auto-Pilot toggles are preserved",
+    "StorageEvents dispatched on toggle changes for cross-component reactivity",
+    "Gmail scan button and Slides button respect their enabled/disabled settings",
+    "npm run build passes",
+    "npm run lint passes",
+    "python -m py_compile on preferences endpoint passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

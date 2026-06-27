@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Email Notifications (Automated): Wire the existing email_notifications.py utilities (send_task_reminder, send_daily_digest) to the nudge engine for 4-hour deadline reminders, daily digest, and weekly review emails. Add a send_weekly_review function.",
+  "status": "pending",
+  "steps": [
+    "1. Add a send_weekly_review function to backend/app/utils/email_notifications.py following the same pattern as send_daily_digest. It should accept user_email, review_markdown (the weekly review content from the ReviewAgent), and google_tokens. Format it as an HTML email with ChronAI branding.",
+    "2. Modify backend/app/scheduler/proactive.py's _check_user_deadlines function to also trigger email reminders 4 hours before deadline. Currently it sends nudge emails only when users are offline. Add logic: if a task deadline is within 4 hours AND the user has email_deadline_reminders enabled in their notification_preferences, call send_task_reminder from email_notifications.py with the formatted deadline string.",
+    "3. Create a new scheduler function in backend/app/scheduler/proactive.py (or a new file backend/app/scheduler/digest_scheduler.py) that runs daily and weekly: daily_digest_job() fetches all users with daily_digest enabled in notification_preferences, fetches their tasks/events, and calls send_daily_digest. weekly_review_job() fetches users with weekly_review enabled, generates the weekly review via the ReviewAgent, and calls send_weekly_review.",
+    "4. Wire the daily/weekly jobs into the scheduler loop in backend/app/scheduler/proactive.py. Track last_daily_digest_run and last_weekly_review_run timestamps. Run daily digest once per day (e.g., at first check after 7am UTC), weekly review once per week (e.g., first check after Sunday 7am UTC).",
+    "5. Update backend/app/db/models.py User.notification_preferences default to include keys: email_deadline_reminders (True), daily_digest (False), weekly_review (False) alongside existing email_notifications and email_for_urgent_only."
+  ],
+  "acceptance_criteria": [
+    "send_weekly_review function exists in email_notifications.py and compiles",
+    "The proactive scheduler sends email reminders 4 hours before deadline when preference is enabled",
+    "Daily digest scheduler job exists and uses send_daily_digest for users with daily_digest enabled",
+    "Weekly review scheduler job exists and uses send_weekly_review for users with weekly_review enabled",
+    "User model notification_preferences includes email_deadline_reminders, daily_digest, weekly_review keys",
+    "python -m py_compile passes for all modified files"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/utils/email_notifications.py",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/scheduler/proactive.py",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/db/models.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

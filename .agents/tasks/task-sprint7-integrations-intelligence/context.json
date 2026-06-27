@@ -1,0 +1,32 @@
+{
+  "project_type": "Next.js 15 App Router frontend + Python FastAPI backend + MCP servers for Google services",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_system": "pnpm for frontend, pip for backend, MCP stdlib servers run as subprocesses",
+  "test_framework": "Jest with jsdom for frontend (passWithNoTests), pytest for backend",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && npm run build && npm run lint",
+  "test_command": "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py",
+  "verification_instructions": "1. Run frontend build: cd frontend && npm run build. 2. Run frontend lint: cd frontend && npm run lint. 3. Backend syntax check: cd backend && python -m py_compile app/main.py. 4. Compile-check new backend files individually.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "pyenv global 3.12.13; cd frontend && pnpm install; cd backend && pip install -r requirements.txt",
+  "environment_constraints": "Open internet available. Python requires pyenv global 3.12.13 to activate. No Docker daemon needed for validation.",
+  "contribution_requirements": "DO NOT modify: hooks/useChatSocket.ts, lib/api.ts, lib/ws.ts, lib/voice.ts, middleware.ts, components/Providers.tsx, components/entity/, shared/. CAN modify: all frontend app/ and components/ (except above), all backend/ files, mcp-servers/, lib/api-extended.ts",
+  "key_patterns": "Frontend: React 19 'use client' components, framer-motion for animations, lucide-react icons, localStorage for state persistence, Toggle component from @/components/ui/Toggle, Card from @/components/ui/Card, settings page uses sections with Card wrappers. Backend: AgentBase class pattern with auto-registration, MCP client calls to google-gmail/google-calendar/google-tasks servers, Vertex AI Gemini for AI generation, Firestore for persistence, config via pydantic-settings. API: REST endpoints in main.py and app/api/ routers, auth via verify_google_token helper.",
+  "relevant_files": [
+    "frontend/app/dashboard/settings/page.tsx",
+    "frontend/app/dashboard/tasks/page.tsx",
+    "frontend/components/SpotifyMiniPlayer.tsx",
+    "frontend/components/FocusMode.tsx",
+    "frontend/lib/api-extended.ts",
+    "backend/app/main.py",
+    "backend/app/config.py",
+    "backend/app/agents/base.py",
+    "backend/app/agents/email.py",
+    "backend/app/utils/email_notifications.py",
+    "backend/app/scheduler/proactive.py",
+    "backend/app/scheduler/nudge_engine.py",
+    "backend/app/db/models.py",
+    "backend/app/db/repositories.py",
+    "mcp-servers/google-gmail/server.py"
+  ],
+  "directory_structure": "frontend/app/dashboard/ - page routes (tasks, settings, calendar, habits, planner). frontend/components/ - reusable UI (ui/, ai/, tasks/, templates/, SpotifyMiniPlayer, FocusMode). frontend/lib/ - api.ts (DO NOT MODIFY), api-extended.ts (modifiable). backend/app/ - main.py (FastAPI), agents/ (agent classes), api/ (routers), db/ (Firestore), scheduler/ (proactive nudge), utils/ (email). mcp-servers/ - google-calendar, google-gmail, google-tasks."
+}

@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Spotify Enhancement + Web Research for Tasks: Upgrade SpotifyMiniPlayer to support custom playlist URLs from settings, add focus playlist suggestions in FocusMode, and add a Research button to the task detail panel that uses AI to research web context for a task.",
+  "status": "pending",
+  "steps": [
+    "1. Modify frontend/components/SpotifyMiniPlayer.tsx to read a custom playlist URL from localStorage key 'chronai-spotify-playlist-url'. If set, use that URL in the Spotify embed iframe src (convert to embed format: open.spotify.com/embed/playlist/...). Fall back to the current default playlist if not set.",
+    "2. Modify frontend/components/FocusMode.tsx to add a 'Focus Playlists' suggestion section when Spotify is connected. Show 2-3 curated focus playlist suggestions (lo-fi beats, deep focus, classical focus) with clickable links that set the playlist URL in localStorage and dispatch a storage event for SpotifyMiniPlayer to pick up.",
+    "3. Create backend endpoint POST /api/research in backend/app/main.py or a new router backend/app/api/research.py. It should: accept auth_token and task_context (title, notes), use Gemini with grounding/search capabilities (or httpx to fetch search results) to research the web for context relevant to the task. Return an array of result cards with fields: title, summary, source_url, relevance_snippet.",
+    "4. Add frontend API function in frontend/lib/api-extended.ts: researchTask(authToken, taskContext) that calls POST /api/research.",
+    "5. Create frontend component frontend/components/tasks/TaskResearchPanel.tsx: triggered by a 'Research' button in TaskDetailPanel. Shows loading spinner, then displays expandable cards with source title, summary text, and source URL link. Each card is collapsible.",
+    "6. Integrate the Research button and TaskResearchPanel into the TaskDetailPanel in frontend/app/dashboard/tasks/page.tsx."
+  ],
+  "acceptance_criteria": [
+    "SpotifyMiniPlayer reads custom playlist URL from localStorage and uses it in the embed iframe",
+    "FocusMode shows focus playlist suggestions when Spotify is enabled",
+    "Backend POST /api/research endpoint compiles and returns structured research results",
+    "TaskResearchPanel renders expandable cards with titles, summaries, and source links",
+    "Research button is visible in task detail panel",
+    "npm run build passes",
+    "npm run lint passes",
+    "python -m py_compile on new backend files passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

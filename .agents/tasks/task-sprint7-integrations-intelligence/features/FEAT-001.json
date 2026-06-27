@@ -1,0 +1,36 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Gmail Deep Integration + Google Slides Integration: Backend API endpoints and frontend UI for scanning inbox to extract action items, and generating presentation outlines from task context.",
+  "status": "in_progress",
+  "steps": [
+    "1. Create backend endpoint POST /api/gmail/scan-inbox in backend/app/main.py (or a new router backend/app/api/gmail.py). It should: accept auth_token, use the Gmail MCP 'list_emails' + 'read_email' tools to fetch recent emails (last 10-20), then use Gemini to extract action items from email bodies. Return an array of suggested tasks with fields: email_id, email_subject, email_from, suggested_title, suggested_notes, and a source_email_id field for reply functionality.",
+    "2. Create backend endpoint POST /api/gmail/reply in backend/app/main.py or the gmail router. It should accept auth_token, email_id, and body text, then use the Gmail MCP 'send_email' tool (or direct API) to send a reply to that email thread.",
+    "3. Create backend endpoint POST /api/slides/generate-outline in backend/app/main.py or a new router backend/app/api/slides.py. It should: accept auth_token and task context (title, notes, subtasks), use Gemini to generate a presentation outline (title, slides array with title+bullets each), return the outline JSON.",
+    "4. Create backend endpoint POST /api/slides/create in backend/app/main.py or slides router. It should: accept auth_token and the outline data, use Google Slides API (google-api-python-client) to create a new presentation with the outline content. Return the presentation URL.",
+    "5. Add frontend API functions in frontend/lib/api-extended.ts: scanGmailInbox(authToken), replyToEmail(authToken, emailId, body), generateSlidesOutline(authToken, taskContext), createPresentation(authToken, outline).",
+    "6. Create frontend component frontend/components/gmail/GmailScanModal.tsx: A modal triggered by 'Scan Inbox' button. Shows loading state while scanning, then displays a list of extracted action items as cards. Each card has Accept (creates task) and Dismiss buttons. If a task was accepted and came from an email, show a 'Reply' button that opens a reply textarea.",
+    "7. Create frontend component frontend/components/slides/SlidesGeneratorModal.tsx: A modal triggered by 'Create Presentation' button in the task detail panel. Shows loading state while generating outline, displays the outline preview (editable slide titles/bullets), then a 'Create in Google Slides' button that calls the create endpoint and shows the resulting link.",
+    "8. Integrate GmailScanModal into the tasks page (frontend/app/dashboard/tasks/page.tsx) - add a 'Scan Inbox' button in the toolbar area.",
+    "9. Integrate SlidesGeneratorModal into the TaskDetailPanel in frontend/app/dashboard/tasks/page.tsx - add a 'Create Presentation' button in the detail panel actions area."
+  ],
+  "acceptance_criteria": [
+    "Backend endpoint POST /api/gmail/scan-inbox compiles and returns structured action items from email content",
+    "Backend endpoint POST /api/slides/generate-outline compiles and returns a structured presentation outline",
+    "Backend endpoint POST /api/slides/create compiles and uses Google Slides API to create presentations",
+    "Frontend GmailScanModal component renders with scan trigger, loading, results, accept/dismiss/reply actions",
+    "Frontend SlidesGeneratorModal shows outline preview and create button",
+    "Scan Inbox button visible on tasks page toolbar",
+    "Create Presentation button visible in task detail panel",
+    "npm run build passes with no errors",
+    "npm run lint passes",
+    "python -m py_compile app/main.py passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

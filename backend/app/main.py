@@ -28,6 +28,8 @@ from app.api.onboarding import router as onboarding_router
 from app.api.briefing import router as briefing_router
 from app.api.autopilot import router as autopilot_router
 from app.api.templates import router as templates_router
+from app.api.gmail import router as gmail_router
+from app.api.slides import router as slides_router
 from app.auth import verify_google_token
 from app.config import settings
 from app.db.firestore import init_firestore
@@ -189,6 +191,8 @@ app.include_router(onboarding_router)
 app.include_router(briefing_router)
 app.include_router(autopilot_router)
 app.include_router(templates_router)
+app.include_router(gmail_router)
+app.include_router(slides_router)
 
 
 @app.websocket("/ws")
