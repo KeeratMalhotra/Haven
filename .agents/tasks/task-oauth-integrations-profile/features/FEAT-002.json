@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Frontend integrations API helpers and rebuilt Settings page with real OAuth Connect/Disconnect for each Google service and Spotify. Replaces the existing localStorage-based toggle approach with real connection status from the backend. Also includes Profile section with editable name and timezone, and music button polish.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Add integration API helpers to frontend/lib/api-extended.ts: (1) fetchIntegrationStatus(authToken) -> GET /api/integrations/status, returns {services: {calendar: {connected, scopes}, ...}, spotify: {connected}}. (2) connectService(authToken, service) -> GET /api/integrations/connect/{service}, returns {auth_url}. (3) disconnectService(authToken, service) -> DELETE /api/integrations/disconnect/{service}. (4) getSpotifyAuthUrl(authToken) -> GET /api/integrations/spotify/auth-url, returns {auth_url}. (5) disconnectSpotify(authToken) -> DELETE /api/integrations/spotify/disconnect. (6) updateProfile(authToken, data: {name?, timezone?}) -> PUT /api/preferences with preferences: {display_name, timezone}.",
     "Rebuild frontend/app/dashboard/settings/page.tsx Integrations section: Replace the Gmail/Slides toggles and static Calendar/Tasks 'Connected' badges with real Connect/Disconnect buttons for each service (Calendar, Tasks, Gmail, Slides). On mount, call fetchIntegrationStatus to get real connection status. Show green dot + 'Connected' or red dot + 'Not Connected' based on actual backend data. Connect button opens a new window/popup to the auth_url returned by the backend. Disconnect button calls disconnectService and updates state.",

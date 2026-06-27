@@ -57,7 +57,7 @@ const DEFAULT_STATE: PlayerState = {
 
 const CARD_WIDTH = 320;
 const CARD_HEIGHT = 200;
-const SNAPPED_BUTTON_SIZE = 40;
+const SNAPPED_BUTTON_SIZE = 36;
 
 export default function SpotifyMiniPlayer() {
   const [connected, setConnected] = useState(false);
@@ -255,14 +255,18 @@ export default function SpotifyMiniPlayer() {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.8 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.95 }}
         onClick={handleExpand}
-        className="fixed z-[60] flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors cursor-grab active:cursor-grabbing"
+        className="fixed z-[60] flex items-center justify-center rounded-xl border border-gray-700/50 bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800/90 transition-all duration-200 cursor-grab active:cursor-grabbing"
         role="button"
         tabIndex={0}
         aria-label="Expand Spotify player"
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleExpand(); }}
       >
-        <Music size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
+        <Music size={16} strokeWidth={1.5} className="text-gray-300" />
+        {/* Connected indicator dot */}
+        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-gray-900/80" />
       </motion.div>
     );
   }

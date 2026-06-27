@@ -138,7 +138,7 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...)):
         "connected": True,
     }
 
-    user_ref.set(
+    await user_ref.set(
         {f"connected_services.{service}": service_data},
         merge=True,
     )
@@ -172,13 +172,13 @@ async def disconnect_service(service: str, auth_token: str = Query(...)):
     user_ref = db.collection("users").document(user_id)
 
     # Get current user data to update connected_services
-    doc = user_ref.get()
+    doc = await user_ref.get()
     if doc.exists:
         data = doc.to_dict() or {}
         connected_services = data.get("connected_services", {})
         if service in connected_services:
             del connected_services[service]
-            user_ref.update({"connected_services": connected_services})
+            await user_ref.update({"connected_services": connected_services})
 
     return {"status": "disconnected", "service": service}
 
@@ -198,7 +198,7 @@ async def get_integration_status(auth_token: str = Query(...)):
 
     db = get_db()
     user_ref = db.collection("users").document(user_id)
-    doc = user_ref.get()
+    doc = await user_ref.get()
 
     connected_services = {}
     spotify_connected = False
@@ -301,7 +301,7 @@ async def spotify_callback(code: str = Query(...), state: str = Query(...)):
         "expires_in": tokens.get("expires_in", 0),
     }
 
-    user_ref.set({"spotify_tokens": spotify_data}, merge=True)
+    await user_ref.set({"spotify_tokens": spotify_data}, merge=True)
 
     # Redirect to frontend settings page
     frontend_url = f"{settings.FRONTEND_ORIGIN}/dashboard/settings?connected=spotify"
@@ -323,6 +323,6 @@ async def spotify_disconnect(auth_token: str = Query(...)):
 
     db = get_db()
     user_ref = db.collection("users").document(user_id)
-    user_ref.update({"spotify_tokens": {}})
+    await user_ref.update({"spotify_tokens": {}})
 
     return {"status": "disconnected", "service": "spotify"}

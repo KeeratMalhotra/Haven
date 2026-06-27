@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Settings,
@@ -19,13 +20,26 @@ import {
   Mail,
   FileText,
   Calendar,
+  CheckCheck,
+  Globe,
+  Save,
 } from "lucide-react";
 
 import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { useTheme } from "@/components/ui/theme-provider";
-import { fetchPreferences, updatePreferences } from "@/lib/api-extended";
+import {
+  fetchPreferences,
+  updatePreferences,
+  fetchIntegrationStatus,
+  connectService,
+  disconnectService,
+  getSpotifyAuthUrl,
+  disconnectSpotify,
+  updateProfile,
+  type IntegrationStatus,
+} from "@/lib/api-extended";
 
 type AiTone = "professional" | "casual" | "friendly";
 
@@ -34,6 +48,54 @@ const SHORTCUTS = [
   { keys: "Cmd + B", description: "Toggle Sidebar" },
   { keys: "Cmd + /", description: "AI Chat" },
   { keys: "Escape", description: "Close panels" },
+];
+
+const TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Asia/Tokyo",
+  "Asia/Shanghai",
+  "Asia/Kolkata",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+];
+
+const GOOGLE_SERVICES = [
+  {
+    id: "calendar",
+    name: "Google Calendar",
+    description: "Manage events and scheduling",
+    icon: Calendar,
+    color: "blue",
+  },
+  {
+    id: "tasks",
+    name: "Google Tasks",
+    description: "Create and manage task lists",
+    icon: CheckCheck,
+    color: "blue",
+  },
+  {
+    id: "gmail",
+    name: "Gmail",
+    description: "Scan inbox for action items and send emails",
+    icon: Mail,
+    color: "red",
+  },
+  {
+    id: "slides",
+    name: "Google Slides",
+    description: "Generate presentations from task context",
+    icon: FileText,
+    color: "amber",
+  },
 ];
 
 /**
@@ -49,7 +111,16 @@ function dispatchStorageChange(key: string, newValue: string) {
 }
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-[var(--text-tertiary)]">Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const { theme, setTheme } = useTheme();
   const user = session?.user;
 
@@ -59,16 +130,27 @@ export default function SettingsPage() {
   const [proactiveNotifs, setProactiveNotifs] = useState(true);
   const [autopilotMode, setAutopilotMode] = useState<"ask_permission" | "full_auto">("ask_permission");
 
-  // Integrations (localStorage)
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  // Integration status (from backend)
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({});
+  const [connectingService, setConnectingService] = useState<string | null>(null);
+  const [connectionToast, setConnectionToast] = useState<string | null>(null);
+
+  // Spotify (hybrid: backend OAuth + localStorage embed URL)
   const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("");
-  const [gmailEnabled, setGmailEnabled] = useState(true);
-  const [slidesEnabled, setSlidesEnabled] = useState(true);
+
+  // Profile editing
+  const [displayName, setDisplayName] = useState("");
+  const [timezone, setTimezone] = useState("America/New_York");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
 
   // Notification preferences (localStorage + backend)
   const [emailDeadlineReminders, setEmailDeadlineReminders] = useState(true);
   const [dailyDigest, setDailyDigest] = useState(false);
   const [weeklyReview, setWeeklyReview] = useState(false);
+
+  // Popup reference for OAuth
+  const oauthPopupRef = useRef<Window | null>(null);
 
   // Get auth token for backend calls
   const authToken = (session as any)?.accessToken || "";
@@ -85,22 +167,11 @@ export default function SettingsPage() {
     const notifs = localStorage.getItem("chronai-proactive-notifs");
     if (notifs !== null) setProactiveNotifs(notifs === "true");
 
-    const spotify = localStorage.getItem("chronai-spotify-connected");
-    setSpotifyConnected(spotify === "true");
-
     const playlistUrl = localStorage.getItem("chronai-spotify-playlist-url");
     if (playlistUrl) setSpotifyPlaylistUrl(playlistUrl);
 
     const autopilot = localStorage.getItem("chronai-autopilot-mode");
     if (autopilot === "full_auto") setAutopilotMode("full_auto");
-
-    const gmail = localStorage.getItem("chronai-gmail-enabled");
-    // Default to true if not set
-    setGmailEnabled(gmail === null ? true : gmail === "true");
-
-    const slides = localStorage.getItem("chronai-slides-enabled");
-    // Default to true if not set
-    setSlidesEnabled(slides === null ? true : slides === "true");
 
     // Load notification prefs from localStorage (will be overridden by backend if available)
     const emailReminders = localStorage.getItem("chronai-email-deadline-reminders");
@@ -113,7 +184,23 @@ export default function SettingsPage() {
     if (review !== null) setWeeklyReview(review === "true");
   }, []);
 
-  // Fetch backend preferences and sync to state + localStorage
+  // Check for ?connected= query param (OAuth redirect callback)
+  useEffect(() => {
+    const connectedService = searchParams.get("connected");
+    if (connectedService) {
+      setConnectionToast(connectedService);
+      // If Spotify was connected, also update localStorage for the mini player
+      if (connectedService === "spotify") {
+        localStorage.setItem("chronai-spotify-connected", "true");
+        dispatchStorageChange("chronai-spotify-connected", "true");
+      }
+      // Clear the toast after 4 seconds
+      const timer = setTimeout(() => setConnectionToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
+  // Fetch backend preferences and integration status
   useEffect(() => {
     if (!authToken) return;
 
@@ -134,7 +221,44 @@ export default function SettingsPage() {
           localStorage.setItem("chronai-weekly-review", String(np.weekly_review));
         }
       }
+      // Load profile data from preferences
+      if (data.preferences) {
+        if (data.preferences.display_name) setDisplayName(data.preferences.display_name);
+        if (data.preferences.timezone) setTimezone(data.preferences.timezone);
+      }
     });
+
+    // Fetch integration status from backend
+    fetchIntegrationStatus(authToken).then((status) => {
+      setIntegrationStatus(status);
+      // Sync Spotify status with localStorage for the mini player
+      if (status.spotify?.connected) {
+        localStorage.setItem("chronai-spotify-connected", "true");
+        dispatchStorageChange("chronai-spotify-connected", "true");
+      }
+    });
+  }, [authToken]);
+
+  // Re-fetch integration status when window regains focus (after OAuth popup closes)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (authToken && oauthPopupRef.current) {
+        // Popup was opened, refetch status
+        setTimeout(() => {
+          fetchIntegrationStatus(authToken).then((status) => {
+            setIntegrationStatus(status);
+            if (status.spotify?.connected) {
+              localStorage.setItem("chronai-spotify-connected", "true");
+              dispatchStorageChange("chronai-spotify-connected", "true");
+            }
+          });
+        }, 1000);
+        oauthPopupRef.current = null;
+        setConnectingService(null);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [authToken]);
 
   // --- AI Preferences handlers ---
@@ -162,32 +286,86 @@ export default function SettingsPage() {
     dispatchStorageChange("chronai-autopilot-mode", mode);
   };
 
-  // --- Integration handlers ---
-  const toggleSpotifyConnection = () => {
-    const newVal = !spotifyConnected;
-    setSpotifyConnected(newVal);
-    localStorage.setItem("chronai-spotify-connected", String(newVal));
-    dispatchStorageChange("chronai-spotify-connected", String(newVal));
+  // --- Integration handlers (real OAuth) ---
+  const handleConnectService = async (service: string) => {
+    if (!authToken) return;
+    setConnectingService(service);
+    try {
+      const { auth_url } = await connectService(authToken, service);
+      // Open OAuth popup
+      const popup = window.open(auth_url, "_blank", "width=600,height=700,popup=yes");
+      oauthPopupRef.current = popup;
+    } catch {
+      setConnectingService(null);
+    }
+  };
+
+  const handleDisconnectService = async (service: string) => {
+    if (!authToken) return;
+    setConnectingService(service);
+    try {
+      await disconnectService(authToken, service);
+      setIntegrationStatus((prev) => ({
+        ...prev,
+        [service]: { connected: false, scopes: [] },
+      }));
+    } catch {
+      // Silent fail
+    } finally {
+      setConnectingService(null);
+    }
+  };
+
+  const handleConnectSpotify = async () => {
+    if (!authToken) return;
+    setConnectingService("spotify");
+    try {
+      const { auth_url } = await getSpotifyAuthUrl(authToken);
+      const popup = window.open(auth_url, "_blank", "width=600,height=700,popup=yes");
+      oauthPopupRef.current = popup;
+    } catch {
+      setConnectingService(null);
+    }
+  };
+
+  const handleDisconnectSpotify = async () => {
+    if (!authToken) return;
+    setConnectingService("spotify");
+    try {
+      await disconnectSpotify(authToken);
+      setIntegrationStatus((prev) => ({
+        ...prev,
+        spotify: { connected: false, scopes: [] },
+      }));
+      localStorage.setItem("chronai-spotify-connected", "false");
+      dispatchStorageChange("chronai-spotify-connected", "false");
+    } catch {
+      // Silent fail
+    } finally {
+      setConnectingService(null);
+    }
   };
 
   const handlePlaylistUrlChange = (url: string) => {
     setSpotifyPlaylistUrl(url);
     localStorage.setItem("chronai-spotify-playlist-url", url);
     dispatchStorageChange("chronai-spotify-playlist-url", url);
-    // Also dispatch custom event for components listening specifically for playlist changes
     window.dispatchEvent(new CustomEvent("chronai-playlist-changed", { detail: { url } }));
   };
 
-  const toggleGmailEnabled = (val: boolean) => {
-    setGmailEnabled(val);
-    localStorage.setItem("chronai-gmail-enabled", String(val));
-    dispatchStorageChange("chronai-gmail-enabled", String(val));
-  };
-
-  const toggleSlidesEnabled = (val: boolean) => {
-    setSlidesEnabled(val);
-    localStorage.setItem("chronai-slides-enabled", String(val));
-    dispatchStorageChange("chronai-slides-enabled", String(val));
+  // --- Profile handlers ---
+  const handleSaveProfile = async () => {
+    if (!authToken) return;
+    setProfileSaving(true);
+    try {
+      await updateProfile(authToken, { name: displayName, timezone });
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch {
+      // Silent fail
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   // --- Notification handlers (save to localStorage + backend) ---
@@ -210,6 +388,11 @@ export default function SettingsPage() {
     [authToken]
   );
 
+  // Count connected services
+  const connectedCount = Object.values(integrationStatus).filter(
+    (s) => s.connected
+  ).length;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -217,6 +400,19 @@ export default function SettingsPage() {
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="space-y-8"
     >
+      {/* Connection Toast */}
+      {connectionToast && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="fixed top-4 right-4 z-[100] flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-500"
+        >
+          <CheckCircle2 size={16} strokeWidth={1.5} />
+          <span className="capitalize">{connectionToast}</span> connected successfully!
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/10">
@@ -235,30 +431,85 @@ export default function SettingsPage() {
             Profile
           </h2>
         </div>
-        <div className="flex items-center gap-4">
-          {user?.image ? (
-            <Image
-              src={user.image}
-              alt={user.name || "User"}
-              width={56}
-              height={56}
-              className="h-14 w-14 rounded-full ring-2 ring-[var(--border)]"
-            />
-          ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-500/10 text-accent-500 font-semibold text-lg">
-              {user?.name?.[0] || "U"}
+        <div className="space-y-5">
+          {/* User info row */}
+          <div className="flex items-center gap-4">
+            {user?.image ? (
+              <Image
+                src={user.image}
+                alt={user.name || "User"}
+                width={56}
+                height={56}
+                className="h-14 w-14 rounded-full ring-2 ring-[var(--border)]"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-500/10 text-accent-500 font-semibold text-lg">
+                {user?.name?.[0] || "U"}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">
+                {user?.name || "User"}
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)]">
+                {user?.email || "No email"}
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                {connectedCount} service{connectedCount !== 1 ? "s" : ""} connected
+              </p>
             </div>
-          )}
-          <div>
-            <p className="text-sm font-medium text-[var(--text-primary)]">
-              {user?.name || "User"}
-            </p>
-            <p className="text-xs text-[var(--text-tertiary)]">
-              {user?.email || "No email"}
-            </p>
-            <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-              Connected via Google OAuth (read-only)
-            </p>
+          </div>
+
+          {/* Editable fields */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+                Display Name
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={user?.name || "Your name"}
+                className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-accent-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+                <span className="inline-flex items-center gap-1.5">
+                  <Globe size={12} strokeWidth={1.5} />
+                  Timezone
+                </span>
+              </label>
+              <select
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-accent-500 appearance-none"
+              >
+                {TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Save button */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              className="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 transition-colors disabled:opacity-50"
+            >
+              <Save size={14} strokeWidth={1.5} />
+              {profileSaving ? "Saving..." : "Save Profile"}
+            </button>
+            {profileSaved && (
+              <span className="text-xs text-emerald-500 font-medium">
+                Profile saved!
+              </span>
+            )}
           </div>
         </div>
       </Card>
@@ -389,105 +640,7 @@ export default function SettingsPage() {
           </h2>
         </div>
         <div className="space-y-4">
-          {/* Gmail Integration Toggle */}
-          <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
-                <Mail size={18} strokeWidth={1.5} className="text-red-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">
-                  Gmail Integration
-                </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
-                  Scan inbox for action items and create tasks from emails
-                </p>
-              </div>
-            </div>
-            <Toggle
-              checked={gmailEnabled}
-              onChange={toggleGmailEnabled}
-            />
-          </div>
-
-          {/* Google Slides Integration Toggle */}
-          <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
-                <FileText size={18} strokeWidth={1.5} className="text-amber-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">
-                  Google Slides
-                </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
-                  Generate presentations from task context using AI
-                </p>
-              </div>
-            </div>
-            <Toggle
-              checked={slidesEnabled}
-              onChange={toggleSlidesEnabled}
-            />
-          </div>
-
-          {/* Spotify Integration */}
-          <div className="rounded-lg bg-[var(--bg-tertiary)] px-4 py-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <Music size={18} strokeWidth={1.5} className="text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">
-                    Spotify
-                  </p>
-                  <p className="text-xs text-[var(--text-tertiary)]">
-                    {spotifyConnected ? "Connected - Mini player active" : "Connect for focus music player"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {spotifyConnected && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 mr-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Active
-                  </span>
-                )}
-                <button
-                  onClick={toggleSpotifyConnection}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                    spotifyConnected
-                      ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
-                      : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                  }`}
-                >
-                  {spotifyConnected ? "Disconnect" : "Connect"}
-                </button>
-              </div>
-            </div>
-
-            {/* Playlist URL input */}
-            {spotifyConnected && (
-              <div className="pl-11">
-                <label className="block text-xs text-[var(--text-secondary)] mb-1.5">
-                  Custom Playlist URL
-                </label>
-                <input
-                  type="text"
-                  value={spotifyPlaylistUrl}
-                  onChange={(e) => handlePlaylistUrlChange(e.target.value)}
-                  placeholder="https://open.spotify.com/playlist/..."
-                  className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-accent-500"
-                />
-                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                  Paste a Spotify playlist URL for the focus music mini-player
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Google Account (always connected via OAuth) */}
+          {/* Google Account (always connected via login OAuth) */}
           <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
@@ -522,23 +675,146 @@ export default function SettingsPage() {
             <CheckCircle2 size={16} strokeWidth={1.5} className="text-emerald-500" />
           </div>
 
-          {["Calendar", "Tasks"].map((service) => (
-            <div
-              key={service}
-              className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                  <Calendar size={18} strokeWidth={1.5} className="text-blue-500" />
+          {/* Google Services with real Connect/Disconnect */}
+          {GOOGLE_SERVICES.map((service) => {
+            const status = integrationStatus[service.id];
+            const isConnected = status?.connected ?? false;
+            const isLoading = connectingService === service.id;
+            const IconComponent = service.icon;
+            const colorClass = service.color === "blue"
+              ? "text-blue-500"
+              : service.color === "red"
+              ? "text-red-500"
+              : "text-amber-500";
+            const bgClass = service.color === "blue"
+              ? "bg-blue-500/10"
+              : service.color === "red"
+              ? "bg-red-500/10"
+              : "bg-amber-500/10";
+
+            return (
+              <div
+                key={service.id}
+                className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${bgClass}`}>
+                    <IconComponent size={18} strokeWidth={1.5} className={colorClass} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                      {service.name}
+                    </p>
+                    <p className="text-xs text-[var(--text-tertiary)]">
+                      {service.description}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-[var(--text-primary)]">{service}</p>
+                <div className="flex items-center gap-2">
+                  {isConnected && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 mr-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Connected
+                    </span>
+                  )}
+                  {!isConnected && !isLoading && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-tertiary)] mr-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                      Not Connected
+                    </span>
+                  )}
+                  <button
+                    onClick={() =>
+                      isConnected
+                        ? handleDisconnectService(service.id)
+                        : handleConnectService(service.id)
+                    }
+                    disabled={isLoading}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                      isConnected
+                        ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                        : "bg-accent-500/10 text-accent-500 hover:bg-accent-500/20"
+                    }`}
+                  >
+                    {isLoading ? "..." : isConnected ? "Disconnect" : "Connect"}
+                  </button>
+                </div>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Connected
-              </span>
+            );
+          })}
+
+          {/* Spotify Integration (real OAuth) */}
+          <div className="rounded-lg bg-[var(--bg-tertiary)] px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                  <Music size={18} strokeWidth={1.5} className="text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    Spotify
+                  </p>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    {integrationStatus.spotify?.connected
+                      ? "Connected - Mini player active"
+                      : "Connect for focus music player"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {integrationStatus.spotify?.connected && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 mr-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Active
+                  </span>
+                )}
+                {!integrationStatus.spotify?.connected && connectingService !== "spotify" && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-tertiary)] mr-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                    Not Connected
+                  </span>
+                )}
+                <button
+                  onClick={
+                    integrationStatus.spotify?.connected
+                      ? handleDisconnectSpotify
+                      : handleConnectSpotify
+                  }
+                  disabled={connectingService === "spotify"}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                    integrationStatus.spotify?.connected
+                      ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                      : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                  }`}
+                >
+                  {connectingService === "spotify"
+                    ? "..."
+                    : integrationStatus.spotify?.connected
+                    ? "Disconnect"
+                    : "Connect"}
+                </button>
+              </div>
             </div>
-          ))}
+
+            {/* Playlist URL input (always shown if connected) */}
+            {integrationStatus.spotify?.connected && (
+              <div className="pl-11">
+                <label className="block text-xs text-[var(--text-secondary)] mb-1.5">
+                  Custom Playlist URL
+                </label>
+                <input
+                  type="text"
+                  value={spotifyPlaylistUrl}
+                  onChange={(e) => handlePlaylistUrlChange(e.target.value)}
+                  placeholder="https://open.spotify.com/playlist/..."
+                  className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-accent-500"
+                />
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  Paste a Spotify playlist URL for the focus music mini-player
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 

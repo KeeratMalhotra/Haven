@@ -468,3 +468,127 @@ export async function researchTask(
   }
   return (await res.json()) as { results: ResearchResult[]; disclaimer?: string };
 }
+
+// --- OAuth Integrations ---
+
+export interface IntegrationStatus {
+  [service: string]: {
+    connected: boolean;
+    scopes: string[];
+  };
+}
+
+/**
+ * Fetch the connection status of all integrable services from the backend.
+ */
+export async function fetchIntegrationStatus(
+  authToken: string
+): Promise<IntegrationStatus> {
+  if (!authToken) return {};
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/integrations/status?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) return {};
+    return (await res.json()) as IntegrationStatus;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Get the OAuth authorization URL for connecting a specific Google service.
+ */
+export async function connectService(
+  authToken: string,
+  service: string
+): Promise<{ auth_url: string }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/integrations/connect/${encodeURIComponent(service)}?auth_token=${encodeURIComponent(authToken)}`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to get auth URL for ${service} (${res.status})`);
+  }
+  return (await res.json()) as { auth_url: string };
+}
+
+/**
+ * Disconnect a specific Google service by removing its stored tokens.
+ */
+export async function disconnectService(
+  authToken: string,
+  service: string
+): Promise<{ status: string }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/integrations/disconnect/${encodeURIComponent(service)}?auth_token=${encodeURIComponent(authToken)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to disconnect ${service} (${res.status})`);
+  }
+  return (await res.json()) as { status: string };
+}
+
+/**
+ * Get the Spotify OAuth authorization URL.
+ */
+export async function getSpotifyAuthUrl(
+  authToken: string
+): Promise<{ auth_url: string }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/integrations/spotify/auth-url?auth_token=${encodeURIComponent(authToken)}`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to get Spotify auth URL (${res.status})`);
+  }
+  return (await res.json()) as { auth_url: string };
+}
+
+/**
+ * Disconnect Spotify by clearing stored tokens.
+ */
+export async function disconnectSpotify(
+  authToken: string
+): Promise<{ status: string }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/integrations/spotify/disconnect?auth_token=${encodeURIComponent(authToken)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to disconnect Spotify (${res.status})`);
+  }
+  return (await res.json()) as { status: string };
+}
+
+/**
+ * Update user profile (display name and timezone) via preferences endpoint.
+ */
+export async function updateProfile(
+  authToken: string,
+  data: { name?: string; timezone?: string }
+): Promise<UserPreferences> {
+  if (!authToken) throw new Error("No auth token provided");
+  const preferences: Record<string, string> = {};
+  if (data.name !== undefined) preferences.display_name = data.name;
+  if (data.timezone !== undefined) preferences.timezone = data.timezone;
+
+  const res = await fetch(`${getApiBase()}/api/preferences`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      preferences,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update profile (${res.status})`);
+  }
+  return (await res.json()) as UserPreferences;
+}
