@@ -1,0 +1,7 @@
+{
+  "task_id": "task-sprint5-bug-fixes",
+  "task_description": "Fix all testing bugs (Pomodoro auto-start, invisible timer text, chat scroll, AI toasts, dashboard blank, mic errors, remove Cmd+K) and add Sprint 5 features (calendar event editing with drag-to-reschedule)",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

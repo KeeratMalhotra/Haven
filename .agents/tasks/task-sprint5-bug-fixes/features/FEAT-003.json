@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Calendar event editing and drag-to-reschedule: click event to open edit modal, drag events between time slots in week/day view",
+  "status": "pending",
+  "steps": [
+    "Add an updateCalendarEvent function to frontend/lib/api-extended.ts that calls PATCH /api/calendar/events/:id with auth_token, summary, start_time, and duration_minutes. Follow the pattern of existing API functions in that file. Include a try-catch that falls back to local state update if API fails.",
+    "In frontend/app/dashboard/calendar/page.tsx, replace the EventDetail popover (which only shows info + delete) with a proper Edit Modal. When user clicks an event, open a modal pre-filled with the event's current title, date, time, and duration. Allow editing all fields. Add Save and Cancel buttons. On Save, call updateCalendarEvent and update local state. Keep the Delete button in the modal.",
+    "Add drag-to-reschedule in the week and day views. Use @dnd-kit (already installed in the project) to make TimeBlock components draggable. Time slot buttons become drop targets. When an event is dropped on a new time slot, calculate the new start time from the drop target's day+hour, call updateCalendarEvent, and update local state. Show a visual indicator during drag (opacity change on the dragged event, highlight on the drop target).",
+    "Ensure the month view EventPill click still opens the edit modal (same behavior as week/day click).",
+    "Report action to AI context when event is edited: reportAction('event_edited', { eventId, oldTime, newTime, summary })."
+  ],
+  "acceptance_criteria": [
+    "Clicking any event in month/week/day view opens an edit modal with pre-filled fields",
+    "Users can edit event title, date, time, and duration in the modal",
+    "Saving edits updates the event locally (and attempts API call)",
+    "Events in week/day view can be dragged to different time slots",
+    "Dropping an event on a new time slot reschedules it",
+    "Drag operation shows visual feedback (opacity/highlight)",
+    "AI context receives event_edited action",
+    "npm run build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

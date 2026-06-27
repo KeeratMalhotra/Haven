@@ -1,0 +1,32 @@
+{
+  "project_type": "Next.js 15 React 19 SPA with App Router",
+  "language": "TypeScript/React",
+  "build_system": "npm with Next.js",
+  "test_framework": "jest with @testing-library/react (tests in __tests__/)",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && npm run build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && npm test",
+  "verification_instructions": "Run npm run build and npm run lint in the frontend directory. Both should pass cleanly.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd /projects/sandbox/ChronAI/frontend && npm install",
+  "environment_constraints": "Open internet available. Node.js runtime. No Docker needed since this is a Next.js frontend.",
+  "contribution_requirements": "Work on feat/premium-ui-rebuild branch. DO NOT MODIFY: hooks/useChatSocket.ts, lib/api.ts, lib/ws.ts, lib/voice.ts, app/api/auth/[...nextauth]/route.ts, middleware.ts, components/Providers.tsx, components/entity/ directory, mcp-servers/, shared/",
+  "key_patterns": "Components use framer-motion for animations, lucide-react for icons, Tailwind CSS with CSS variables for theming. AI context system uses AIContextProvider with reportAction and addNotification. Dashboard layout wraps children in AIContextProvider. Chat uses useChatSocket hook (DO NOT MODIFY). State is local (useState) with API calls to backend. Uses @dnd-kit for drag-and-drop in tasks page.",
+  "relevant_files": [
+    "frontend/components/FocusMode.tsx",
+    "frontend/components/chat/ChatExperience.tsx",
+    "frontend/components/chat/MessageList.tsx",
+    "frontend/components/chat/ChatComposer.tsx",
+    "frontend/components/ai/AIContextProvider.tsx",
+    "frontend/components/ai/AIToast.tsx",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/components/CommandPalette.tsx",
+    "frontend/components/voice/VoiceMode.tsx",
+    "frontend/app/dashboard/calendar/page.tsx",
+    "frontend/app/dashboard/layout.tsx",
+    "frontend/components/layout/Sidebar.tsx",
+    "frontend/lib/api-extended.ts",
+    "frontend/lib/api.ts",
+    "frontend/package.json"
+  ],
+  "directory_structure": "frontend/app/ - Next.js App Router pages (dashboard/, onboarding/, api/). frontend/components/ - React components organized by domain (ai/, chat/, layout/, ui/, voice/, entity/, spotify/). frontend/lib/ - API helpers and utilities. frontend/hooks/ - Custom React hooks. frontend/types/ - TypeScript type definitions."
+}

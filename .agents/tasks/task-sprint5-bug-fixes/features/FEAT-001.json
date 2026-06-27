@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix Pomodoro FocusMode: add duration selection screen before timer starts, fix invisible timer text, and make ambient audio work using Web Audio API",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/components/FocusMode.tsx, add a new 'selecting' phase state that is the initial state when `active` becomes true. Show a pre-start screen with duration buttons (25 min, 45 min, 60 min, 90 min). Timer does NOT start until user clicks a duration button. Only after selection, transition to 'focus' phase and start the countdown.",
+    "Fix the timer text color: change from text-[#fef3c7] (light amber/yellow that is invisible) to a high-contrast off-white like text-[#f0f0f2] or text-white/90. Apply the same fix to the 'Break complete!' text and any other text using amber/yellow in the timer display.",
+    "Replace the AMBIENT_URLS approach (external URLs that may not load) with Web Audio API sound generation. For 'rain' - generate white noise through a bandpass filter. For 'cafe' - generate brownian/brown noise. For 'lofi' - generate filtered pink noise with gentle LFO oscillation. Create a reusable AudioContext-based system that works without external URLs. Keep the volume slider functional.",
+    "Ensure the settings gear icon still works for further customization but it should NOT be the primary way to select duration - the pre-start screen should be the primary entry point.",
+    "The timer should remain paused/not-running until the user explicitly selects a duration and confirms start."
+  ],
+  "acceptance_criteria": [
+    "When FocusMode activates, user sees duration selection buttons (25, 45, 60, 90 min) and timer is NOT running",
+    "Timer only starts after user clicks a duration button",
+    "Timer text is clearly visible (high-contrast white/cream on dark background)",
+    "Ambient audio plays using Web Audio API without external URL dependencies",
+    "Volume slider controls Web Audio API gain node",
+    "npm run build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

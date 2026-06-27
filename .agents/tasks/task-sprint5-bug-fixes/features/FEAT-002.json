@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Fix Chat scroll issues, client-side AI suggestions, dashboard empty state, replace Command Palette with Quick Actions FAB, and fix microphone error messages",
+  "status": "pending",
+  "steps": [
+    "CHAT SCROLL FIX: In frontend/components/chat/ChatExperience.tsx, fix the layout so messages appear ABOVE the composer. The issue is the composer is positioned with 'absolute inset-x-0' and when hasMessages is true it uses 'bottom-6'. The MessageList has pb-40 which should give room, but the scroll container needs to properly auto-scroll. Fix: Ensure the message list's scroll container scrolls to bottom on new messages. The MessageList already has a scrollIntoView call in its useEffect - the issue is the parent container in ChatExperience. Make the conversation div properly scrollable and ensure the composer is truly pinned at bottom without overlapping messages. Change the layout from absolute positioning to a flex layout: message area flex-1 overflow-y-auto, composer at bottom in the normal flow (not absolute).",
+    "CLIENT-SIDE AI SUGGESTIONS: In frontend/components/ai/AIContextProvider.tsx, add LOCAL heuristic detection logic that fires suggestions WITHOUT calling the backend. Add a new method or enhance reportAction to check: (1) When a task is created/viewed with no deadline, fire suggestion 'This task has no deadline. Want to set one?'. (2) When a task is dragged (action type 'task_dragged' or 'task_moved'), fire 'Task moved! Would you like to reschedule related events?'. (3) When events overlap (action type 'event_created' with time data that overlaps existing events from context), fire warning 'Heads up: this event overlaps with another on your calendar'. (4) When reportAction receives context showing 3+ overdue tasks, fire 'You have several overdue tasks. Want help prioritizing?'. These should fire via addNotification and use the existing AIToast display. Keep the existing backend call as a fallback but ensure local suggestions fire immediately regardless of backend availability.",
+    "DASHBOARD EMPTY STATE FIX: In frontend/app/dashboard/page.tsx, the issue is that when API calls in Promise.all fail, `dataLoading` stays true forever OR all arrays stay empty showing the wrong state. Fix: (1) Add .catch() to the Promise.all so that if APIs fail, set dataLoading=false and show the empty state with greeting + quick actions ALWAYS. (2) The greeting section should render ALWAYS regardless of data state (it currently does). (3) Add error handling so the page NEVER shows blank - always show the greeting + quick actions even on complete API failure. The main fix: wrap the fetchTasks/fetchCalendarEvents/fetchHabits in try-catch and set dataLoading=false in a finally block.",
+    "REMOVE COMMAND PALETTE AND ADD QUICK ACTIONS FAB: (1) In frontend/app/dashboard/page.tsx, remove the import and render of CommandPalette. (2) In the dashboard layout or the dashboard page, add a Quick Actions FAB (Floating Action Button) in the bottom-right area. The FAB should expand on click to show: Add Task (navigates to /dashboard/tasks), Add Event (navigates to /dashboard/calendar), Start Focus (triggers focus mode), Ask AI (opens chat panel). Style it with the accent gradient. (3) Remove the Cmd+K keyboard listener entirely. (4) The existing AI chat toggle button in dashboard/page.tsx at bottom-right should be replaced/merged with this FAB. (5) Note: Do NOT delete CommandPalette.tsx file itself in case other pages reference it, but remove it from the dashboard page specifically.",
+    "FIX MICROPHONE ERROR: In frontend/components/chat/ChatComposer.tsx, check if Web Speech API (window.SpeechRecognition or window.webkitSpeechRecognition) is available. If not available, hide the voice/mic button entirely. In frontend/components/voice/VoiceMode.tsx, when the voice catch block fires (voice not available), show a clear message: 'Requires HTTPS and Chrome/Edge' instead of just 'Voice isn't available in this browser'."
+  ],
+  "acceptance_criteria": [
+    "Chat messages display above the composer and auto-scroll to latest message",
+    "New messages are always visible without scrolling past the composer",
+    "Local AI suggestions fire for tasks without deadlines, task drags, event overlaps, and overdue tasks - without needing backend/Gemini",
+    "Dashboard ALWAYS shows greeting and quick actions even when all API calls fail",
+    "Dashboard never shows a blank page",
+    "Command Palette (Cmd+K) is removed from dashboard - pressing Cmd+K does nothing on dashboard",
+    "Quick Actions FAB appears in bottom-right with Add Task, Add Event, Start Focus, Ask AI options",
+    "Mic button is hidden when Web Speech API is unavailable",
+    "Voice mode shows 'Requires HTTPS and Chrome/Edge' error message",
+    "npm run build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

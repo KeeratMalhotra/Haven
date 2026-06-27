@@ -23,7 +23,7 @@ interface FocusModeProps {
 }
 
 type AmbientOption = "rain" | "cafe" | "lofi" | "silence";
-type PomodoroPhase = "focus" | "break" | "done";
+type PomodoroPhase = "selecting" | "focus" | "break" | "done";
 
 interface PomodoroPreset {
   label: string;
@@ -36,11 +36,171 @@ const PRESETS: PomodoroPreset[] = [
   { label: "50 / 10", focus: 50, break_: 10 },
 ];
 
-const AMBIENT_URLS: Record<string, string> = {
-  rain: "https://cdn.pixabay.com/audio/2022/10/30/audio_946ac040e3.mp3",
-  cafe: "https://cdn.pixabay.com/audio/2024/11/04/audio_81417244a8.mp3",
-  lofi: "https://cdn.pixabay.com/audio/2024/02/14/audio_8e64e03939.mp3",
-};
+const DURATION_OPTIONS = [25, 45, 60, 90] as const;
+
+/* ---------- Web Audio API Ambient Sound Generators ---------- */
+
+interface AmbientNodes {
+  context: AudioContext;
+  gainNode: GainNode;
+  sources: AudioNode[];
+}
+
+function createWhiteNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
+  const sampleRate = ctx.sampleRate;
+  const bufferSize = sampleRate * seconds;
+  const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  return buffer;
+}
+
+function createBrownNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
+  const sampleRate = ctx.sampleRate;
+  const bufferSize = sampleRate * seconds;
+  const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+  const data = buffer.getChannelData(0);
+  let lastOut = 0.0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    lastOut = (lastOut + 0.02 * white) / 1.02;
+    data[i] = lastOut * 3.5;
+  }
+  return buffer;
+}
+
+function createPinkNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
+  const sampleRate = ctx.sampleRate;
+  const bufferSize = sampleRate * seconds;
+  const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+  const data = buffer.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1;
+    b0 = 0.99886 * b0 + white * 0.0555179;
+    b1 = 0.99332 * b1 + white * 0.0750759;
+    b2 = 0.96900 * b2 + white * 0.1538520;
+    b3 = 0.86650 * b3 + white * 0.3104856;
+    b4 = 0.55000 * b4 + white * 0.5329522;
+    b5 = -0.7616 * b5 - white * 0.0168980;
+    data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+    data[i] *= 0.11;
+    b6 = white * 0.115926;
+  }
+  return buffer;
+}
+
+function createRainAmbient(ctx: AudioContext, gainNode: GainNode): AudioNode[] {
+  const buffer = createWhiteNoiseBuffer(ctx, 4);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const bandpass = ctx.createBiquadFilter();
+  bandpass.type = "bandpass";
+  bandpass.frequency.value = 800;
+  bandpass.Q.value = 0.5;
+
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = "highpass";
+  highpass.frequency.value = 200;
+
+  source.connect(bandpass);
+  bandpass.connect(highpass);
+  highpass.connect(gainNode);
+  source.start();
+
+  return [source];
+}
+
+function createCafeAmbient(ctx: AudioContext, gainNode: GainNode): AudioNode[] {
+  const buffer = createBrownNoiseBuffer(ctx, 4);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = 500;
+
+  source.connect(lowpass);
+  lowpass.connect(gainNode);
+  source.start();
+
+  return [source];
+}
+
+function createLofiAmbient(ctx: AudioContext, gainNode: GainNode): AudioNode[] {
+  const buffer = createPinkNoiseBuffer(ctx, 4);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+
+  const bandpass = ctx.createBiquadFilter();
+  bandpass.type = "bandpass";
+  bandpass.frequency.value = 600;
+  bandpass.Q.value = 1.0;
+
+  // LFO for gentle oscillation
+  const lfo = ctx.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.value = 0.3;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 150;
+  lfo.connect(lfoGain);
+  lfoGain.connect(bandpass.frequency);
+  lfo.start();
+
+  source.connect(bandpass);
+  bandpass.connect(gainNode);
+  source.start();
+
+  return [source, lfo];
+}
+
+function startAmbientAudio(type: AmbientOption, volume: number): AmbientNodes | null {
+  if (type === "silence") return null;
+
+  const context = new AudioContext();
+  const gainNode = context.createGain();
+  gainNode.gain.value = volume;
+  gainNode.connect(context.destination);
+
+  let sources: AudioNode[];
+  switch (type) {
+    case "rain":
+      sources = createRainAmbient(context, gainNode);
+      break;
+    case "cafe":
+      sources = createCafeAmbient(context, gainNode);
+      break;
+    case "lofi":
+      sources = createLofiAmbient(context, gainNode);
+      break;
+    default:
+      sources = [];
+  }
+
+  return { context, gainNode, sources };
+}
+
+function stopAmbientAudio(nodes: AmbientNodes | null): void {
+  if (!nodes) return;
+  try {
+    nodes.sources.forEach((source) => {
+      if (source instanceof AudioBufferSourceNode) {
+        source.stop();
+      } else if (source instanceof OscillatorNode) {
+        source.stop();
+      }
+    });
+    nodes.context.close();
+  } catch {
+    // Silently handle already-closed context
+  }
+}
 
 const STATS_KEY = "chronai-pomodoro-stats";
 
@@ -73,7 +233,7 @@ function incrementTodayPomodoros(): void {
 /* ---------- Growing Plant SVG ---------- */
 function GrowingPlant({ progress, phase }: { progress: number; phase: PomodoroPhase }) {
   // progress: 0 to 1 (how far through the current session)
-  const p = phase === "break" ? 1 : Math.min(1, Math.max(0, progress));
+  const p = phase === "break" || phase === "selecting" ? 1 : Math.min(1, Math.max(0, progress));
 
   // Stem height grows from 20 to 80
   const stemHeight = 20 + p * 60;
@@ -194,16 +354,16 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
   const [secondsRemaining, setSecondsRemaining] = useState(25 * 60);
   const [totalSeconds, setTotalSeconds] = useState(25 * 60);
   const [paused, setPaused] = useState(false);
-  const [phase, setPhase] = useState<PomodoroPhase>("focus");
+  const [phase, setPhase] = useState<PomodoroPhase>("selecting");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Session stats
   const [completedToday, setCompletedToday] = useState(0);
 
-  // Ambient audio
+  // Ambient audio (Web Audio API)
   const [ambient, setAmbient] = useState<AmbientOption>("silence");
   const [volume, setVolume] = useState(0.5);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ambientNodesRef = useRef<AmbientNodes | null>(null);
 
   // Load stats on mount
   useEffect(() => {
@@ -213,26 +373,21 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
   // Reset on activation
   useEffect(() => {
     if (active) {
-      const total = focusMinutes * 60;
-      setSecondsRemaining(total);
-      setTotalSeconds(total);
+      // Start in selecting phase - timer does NOT auto-start
+      setPhase("selecting");
       setPaused(false);
-      setPhase("focus");
       setShowSettings(false);
       setCompletedToday(getTodayPomodoros());
     } else {
       // Stop audio when deactivated
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
+      stopAmbientAudio(ambientNodesRef.current);
+      ambientNodesRef.current = null;
     }
-  }, [active, focusMinutes]);
+  }, [active]);
 
   // Timer tick (countdown)
   useEffect(() => {
-    if (!active || paused || phase === "done") {
+    if (!active || paused || phase === "done" || phase === "selecting") {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -267,51 +422,34 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
     };
   }, [active, paused, phase, breakMinutes]);
 
-  // Audio management
+  // Audio management (Web Audio API)
   useEffect(() => {
     if (!active) return;
 
-    if (ambient === "silence") {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
-      }
+    if (ambient === "silence" || paused || phase === "done" || phase === "selecting") {
+      stopAmbientAudio(ambientNodesRef.current);
+      ambientNodesRef.current = null;
       return;
     }
 
-    const url = AMBIENT_URLS[ambient];
-    if (!url) return;
+    // Stop existing audio before creating new
+    stopAmbientAudio(ambientNodesRef.current);
+    ambientNodesRef.current = null;
 
-    // Create or update audio element
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.loop = true;
-    }
-
-    if (audioRef.current.src !== url) {
-      audioRef.current.src = url;
-    }
-    audioRef.current.volume = volume;
-
-    if (!paused && phase !== "done") {
-      audioRef.current.play().catch(() => {
-        // Browser autoplay restriction - silently handle
-      });
-    } else {
-      audioRef.current.pause();
-    }
+    const nodes = startAmbientAudio(ambient, volume);
+    ambientNodesRef.current = nodes;
 
     return () => {
-      // Cleanup handled by deactivation effect
+      stopAmbientAudio(ambientNodesRef.current);
+      ambientNodesRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, ambient, paused, phase]);
 
   // Update volume when slider changes
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
+    if (ambientNodesRef.current) {
+      ambientNodesRef.current.gainNode.gain.value = volume;
     }
   }, [volume]);
 
@@ -326,6 +464,15 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
     setPaused(false);
     setPhase("focus");
   }, [focusMinutes]);
+
+  const selectDuration = useCallback((minutes: number) => {
+    setFocusMinutes(minutes);
+    const total = minutes * 60;
+    setSecondsRemaining(total);
+    setTotalSeconds(total);
+    setPaused(false);
+    setPhase("focus");
+  }, []);
 
   const applyPreset = (preset: PomodoroPreset) => {
     setFocusMinutes(preset.focus);
@@ -362,6 +509,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
   const isFocus = phase === "focus";
   const isBreak = phase === "break";
   const isDone = phase === "done";
+  const isSelecting = phase === "selecting";
 
   const gradientOverlay = isFocus
     ? "before:bg-[radial-gradient(ellipse_at_center,rgba(74,222,128,0.06),rgba(245,158,11,0.03),transparent_70%)]"
@@ -391,7 +539,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
             className="relative z-10 flex flex-col items-center gap-6 px-4 py-8"
           >
             {/* Settings toggle */}
-            {phase === "focus" && secondsRemaining === totalSeconds && !paused && (
+            {(phase === "focus" && secondsRemaining === totalSeconds && !paused) && (
               <button
                 onClick={() => setShowSettings((s) => !s)}
                 className="absolute top-4 right-4 p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition"
@@ -467,11 +615,52 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
             </AnimatePresence>
 
             {/* Task name */}
-            {taskName && (
+            {taskName && !isSelecting && (
               <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
             )}
 
+            {/* Duration selection screen (selecting phase) */}
+            {isSelecting && (
+              <div className="flex flex-col items-center gap-6 mt-4">
+                {taskName && (
+                  <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
+                )}
+                <div className="text-center space-y-2">
+                  <p className="text-2xl font-medium text-[#f0f0f2]">
+                    Choose Focus Duration
+                  </p>
+                  <p className="text-sm text-[var(--text-tertiary)]">
+                    Select how long you want to focus
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                  {DURATION_OPTIONS.map((mins) => (
+                    <button
+                      key={mins}
+                      onClick={() => selectDuration(mins)}
+                      className="flex flex-col items-center justify-center gap-1 px-6 py-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-green-600/10 hover:border-green-600/40 hover:text-green-400 transition-all duration-200 group"
+                    >
+                      <span className="text-2xl font-semibold group-hover:text-green-400 transition-colors">
+                        {mins}
+                      </span>
+                      <span className="text-xs text-[var(--text-tertiary)] group-hover:text-green-400/70 transition-colors">
+                        minutes
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={onStop}
+                  className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition"
+                >
+                  <StopCircle size={16} strokeWidth={1.5} />
+                  Cancel
+                </button>
+              </div>
+            )}
+
             {/* Phase indicator */}
+            {!isSelecting && (
             <div className="flex items-center gap-2">
               <span
                 className={`inline-block h-2 w-2 rounded-full ${
@@ -486,11 +675,12 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                 {isFocus ? "Focus" : isBreak ? "Break" : "Session Complete"}
               </span>
             </div>
+            )}
 
             {/* Timer display */}
-            {!isDone && (
+            {!isDone && !isSelecting && (
               <div className="text-center">
-                <p className="text-7xl font-light tabular-nums tracking-wider text-[#fef3c7] dark:text-[#fef3c7]">
+                <p className="text-7xl font-light tabular-nums tracking-wider text-[#f0f0f2]">
                   {timeDisplay}
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-tertiary)]">
@@ -504,9 +694,9 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
             )}
 
             {/* Done state */}
-            {isDone && (
+            {isDone && !isSelecting && (
               <div className="text-center space-y-2">
-                <p className="text-2xl font-medium text-[#fef3c7]">
+                <p className="text-2xl font-medium text-[#f0f0f2]">
                   Break complete!
                 </p>
                 <p className="text-sm text-[var(--text-tertiary)]">
@@ -516,11 +706,14 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
             )}
 
             {/* Growing plant illustration */}
+            {!isSelecting && (
             <div className="flex flex-col items-center">
               <GrowingPlant progress={progress} phase={phase} />
             </div>
+            )}
 
             {/* Session stats */}
+            {!isSelecting && (
             <p className="text-sm text-[var(--text-tertiary)]">
               You completed{" "}
               <span className="font-medium text-amber-500 dark:text-amber-400">
@@ -528,8 +721,10 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
               </span>{" "}
               {completedToday === 1 ? "pomodoro" : "pomodoros"} today
             </p>
+            )}
 
             {/* Controls */}
+            {!isSelecting && (
             <div className="flex items-center gap-4">
               {!isDone && (
                 <>
@@ -572,8 +767,10 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                 </>
               )}
             </div>
+            )}
 
             {/* Ambient selector */}
+            {!isSelecting && (
             <div className="flex flex-col items-center gap-3">
               <div className="flex items-center gap-2">
                 {ambientOptions.map((opt) => (
@@ -607,6 +804,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                 </div>
               )}
             </div>
+            )}
           </motion.div>
         </motion.div>
       )}
