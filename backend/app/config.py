@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     SCHEDULER_API_KEY: str = ""
     NUDGE_INTERVAL_MINUTES: int = 30
 
+    # Google OAuth redirect URI for incremental service connections
+    GOOGLE_REDIRECT_URI: str = ""
+
+    # Spotify OAuth credentials
+    SPOTIFY_CLIENT_ID: str = ""
+    SPOTIFY_CLIENT_SECRET: str = ""
+    SPOTIFY_REDIRECT_URI: str = ""
+
     # MCP server paths
     MCP_CALENDAR_PATH: str = "../mcp-servers/google-calendar/server.py"
     MCP_TASKS_PATH: str = "../mcp-servers/google-tasks/server.py"

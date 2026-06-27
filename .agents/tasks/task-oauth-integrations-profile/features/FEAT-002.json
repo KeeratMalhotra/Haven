@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Frontend integrations API helpers and rebuilt Settings page with real OAuth Connect/Disconnect for each Google service and Spotify. Replaces the existing localStorage-based toggle approach with real connection status from the backend. Also includes Profile section with editable name and timezone, and music button polish.",
+  "status": "pending",
+  "steps": [
+    "Add integration API helpers to frontend/lib/api-extended.ts: (1) fetchIntegrationStatus(authToken) -> GET /api/integrations/status, returns {services: {calendar: {connected, scopes}, ...}, spotify: {connected}}. (2) connectService(authToken, service) -> GET /api/integrations/connect/{service}, returns {auth_url}. (3) disconnectService(authToken, service) -> DELETE /api/integrations/disconnect/{service}. (4) getSpotifyAuthUrl(authToken) -> GET /api/integrations/spotify/auth-url, returns {auth_url}. (5) disconnectSpotify(authToken) -> DELETE /api/integrations/spotify/disconnect. (6) updateProfile(authToken, data: {name?, timezone?}) -> PUT /api/preferences with preferences: {display_name, timezone}.",
+    "Rebuild frontend/app/dashboard/settings/page.tsx Integrations section: Replace the Gmail/Slides toggles and static Calendar/Tasks 'Connected' badges with real Connect/Disconnect buttons for each service (Calendar, Tasks, Gmail, Slides). On mount, call fetchIntegrationStatus to get real connection status. Show green dot + 'Connected' or red dot + 'Not Connected' based on actual backend data. Connect button opens a new window/popup to the auth_url returned by the backend. Disconnect button calls disconnectService and updates state.",
+    "Rebuild the Spotify section in Settings: Replace the localStorage toggle with a real 'Connect Spotify' button that calls getSpotifyAuthUrl and redirects. Show connected/disconnected status from backend. Keep the playlist URL input (still localStorage-based for the embed URL). Disconnect calls disconnectSpotify endpoint.",
+    "Add a Profile section (or enhance existing one) in Settings showing: user photo (from session), editable display name input, email (read-only from session), timezone selector (dropdown with common timezones like America/New_York, America/Chicago, America/Denver, America/Los_Angeles, Europe/London, Europe/Paris, Asia/Tokyo, etc.), connected services summary count. Save button calls updateProfile to persist name and timezone to backend.",
+    "Polish the SpotifyMiniPlayer.tsx collapsed button: Make it slightly smaller (36px instead of 40px), add a subtle background gradient or matte finish (bg-gray-900/80 backdrop-blur-sm border-gray-700/50), smoother hover state with scale transition, rounded-xl instead of rounded-full for a more modern pill shape, and reduce the icon size to 16px. Add a subtle emerald dot indicator when connected.",
+    "Handle the OAuth callback redirect: Add frontend/app/dashboard/settings/callback/page.tsx that reads the URL query params (if the backend redirects back here after OAuth) and shows a brief 'Connected!' message before redirecting to /dashboard/settings. This handles the case where the OAuth popup/redirect returns to the frontend.",
+    "Ensure the Settings page polls or re-fetches integration status after the OAuth popup closes (use window focus event or a timer after popup opens)."
+  ],
+  "acceptance_criteria": [
+    "frontend/lib/api-extended.ts has new integration helper functions",
+    "Settings page shows real Connect/Disconnect buttons for Calendar, Tasks, Gmail, Slides",
+    "Settings page shows Connect/Disconnect for Spotify using backend OAuth",
+    "Profile section shows user photo, editable name, timezone selector, and save button",
+    "SpotifyMiniPlayer collapsed button has updated styling (smaller, matte, smoother transitions)",
+    "frontend/app/dashboard/settings/callback/page.tsx exists to handle OAuth redirects",
+    "cd /projects/sandbox/ChronAI/frontend && npm run build succeeds",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint succeeds (or only pre-existing warnings)"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

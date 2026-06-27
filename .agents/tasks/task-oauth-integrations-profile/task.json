@@ -1,0 +1,7 @@
+{
+  "task_id": "task-oauth-integrations-profile",
+  "task_description": "Implement real OAuth connect/disconnect for Google services (Calendar, Tasks, Gmail, Slides) and Spotify, add profile page with editable name/timezone, and polish the Spotify mini player button. Backend provides incremental OAuth endpoints storing tokens in Firestore. Frontend Settings page uses real status from backend instead of localStorage toggles.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

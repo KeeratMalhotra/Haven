@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Backend OAuth integration endpoints for incremental Google service scopes and Spotify OAuth. Adds new API router at backend/app/api/integrations.py with endpoints for connecting/disconnecting Google services (Calendar, Tasks, Gmail, Slides) and Spotify. Stores granted scopes and tokens per user in Firestore. Also adds Spotify config to backend/app/config.py.",
+  "status": "in_progress",
+  "steps": [
+    "Add SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI to backend/app/config.py Settings class (with empty string defaults). Add GOOGLE_REDIRECT_URI for the integrations callback.",
+    "Add 'connected_services' field (dict, default empty) and 'spotify_tokens' field (dict, default empty) to the User model in backend/app/db/models.py. The connected_services dict will map service names to their granted scopes and token data.",
+    "Create backend/app/api/integrations.py with these endpoints: (1) GET /api/integrations/connect/{service} - generates OAuth URL for a Google service (calendar, tasks, gmail, slides) with only that service's specific scopes, returns {auth_url: string}. (2) GET /api/integrations/callback - handles Google OAuth callback, stores access_token and granted scopes to user's connected_services in Firestore, then redirects to frontend settings page. (3) DELETE /api/integrations/disconnect/{service} - removes that service from connected_services in Firestore. (4) GET /api/integrations/status - returns dict of service_name -> {connected: bool, scopes: list}. (5) GET /api/integrations/spotify/auth-url - returns Spotify OAuth URL. (6) GET /api/integrations/spotify/callback - handles Spotify callback, stores token. (7) DELETE /api/integrations/spotify/disconnect - clears Spotify tokens. All endpoints require auth_token query param for user identification.",
+    "Scope mappings for the connect endpoint: calendar -> ['https://www.googleapis.com/auth/calendar'], tasks -> ['https://www.googleapis.com/auth/tasks'], gmail -> ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send'], slides -> ['https://www.googleapis.com/auth/presentations', 'https://www.googleapis.com/auth/drive.file']",
+    "Register the integrations router in backend/app/main.py (import and include_router).",
+    "Run python -m py_compile backend/app/api/integrations.py and python -m py_compile backend/app/main.py to verify syntax."
+  ],
+  "acceptance_criteria": [
+    "backend/app/api/integrations.py exists with all 7 endpoints",
+    "backend/app/config.py has SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, GOOGLE_REDIRECT_URI",
+    "backend/app/db/models.py User model has connected_services and spotify_tokens fields",
+    "backend/app/main.py imports and registers the integrations router",
+    "python -m py_compile backend/app/main.py succeeds",
+    "python -m py_compile backend/app/api/integrations.py succeeds"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py",
+    "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/api/integrations.py"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

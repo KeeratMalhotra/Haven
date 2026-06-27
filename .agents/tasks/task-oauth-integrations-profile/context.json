@@ -1,0 +1,31 @@
+{
+  "project_type": "Full-stack app: Next.js 15 frontend + Python FastAPI backend + MCP servers for Google services",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_system": "pnpm for frontend, pip for backend. No monorepo build tool.",
+  "test_framework": "Jest (frontend, passWithNoTests), pytest (backend). Frontend lint via next lint.",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && npm run build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+  "verification_instructions": "1. Run frontend build: cd frontend && npm run build. 2. Run frontend lint: cd frontend && npm run lint. 3. Run backend syntax check: cd backend && python -m py_compile app/main.py",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd frontend && pnpm install. cd backend && pip install -r requirements.txt.",
+  "environment_constraints": "Open internet. DO NOT MODIFY: hooks/useChatSocket.ts, lib/api.ts, lib/ws.ts, lib/voice.ts, middleware.ts, Providers.tsx, entity/, shared/, frontend/app/api/auth/[...nextauth]/route.ts. CAN modify everything else in frontend/ and backend/.",
+  "contribution_requirements": "Keep NextAuth route unchanged. Use separate OAuth flows for incremental scopes (backend endpoints). Store tokens/scopes per user in Firestore.",
+  "key_patterns": "Backend API routers in backend/app/api/ registered in main.py. Frontend uses lib/api-extended.ts for fetch helpers. Settings page at frontend/app/dashboard/settings/page.tsx. Firestore models in backend/app/db/models.py, repositories in backend/app/db/repositories.py. UI components in frontend/components/ui/ (Card, Toggle, Button, etc). Theme uses CSS variables (--text-primary, --surface, --border, etc) and Tailwind with dark mode class.",
+  "relevant_files": [
+    "backend/app/main.py",
+    "backend/app/config.py",
+    "backend/app/auth.py",
+    "backend/app/db/models.py",
+    "backend/app/db/repositories.py",
+    "backend/app/db/firestore.py",
+    "backend/app/api/preferences.py",
+    "frontend/app/dashboard/settings/page.tsx",
+    "frontend/app/dashboard/layout.tsx",
+    "frontend/components/SpotifyMiniPlayer.tsx",
+    "frontend/lib/api-extended.ts",
+    "frontend/tailwind.config.ts",
+    "frontend/components/ui/Card.tsx",
+    "frontend/components/ui/Toggle.tsx"
+  ],
+  "directory_structure": "ChronAI/ -> frontend/ (Next.js 15 app), backend/ (FastAPI), mcp-servers/ (google-calendar, google-tasks, google-gmail), shared/ (schemas). Backend: app/api/ (routers), app/agents/ (AI agents), app/db/ (Firestore), app/mcp/ (MCP client). Frontend: app/ (pages), components/ (UI), lib/ (utilities), hooks/ (custom hooks)."
+}

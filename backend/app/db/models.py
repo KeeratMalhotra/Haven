@@ -28,6 +28,8 @@ class User(BaseModel):
     email: str = ""
     name: str = ""
     google_tokens: dict = Field(default_factory=dict)
+    connected_services: dict = Field(default_factory=dict)
+    spotify_tokens: dict = Field(default_factory=dict)
     preferences: dict = Field(default_factory=dict)
     notification_preferences: dict = Field(
         default_factory=lambda: {
