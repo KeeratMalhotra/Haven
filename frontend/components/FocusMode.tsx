@@ -436,11 +436,13 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
     stopAmbientAudio(ambientNodesRef.current);
     ambientNodesRef.current = null;
 
+    // Capture nodes in a local variable so the cleanup closure references the
+    // correct instance, avoiding a race when React batches rapid state updates.
     const nodes = startAmbientAudio(ambient, volume);
     ambientNodesRef.current = nodes;
 
     return () => {
-      stopAmbientAudio(ambientNodesRef.current);
+      stopAmbientAudio(nodes);
       ambientNodesRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

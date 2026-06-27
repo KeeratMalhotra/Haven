@@ -40,6 +40,8 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
   const actionQueueRef = useRef<
     Array<{ actionType: string; actionData: Record<string, any> }>
   >([]);
+  // Deduplication: track recently fired suggestion keys with cooldown (5 minutes)
+  const firedSuggestionsRef = useRef<Map<string, number>>(new Map());
 
   const dismissSuggestion = useCallback((id: string) => {
     setSuggestions((prev) =>
@@ -63,7 +65,26 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
   const reportAction = useCallback(
     (actionType: string, actionData: Record<string, any>) => {
       // ---- Local heuristic suggestions (fire immediately, no backend needed) ----
-      const fireLocal = (text: string, type: "info" | "action" | "warning") => {
+      const SUGGESTION_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+      const fireLocal = (key: string, text: string, type: "info" | "action" | "warning") => {
+        // Check deduplication cooldown
+        const now = Date.now();
+        const lastFired = firedSuggestionsRef.current.get(key);
+        if (lastFired && now - lastFired < SUGGESTION_COOLDOWN_MS) {
+          return; // Suppress duplicate within cooldown window
+        }
+        firedSuggestionsRef.current.set(key, now);
+
+        // Clean up old entries to prevent unbounded growth
+        if (firedSuggestionsRef.current.size > 100) {
+          for (const [k, t] of firedSuggestionsRef.current) {
+            if (now - t > SUGGESTION_COOLDOWN_MS) {
+              firedSuggestionsRef.current.delete(k);
+            }
+          }
+        }
+
         const localSuggestion: AISuggestion = {
           id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           text,
@@ -81,7 +102,9 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
         !actionData.due &&
         !actionData.deadline
       ) {
+        const dedupKey = `no_deadline-${actionData.id || actionType}`;
         fireLocal(
+          dedupKey,
           "This task has no deadline. Consider setting one for better planning.",
           "info"
         );
@@ -89,7 +112,9 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
 
       // Task dragged/moved
       if (actionType === "task_dragged" || actionType === "task_moved") {
+        const dedupKey = `task_moved-${actionData.id || actionType}`;
         fireLocal(
+          dedupKey,
           "Task moved! Need help rescheduling related events?",
           "action"
         );
@@ -97,7 +122,9 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
 
       // Event created with overlap
       if (actionType === "event_created" && actionData.overlap) {
+        const dedupKey = `event_overlap-${actionData.id || actionData.summary || actionType}`;
         fireLocal(
+          dedupKey,
           "Heads up: this event may overlap with another on your calendar.",
           "warning"
         );
@@ -108,7 +135,9 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
         Array.isArray(actionData.overdueTasks) &&
         actionData.overdueTasks.length >= 3
       ) {
+        const dedupKey = `overdue_tasks-${actionData.overdueTasks.length}`;
         fireLocal(
+          dedupKey,
           "You have several overdue tasks. Want help catching up?",
           "warning"
         );

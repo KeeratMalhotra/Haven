@@ -152,7 +152,7 @@ function DroppableTimeSlot({
   hour: number;
   onClick: () => void;
 }) {
-  const slotId = `slot-${format(day, "yyyy-MM-dd")}-${hour.toString().padStart(2, "0")}`;
+  const slotId = `slot:${format(day, "yyyy-MM-dd")}:${hour.toString().padStart(2, "0")}`;
   const { isOver, setNodeRef } = useDroppable({ id: slotId });
 
   return (
@@ -244,10 +244,10 @@ export default function CalendarPage() {
       new Date(newStartTime).getTime() + editDuration * 60000
     ).toISOString();
 
-    // Update local state immediately
+    // Update local state immediately (compare by ID, fallback to reference for local events)
     setEvents((prev) =>
       prev.map((e) =>
-        e === selectedEvent
+        (selectedEvent.id ? e.id === selectedEvent.id : e === selectedEvent)
           ? { ...e, summary: editSummary.trim(), start: newStartISO, end: newEndISO }
           : e
       )
@@ -290,12 +290,12 @@ export default function CalendarPage() {
     if (!over) return;
 
     const droppedId = over.id as string;
-    if (!droppedId.startsWith("slot-")) return;
+    if (!droppedId.startsWith("slot:")) return;
 
-    // Parse the target slot: "slot-YYYY-MM-DD-HH"
-    const parts = droppedId.split("-");
-    const hour = parseInt(parts[parts.length - 1], 10);
-    const dayStr = parts.slice(1, parts.length - 1).join("-");
+    // Parse the target slot: "slot:YYYY-MM-DD:HH"
+    const parts = droppedId.split(":");
+    const dayStr = parts[1];
+    const hour = parseInt(parts[2], 10);
 
     const draggedEvent = (active.data.current as { event: CalendarEvent })?.event;
     if (!draggedEvent) return;
@@ -309,10 +309,12 @@ export default function CalendarPage() {
     const newStartISO = newStart.toISOString();
     const newEndISO = newEnd.toISOString();
 
-    // Update local state
+    // Update local state (compare by ID, fallback to reference for local events)
     setEvents((prev) =>
       prev.map((e) =>
-        e === draggedEvent ? { ...e, start: newStartISO, end: newEndISO } : e
+        (draggedEvent.id ? e.id === draggedEvent.id : e === draggedEvent)
+          ? { ...e, start: newStartISO, end: newEndISO }
+          : e
       )
     );
 
@@ -457,7 +459,7 @@ export default function CalendarPage() {
         // Continue with local removal
       }
     }
-    setEvents((prev) => prev.filter((e) => e !== event));
+    setEvents((prev) => prev.filter((e) => (event.id ? e.id !== event.id : e !== event)));
     setSelectedEvent(null);
   };
 

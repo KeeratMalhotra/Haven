@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Fix code review issues: reference equality for event identity, drag slot ID parsing fragility, heuristic suggestion deduplication, and AudioContext leak",
+  "status": "in_progress",
+  "steps": [
+    "In calendar/page.tsx, replace `e === selectedEvent` and `e === draggedEvent` with ID-based comparison using `e.id === selectedEvent.id` (with fallback to reference for local events without IDs).",
+    "Fix drag slot ID parsing to use a non-ambiguous delimiter or parse knowing exact date segment positions.",
+    "In AIContextProvider.tsx, add a Set or Map with cooldown tracking to prevent duplicate suggestion toasts.",
+    "In FocusMode.tsx, capture ambient audio nodes in a local variable inside the effect and use that in the cleanup closure instead of reading from the ref."
+  ],
+  "acceptance_criteria": [
+    "Event edits and drag-reschedule use ID-based comparison, not reference equality",
+    "Drag slot ID parsing correctly handles the date format without ambiguity",
+    "Identical AI suggestions are suppressed within a 5-minute cooldown window",
+    "AudioContext cleanup uses closure-captured nodes, not ref",
+    "npm run build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}
