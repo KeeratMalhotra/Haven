@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "fix",
   "description": "Fix code review issues: reference equality for event identity, drag slot ID parsing fragility, heuristic suggestion deduplication, and AudioContext leak",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In calendar/page.tsx, replace `e === selectedEvent` and `e === draggedEvent` with ID-based comparison using `e.id === selectedEvent.id` (with fallback to reference for local events without IDs).",
     "Fix drag slot ID parsing to use a non-ambiguous delimiter or parse knowing exact date segment positions.",
@@ -20,5 +20,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All 4 review issues fixed in a single commit. Build passes cleanly. Slot ID delimiter changed from hyphen to colon (slot:YYYY-MM-DD:HH). Event identity uses e.id comparison with fallback to reference equality for locally-created events without IDs. Deduplication uses a Map with 5-minute TTL keyed on action type + entity ID. AudioContext cleanup now captures the nodes variable in the closure rather than reading from the mutable ref."
 }
