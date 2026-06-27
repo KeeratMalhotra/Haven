@@ -2,11 +2,108 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "@/hooks/useChatSocket";
 
 interface MessageBubbleProps {
   message: ChatMessage;
   onStreamComplete?: (id: string) => void;
+}
+
+/** Renders markdown content with appropriate styling for AI messages. */
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        h1: ({ children }) => (
+          <h1 className="mb-3 mt-4 text-xl font-bold text-[var(--text-primary)] first:mt-0">
+            {children}
+          </h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="mb-2 mt-3 text-lg font-semibold text-[var(--text-primary)] first:mt-0">
+            {children}
+          </h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="mb-2 mt-3 text-base font-semibold text-[var(--text-primary)] first:mt-0">
+            {children}
+          </h3>
+        ),
+        p: ({ children }) => (
+          <p className="mb-2 last:mb-0">{children}</p>
+        ),
+        ul: ({ children }) => (
+          <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">
+            {children}
+          </ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">
+            {children}
+          </ol>
+        ),
+        li: ({ children }) => <li className="pl-1">{children}</li>,
+        code: ({ className, children }) => {
+          const isBlock = className?.includes("language-");
+          if (isBlock) {
+            return (
+              <code className={`block text-sm ${className || ""}`}>
+                {children}
+              </code>
+            );
+          }
+          return (
+            <code className="rounded bg-[var(--surface-hover)] px-1.5 py-0.5 text-sm font-mono text-accent-500">
+              {children}
+            </code>
+          );
+        },
+        pre: ({ children }) => (
+          <pre className="mb-2 overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-sm last:mb-0">
+            {children}
+          </pre>
+        ),
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent-500 underline decoration-accent-500/30 hover:decoration-accent-500"
+          >
+            {children}
+          </a>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote className="mb-2 border-l-2 border-accent-500/40 pl-3 italic text-[var(--text-secondary)] last:mb-0">
+            {children}
+          </blockquote>
+        ),
+        hr: () => <hr className="my-3 border-[var(--border)]" />,
+        table: ({ children }) => (
+          <div className="mb-2 overflow-x-auto last:mb-0">
+            <table className="w-full border-collapse text-sm">
+              {children}
+            </table>
+          </div>
+        ),
+        th: ({ children }) => (
+          <th className="border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-left font-semibold">
+            {children}
+          </th>
+        ),
+        td: ({ children }) => (
+          <td className="border border-[var(--border)] px-3 py-1.5">
+            {children}
+          </td>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 }
 
 /**
@@ -57,27 +154,29 @@ export default function MessageBubble({
       className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
     >
       {isUser ? (
-        <div className="max-w-[78%] rounded-2xl rounded-br-md bg-white/[0.06] px-4 py-2.5 text-[15px] leading-relaxed text-white/90 ring-1 ring-white/10">
+        <div className="max-w-[78%] rounded-2xl rounded-br-md border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-2.5 text-[15px] leading-relaxed text-[var(--text-primary)]">
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
       ) : (
         <div className="flex max-w-[88%] gap-3">
           {/* AI presence dot */}
-          <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gradient-to-br from-accent-magenta to-accent-cyan shadow-glow" />
+          <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-500" />
           <div
             className={`text-[15px] leading-relaxed ${
-              message.isError ? "text-rose-300/90" : "text-white/85"
+              message.isError
+                ? "text-rose-400"
+                : "text-[var(--text-primary)]"
             }`}
           >
-            <p
-              className={`whitespace-pre-wrap ${
+            <div
+              className={
                 shouldStream && revealed !== message.content
                   ? "stream-caret"
                   : ""
-              }`}
+              }
             >
-              {revealed}
-            </p>
+              <MarkdownContent content={revealed} />
+            </div>
           </div>
         </div>
       )}
