@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Drag Tasks onto Calendar - Enable dragging a task from the task list directly onto a calendar time slot, with AI confirmation popup that asks 'Schedule [task] for [time]?', then creates a linked calendar event.",
+  "status": "completed",
+  "steps": [
+    "STEP 1 - Create a new page/component that combines tasks and calendar in a split view. Add a new route at frontend/app/dashboard/planner/page.tsx that shows a two-panel layout: left panel has the task list (simplified version of the tasks board in list format), right panel shows the day/week calendar view. This page is the 'Planner' view. Add it to the sidebar navigation in frontend/components/layout/AppShell.tsx (or wherever the nav is defined).",
+    "STEP 2 - In the planner page, wrap both panels in a single DndContext from @dnd-kit. Make task items in the left panel draggable (useDraggable). Make calendar time slots in the right panel droppable (useDroppable) using the same slot ID format as in calendar/page.tsx: 'slot:YYYY-MM-DD:HH'.",
+    "STEP 3 - When a task is dropped onto a calendar time slot, show an AI confirmation modal/popup: 'Schedule [task title] for [formatted time]?' with Accept and Cancel buttons. The modal shows the task title, proposed date/time, and optional duration selector (default 60 min).",
+    "STEP 4 - On Accept: call createCalendarEvent (from lib/api.ts) to create the event. Update the task's metadata to store linkedEventId. Report the action via reportAction('task_scheduled_to_calendar', { taskTitle, time, eventId }). Show a success toast.",
+    "STEP 5 - On the calendar side, events created from tasks should show a small task-link indicator (a CheckSquare icon) to visually distinguish them from regular events.",
+    "STEP 6 - Add a link to the Planner page in the dashboard sidebar navigation so users can access it. Use a LayoutDashboard or CalendarClock icon from lucide-react.",
+    "STEP 7 - Verify: Run npm run build and npm run lint."
+  ],
+  "acceptance_criteria": [
+    "npm run build succeeds with no errors",
+    "npm run lint shows no errors",
+    "A new /dashboard/planner route exists with split task-list + calendar view",
+    "Tasks in the left panel are draggable",
+    "Calendar time slots in the right panel are droppable",
+    "Dropping a task shows an AI confirmation popup with task name and proposed time",
+    "Accepting the popup creates a calendar event via the API",
+    "The planner page is accessible from the sidebar navigation"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": "Build and lint pass. One pre-existing test failure in ChatExperience.test.tsx (ESM react-markdown import issue) unrelated to this feature. The planner page at /dashboard/planner creates a split view with draggable tasks on the left and droppable day calendar slots on the right. Dropping shows an AI confirmation modal. On accept, createCalendarEvent is called, task gets linkedEventId stored in localStorage, and reportAction is fired. Planner added to sidebar navigation with CalendarClock icon."
+}

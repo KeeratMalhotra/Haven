@@ -37,7 +37,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { format, addDays, addWeeks, addMonths } from "date-fns";
+import { format, addDays, addWeeks, addMonths, getDay } from "date-fns";
 
 import { fetchTasks, type TaskItem } from "@/lib/api";
 import {
@@ -247,6 +247,20 @@ function getNextDueDate(currentDue: string | null | undefined, recurrence: Recur
       return addMonths(baseDate, 1).toISOString().split("T")[0];
     case "custom": {
       const interval = recurrence.interval || 1;
+      const days = recurrence.days;
+      // If days array has specific weekdays, find the next matching day
+      if (days && days.length > 0) {
+        let candidate = addDays(baseDate, interval);
+        // Search up to 7 days from the candidate to find a matching weekday
+        for (let i = 0; i < 7; i++) {
+          if (days.includes(getDay(candidate))) {
+            return candidate.toISOString().split("T")[0];
+          }
+          candidate = addDays(candidate, 1);
+        }
+        // Fallback: if no match found within 7 days (shouldn't happen), use candidate
+        return candidate.toISOString().split("T")[0];
+      }
       return addDays(baseDate, interval).toISOString().split("T")[0];
     }
     default:
@@ -919,6 +933,7 @@ export default function TasksPage() {
   // Bulk select mode
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [openMenu, setOpenMenu] = useState<null | "move" | "priority" | "label">(null);
 
   // New task form state
   const [newTitle, setNewTitle] = useState("");
@@ -1751,46 +1766,61 @@ export default function TasksPage() {
               <Trash2 size={13} />
               Delete
             </button>
-            <div className="relative group">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors">
+            <div className="relative">
+              <button
+                onClick={() => setOpenMenu(openMenu === "move" ? null : "move")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
+              >
                 <ArrowRight size={13} />
                 Move to
               </button>
-              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
-                <button onClick={() => handleBulkMove("todo")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">To Do</button>
-                <button onClick={() => handleBulkMove("inprogress")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">In Progress</button>
-                <button onClick={() => handleBulkMove("done")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Done</button>
-              </div>
+              {openMenu === "move" && (
+                <div className="absolute bottom-full left-0 mb-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
+                  <button onClick={() => { handleBulkMove("todo"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">To Do</button>
+                  <button onClick={() => { handleBulkMove("inprogress"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">In Progress</button>
+                  <button onClick={() => { handleBulkMove("done"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Done</button>
+                </div>
+              )}
             </div>
-            <div className="relative group">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors">
+            <div className="relative">
+              <button
+                onClick={() => setOpenMenu(openMenu === "priority" ? null : "priority")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
+              >
                 <Flag size={13} />
                 Priority
               </button>
-              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[100px]">
-                <button onClick={() => handleBulkPriority("high")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">High</button>
-                <button onClick={() => handleBulkPriority("medium")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Medium</button>
-                <button onClick={() => handleBulkPriority("low")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Low</button>
-                <button onClick={() => handleBulkPriority("none")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">None</button>
-              </div>
+              {openMenu === "priority" && (
+                <div className="absolute bottom-full left-0 mb-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[100px]">
+                  <button onClick={() => { handleBulkPriority("high"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">High</button>
+                  <button onClick={() => { handleBulkPriority("medium"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Medium</button>
+                  <button onClick={() => { handleBulkPriority("low"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Low</button>
+                  <button onClick={() => { handleBulkPriority("none"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">None</button>
+                </div>
+              )}
             </div>
-            <div className="relative group">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors">
+            <div className="relative">
+              <button
+                onClick={() => setOpenMenu(openMenu === "label" ? null : "label")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
+              >
                 <Tag size={13} />
                 Label
               </button>
-              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
-                {allLabels.map((label) => (
-                  <button
-                    key={label.id}
-                    onClick={() => handleBulkLabel(label)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
-                  >
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
-                    {label.name}
-                  </button>
-                ))}
-              </div>
+              {openMenu === "label" && (
+                <div className="absolute bottom-full left-0 mb-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
+                  {allLabels.map((label) => (
+                    <button
+                      key={label.id}
+                      onClick={() => { handleBulkLabel(label); setOpenMenu(null); }}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+                      {label.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
