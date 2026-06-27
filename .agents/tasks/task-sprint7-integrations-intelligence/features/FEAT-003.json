@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Email Notifications (Automated): Wire the existing email_notifications.py utilities (send_task_reminder, send_daily_digest) to the nudge engine for 4-hour deadline reminders, daily digest, and weekly review emails. Add a send_weekly_review function.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Add a send_weekly_review function to backend/app/utils/email_notifications.py following the same pattern as send_daily_digest. It should accept user_email, review_markdown (the weekly review content from the ReviewAgent), and google_tokens. Format it as an HTML email with ChronAI branding.",
     "2. Modify backend/app/scheduler/proactive.py's _check_user_deadlines function to also trigger email reminders 4 hours before deadline. Currently it sends nudge emails only when users are offline. Add logic: if a task deadline is within 4 hours AND the user has email_deadline_reminders enabled in their notification_preferences, call send_task_reminder from email_notifications.py with the formatted deadline string.",
@@ -25,5 +25,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/db/models.py"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All py_compile checks pass. Added send_weekly_review with markdown-to-HTML conversion. 4-hour deadline reminders use a 3.5-4.5 hour window to handle scheduler interval timing. Daily digest and weekly review use module-level timestamp tracking to avoid repeated runs. The weekly review uses a lazy import of generate_weekly_review to avoid circular imports."
 }
