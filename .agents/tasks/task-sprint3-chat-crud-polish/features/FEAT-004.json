@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "feat",
   "description": "Connect Task CRUD to Google Tasks via real API endpoints. Add backend POST /api/tasks, DELETE /api/tasks/{id}, PATCH /api/tasks/{id} endpoints, create frontend lib/api-extended.ts with helper functions, and wire the tasks page to use real API calls instead of localStorage-only.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add three new endpoints in `backend/app/main.py`: 1) `POST /api/tasks` - accepts {auth_token, title, notes?, due_days_from_now?} and calls MCP google-tasks create_task. 2) `DELETE /api/tasks/{task_id}` with query param auth_token - calls MCP google-tasks delete_task. 3) `PATCH /api/tasks/{task_id}` - accepts {auth_token, completed?} and calls MCP google-tasks complete_task when completed=true.",
     "Create Pydantic request models: CreateTaskRequest(auth_token, title, notes='', due_days_from_now=7), UpdateTaskRequest(auth_token, completed=None).",
@@ -26,5 +26,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Python command is `python3` not `python` on this machine (pyenv). Frontend build passes cleanly. Backend py_compile passes. Used optimistic local state updates with fire-and-forget API calls for create/delete/toggle to maintain snappy UX with graceful fallback."
 }
