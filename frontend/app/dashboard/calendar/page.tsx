@@ -200,8 +200,8 @@ function TimeBlock({
   // Accurate positioning: top = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT
   const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
   const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
-  // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 24px
-  const height = Math.max(24, (duration / 60) * ROW_HEIGHT);
+  // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 28px
+  const height = Math.max(28, (duration / 60) * ROW_HEIGHT);
 
   // Calculate overlap positioning
   const overlapIndex = overlapInfo?.index ?? 0;
@@ -213,14 +213,18 @@ function TimeBlock({
 
   // Clamp the block so it can never overflow the bottom of the hour grid.
   const gridHeight = HOURS.length * ROW_HEIGHT;
-  const clampedHeight = Math.min(height, Math.max(24, gridHeight - top));
+  const clampedHeight = Math.min(height, Math.max(28, gridHeight - top));
+
+  // Conditional sizing: compact for short events, spacious for tall ones
+  const isCompact = clampedHeight < 40;
+  const isMedium = clampedHeight >= 40 && clampedHeight <= 50;
 
   const style: React.CSSProperties = {
     top: `${top}px`,
     height: `${clampedHeight}px`,
+    maxHeight: `${clampedHeight}px`,
     left: overlapTotal > 1 ? `calc(${leftPercent}% + 4px)` : "4px",
     right: overlapTotal > 1 ? `calc(${100 - leftPercent - widthPercent}% + 4px)` : "4px",
-    maxHeight: `${gridHeight - top}px`,
     ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {}),
     opacity: isDragging ? 0.5 : 1,
   };
@@ -232,29 +236,40 @@ function TimeBlock({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onClick();
       }}
-      className={`absolute rounded-lg px-2 py-1 overflow-hidden hover:bg-accent-500/25 transition-colors group z-10 cursor-grab active:cursor-grabbing ${
+      className={`absolute rounded-md overflow-hidden hover:bg-accent-500/25 transition-colors group z-10 cursor-grab active:cursor-grabbing border-l-2 ${
+        isCompact ? "py-0.5 px-1.5" : "py-1.5 px-2"
+      } ${
         isSecondaryOverlap
-          ? "bg-warning-500/10 border border-warning-500/40"
-          : "bg-accent-500/15 border border-accent-500/30"
+          ? "bg-warning-500/10 border-l-warning-500"
+          : "bg-accent-500/15 border-l-accent-500"
       }`}
       style={style}
       {...listeners}
       {...attributes}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 overflow-hidden">
         {isOverlapping && (
           <AlertTriangle size={10} className="text-warning-500 shrink-0" />
         )}
-        <p className={`text-[11px] font-medium truncate ${
+        <p className={`text-[11px] font-medium truncate line-clamp-1 ${
           isSecondaryOverlap
             ? "text-warning-600 dark:text-warning-300"
             : "text-accent-600 dark:text-accent-300"
         }`}>
           {event.summary}
         </p>
+        {isMedium && (
+          <span className={`text-[10px] shrink-0 ${
+            isSecondaryOverlap
+              ? "text-warning-500/70 dark:text-warning-400/70"
+              : "text-accent-500/70 dark:text-accent-400/70"
+          }`}>
+            {safeFormat(startDate, "h:mm a")}
+          </span>
+        )}
       </div>
-      {clampedHeight > 36 && (
-        <p className={`text-[10px] ${
+      {clampedHeight > 50 && (
+        <p className={`text-[10px] truncate ${
           isSecondaryOverlap
             ? "text-warning-500/70 dark:text-warning-400/70"
             : "text-accent-500/70 dark:text-accent-400/70"

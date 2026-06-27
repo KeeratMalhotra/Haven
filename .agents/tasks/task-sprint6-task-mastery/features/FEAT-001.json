@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix Calendar Card-Fitting Bug - Rewrite the event card CSS in day/week views so cards fit perfectly within their time-row boundaries. Fix card height/padding/overflow so text does not spill or get cut off. Ensure short events (15-30 min) are still readable, long events span cleanly.",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/app/dashboard/calendar/page.tsx, modify the TimeBlock component's CSS. Current issues: the card uses absolute positioning with top/height based on ROW_HEIGHT=64px (h-16). The card has px-2 py-1 padding plus border which can cause overflow. For short events (15-30 min), the height is max(24, (duration/60)*64) = 16-32px which is too tight for text + time display.",
+    "Fix the height calculation: For 15min events height = max(28, (15/60)*64) = max(28,16) = 28px. For 30min events = max(28,32) = 32px. Change min-height from 24px to 28px. Add overflow-hidden with text-ellipsis.",
+    "Fix padding: reduce vertical padding from py-1 (4px top+bottom = 8px total) to py-0.5 (2px top+bottom = 4px total) for short events. Use conditional padding: if clampedHeight < 40 use py-0.5 px-1.5, otherwise py-1.5 px-2.",
+    "Fix text display: for events shorter than 36px height, show only the title (no time). For events between 36-50px, show title + time in one line. For events over 50px, show title on first line, time on second line. Currently the threshold is clampedHeight > 36 for showing time.",
+    "Ensure the card never exceeds its time boundaries: add max-height constraint that equals the calculated height. Add overflow-hidden to prevent text spill. Use line-clamp-1 for title text in all cases.",
+    "Fix the border adding extra pixels: change from 'border border-accent-500/30' to 'border-l-2 border-l-accent-500' (left accent stripe only) to save vertical space and look cleaner.",
+    "Test by verifying the build passes with 'cd /projects/sandbox/ChronAI/frontend && npm run build'"
+  ],
+  "acceptance_criteria": [
+    "npm run build succeeds with no errors",
+    "npm run lint shows no errors",
+    "TimeBlock component uses conditional padding based on event duration",
+    "Short events (15-30 min) show only title with compact styling",
+    "Long events span cleanly without text overflow",
+    "Cards use overflow-hidden to prevent content spill",
+    "Left accent stripe replaces full border for space efficiency"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
