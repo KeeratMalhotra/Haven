@@ -25,7 +25,6 @@ import {
   isSameMonth,
   isSameDay,
   isToday,
-  parseISO,
   differenceInMinutes,
   setHours,
   setMinutes,
@@ -55,6 +54,8 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { safeParseDate, safeFormat, isDateOnly } from "@/lib/date-utils";
 
 type CalendarView = "month" | "week" | "day";
 
@@ -110,26 +111,38 @@ function computeOverlaps(events: CalendarEvent[]): Map<string, OverlapInfo> {
   const result = new Map<string, OverlapInfo>();
   if (events.length === 0) return result;
 
+  // Helper: parse start/end to epoch millis, skipping unparseable values.
+  const startMs = (e: CalendarEvent) => safeParseDate(e.start)?.getTime() ?? NaN;
+  const endMs = (e: CalendarEvent) => {
+    const end = safeParseDate(e.end)?.getTime();
+    if (end !== undefined && !Number.isNaN(end)) return end;
+    // Fallback: assume a 60-minute event when end is missing/invalid.
+    const start = startMs(e);
+    return Number.isNaN(start) ? NaN : start + 60 * 60 * 1000;
+  };
+
+  // Only consider events with a valid start time.
+  const valid = events.filter((e) => !Number.isNaN(startMs(e)));
+  if (valid.length === 0) return result;
+
   // Sort by start time
-  const sorted = [...events].sort(
-    (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
-  );
+  const sorted = [...valid].sort((a, b) => startMs(a) - startMs(b));
 
   // Build overlap groups using a sweep-line approach
   const groups: CalendarEvent[][] = [];
   let currentGroup: CalendarEvent[] = [sorted[0]];
-  let groupEnd = parseISO(sorted[0].end).getTime();
+  let groupEnd = endMs(sorted[0]);
 
   for (let i = 1; i < sorted.length; i++) {
-    const eventStart = parseISO(sorted[i].start).getTime();
+    const eventStart = startMs(sorted[i]);
     if (eventStart < groupEnd) {
       // Overlaps with current group
       currentGroup.push(sorted[i]);
-      groupEnd = Math.max(groupEnd, parseISO(sorted[i].end).getTime());
+      groupEnd = Math.max(groupEnd, endMs(sorted[i]));
     } else {
       groups.push(currentGroup);
       currentGroup = [sorted[i]];
-      groupEnd = parseISO(sorted[i].end).getTime();
+      groupEnd = endMs(sorted[i]);
     }
   }
   groups.push(currentGroup);
@@ -159,23 +172,36 @@ function TimeBlock({
   isDragging?: boolean;
   overlapInfo?: OverlapInfo;
 }) {
-  const startDate = parseISO(event.start);
-  const endDate = parseISO(event.end);
-  const startHour = startDate.getHours();
-  const startMinuteOfDay = startDate.getMinutes();
-  const duration = differenceInMinutes(endDate, startDate);
-
-  // Accurate positioning: top = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT
-  const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
-  const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
-  // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 24px
-  const height = Math.max(24, (duration / 60) * ROW_HEIGHT);
+  // Safe parse: callers already filter out events without a valid timed start,
+  // but guard defensively so a bad payload can never throw during render.
+  const startDate = safeParseDate(event.start);
+  const parsedEnd = safeParseDate(event.end);
+  // Fall back to a 60-minute block when the end is missing/invalid.
+  const endDate =
+    parsedEnd && startDate && parsedEnd.getTime() > startDate.getTime()
+      ? parsedEnd
+      : startDate
+        ? new Date(startDate.getTime() + 60 * 60 * 1000)
+        : null;
 
   const dragId = `event-${event.id || event.summary}-${event.start}`;
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: dragId,
     data: { event },
   });
+
+  // If the start can't be parsed there's nothing to position; render nothing.
+  if (!startDate || !endDate) return null;
+
+  const startHour = startDate.getHours();
+  const startMinuteOfDay = startDate.getMinutes();
+  const duration = Math.max(0, differenceInMinutes(endDate, startDate));
+
+  // Accurate positioning: top = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT
+  const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
+  const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
+  // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 24px
+  const height = Math.max(24, (duration / 60) * ROW_HEIGHT);
 
   // Calculate overlap positioning
   const overlapIndex = overlapInfo?.index ?? 0;
@@ -185,12 +211,16 @@ function TimeBlock({
   const isOverlapping = overlapTotal > 1;
   const isSecondaryOverlap = overlapIndex > 0;
 
+  // Clamp the block so it can never overflow the bottom of the hour grid.
+  const gridHeight = HOURS.length * ROW_HEIGHT;
+  const clampedHeight = Math.min(height, Math.max(24, gridHeight - top));
+
   const style: React.CSSProperties = {
     top: `${top}px`,
-    height: `${height}px`,
+    height: `${clampedHeight}px`,
     left: overlapTotal > 1 ? `calc(${leftPercent}% + 4px)` : "4px",
     right: overlapTotal > 1 ? `calc(${100 - leftPercent - widthPercent}% + 4px)` : "4px",
-    maxHeight: `${HOURS.length * ROW_HEIGHT - top}px`,
+    maxHeight: `${gridHeight - top}px`,
     ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {}),
     opacity: isDragging ? 0.5 : 1,
   };
@@ -223,13 +253,13 @@ function TimeBlock({
           {event.summary}
         </p>
       </div>
-      {height > 36 && (
+      {clampedHeight > 36 && (
         <p className={`text-[10px] ${
           isSecondaryOverlap
             ? "text-warning-500/70 dark:text-warning-400/70"
             : "text-accent-500/70 dark:text-accent-400/70"
         }`}>
-          {format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
+          {safeFormat(startDate, "h:mm a")} - {safeFormat(endDate, "h:mm a")}
         </p>
       )}
     </div>
@@ -326,10 +356,11 @@ export default function CalendarPage() {
   const openEditModal = useCallback((event: CalendarEvent) => {
     setSelectedEvent(event);
     setEditSummary(event.summary);
-    const start = parseISO(event.start);
-    setEditDate(format(start, "yyyy-MM-dd"));
-    setEditTime(format(start, "HH:mm"));
-    const duration = differenceInMinutes(parseISO(event.end), start);
+    const start = safeParseDate(event.start) ?? new Date();
+    setEditDate(safeFormat(start, "yyyy-MM-dd", format(new Date(), "yyyy-MM-dd")));
+    setEditTime(safeFormat(start, "HH:mm", "09:00"));
+    const end = safeParseDate(event.end);
+    const duration = end ? differenceInMinutes(end, start) : 60;
     setEditDuration(duration > 0 ? duration : 60);
     setShowEditModal(true);
   }, []);
@@ -401,9 +432,13 @@ export default function CalendarPage() {
     const draggedEvent = (active.data.current as { event: CalendarEvent })?.event;
     if (!draggedEvent) return;
 
-    const oldStart = parseISO(draggedEvent.start);
-    const oldEnd = parseISO(draggedEvent.end);
-    const duration = differenceInMinutes(oldEnd, oldStart);
+    const oldStart = safeParseDate(draggedEvent.start);
+    const oldEnd = safeParseDate(draggedEvent.end);
+    if (!oldStart) return; // can't reschedule an event with no valid start
+    const duration =
+      oldEnd && oldEnd.getTime() > oldStart.getTime()
+        ? differenceInMinutes(oldEnd, oldStart)
+        : 60;
 
     const newStart = setMinutes(setHours(new Date(`${dayStr}T00:00:00`), hour), 0);
     const newEnd = new Date(newStart.getTime() + duration * 60000);
@@ -511,15 +546,41 @@ export default function CalendarPage() {
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [currentDate]);
 
-  // Get events for a specific day
+  // Get all valid events for a specific day (timed + all-day). Events whose
+  // start can't be parsed are skipped so they can never crash rendering.
   const getEventsForDay = useCallback(
     (day: Date) => {
       return events.filter((e) => {
-        try {
-          return isSameDay(parseISO(e.start), day);
-        } catch {
-          return false;
-        }
+        const start = safeParseDate(e.start);
+        if (!start) return false;
+        return isSameDay(start, day);
+      });
+    },
+    [events]
+  );
+
+  // Timed events only (excludes all-day / date-only events) — used by the
+  // hour grid in week and day views so all-day events don't break positioning.
+  const getTimedEventsForDay = useCallback(
+    (day: Date) => {
+      return events.filter((e) => {
+        if (isDateOnly(e.start)) return false;
+        const start = safeParseDate(e.start);
+        if (!start) return false;
+        return isSameDay(start, day);
+      });
+    },
+    [events]
+  );
+
+  // All-day (date-only) events for a given day, rendered in the all-day row.
+  const getAllDayEventsForDay = useCallback(
+    (day: Date) => {
+      return events.filter((e) => {
+        if (!isDateOnly(e.start)) return false;
+        const start = safeParseDate(e.start);
+        if (!start) return false;
+        return isSameDay(start, day);
       });
     },
     [events]
@@ -596,6 +657,7 @@ export default function CalendarPage() {
   };
 
   return (
+    <ErrorBoundary sectionName="the calendar">
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -792,6 +854,37 @@ export default function CalendarPage() {
                   </div>
                 ))}
               </div>
+              {/* All-day events row */}
+              {weekDays.some((day) => getAllDayEventsForDay(day).length > 0) && (
+                <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-[var(--border)]">
+                  <div className="flex items-center justify-end pr-2 py-1">
+                    <span className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">
+                      All day
+                    </span>
+                  </div>
+                  {weekDays.map((day) => (
+                    <div
+                      key={day.toISOString()}
+                      className="border-l border-[var(--border)] p-1 space-y-0.5 min-h-[28px]"
+                    >
+                      {getAllDayEventsForDay(day).map((event, i) => (
+                        <div
+                          key={event.id || i}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => openEditModal(event)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") openEditModal(event);
+                          }}
+                          className="truncate rounded bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-medium text-accent-600 dark:text-accent-300 cursor-pointer hover:bg-accent-500/25 transition-colors"
+                        >
+                          {event.summary}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* Time grid */}
               <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex-1 overflow-y-auto">
@@ -825,7 +918,7 @@ export default function CalendarPage() {
                         ))}
                         {/* Events */}
                         {(() => {
-                          const dayEvents = getEventsForDay(day);
+                          const dayEvents = getTimedEventsForDay(day);
                           const overlaps = computeOverlaps(dayEvents);
                           return dayEvents.map((event) => {
                             const key = `${event.id || event.summary}-${event.start}`;
@@ -861,6 +954,32 @@ export default function CalendarPage() {
               transition={{ duration: 0.2 }}
               className="flex-1 flex flex-col overflow-hidden"
             >
+              {/* All-day events row */}
+              {getAllDayEventsForDay(currentDate).length > 0 && (
+                <div className="grid grid-cols-[56px_1fr] border-b border-[var(--border)] mb-0">
+                  <div className="flex items-center justify-end pr-2 py-1">
+                    <span className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">
+                      All day
+                    </span>
+                  </div>
+                  <div className="border-l border-[var(--border)] p-1 space-y-0.5">
+                    {getAllDayEventsForDay(currentDate).map((event, i) => (
+                      <div
+                        key={event.id || i}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openEditModal(event)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") openEditModal(event);
+                        }}
+                        className="truncate rounded bg-accent-500/15 px-2 py-1 text-[11px] font-medium text-accent-600 dark:text-accent-300 cursor-pointer hover:bg-accent-500/25 transition-colors"
+                      >
+                        {event.summary}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                 <div className="flex-1 overflow-y-auto">
                   <div className="grid grid-cols-[56px_1fr] relative">
@@ -889,7 +1008,7 @@ export default function CalendarPage() {
                       ))}
                       {/* Events */}
                       {(() => {
-                        const dayEvents = getEventsForDay(currentDate);
+                        const dayEvents = getTimedEventsForDay(currentDate);
                         const overlaps = computeOverlaps(dayEvents);
                         return dayEvents.map((event) => {
                           const key = `${event.id || event.summary}-${event.start}`;
@@ -1073,5 +1192,6 @@ export default function CalendarPage() {
         </div>
       </Modal>
     </motion.div>
+    </ErrorBoundary>
   );
 }

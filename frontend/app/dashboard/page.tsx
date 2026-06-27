@@ -23,6 +23,8 @@ import { format } from "date-fns";
 
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { safeFormat, safeParseDate } from "@/lib/date-utils";
 import FocusMode from "@/components/FocusMode";
 import {
   fetchOnboardingStatus,
@@ -272,6 +274,9 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(" ")[0] || "there";
   const todayFormatted = format(new Date(), "EEEE, MMMM d");
   const pendingTasks = tasks.filter((t) => !t.completed);
+  // Skip events with missing/malformed start dates so a bad payload can't
+  // crash the schedule rendering.
+  const validEvents = events.filter((e) => safeParseDate(e.start) !== null);
   const totalStreak = habits.reduce((acc, h) => acc + h.streak, 0);
 
   const isAllEmpty =
@@ -292,7 +297,7 @@ export default function DashboardPage() {
   const statsCards = [
     {
       icon: Calendar,
-      count: events.length,
+      count: validEvents.length,
       label: "Events today",
       color: "text-accent-500",
       bgColor: "bg-accent-500/10",
@@ -315,6 +320,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <ErrorBoundary sectionName="your dashboard">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -636,7 +642,7 @@ export default function DashboardPage() {
                     </p>
                   </Card>
                 ) : (
-                  events.slice(0, 5).map((event, i) => (
+                  validEvents.slice(0, 5).map((event, i) => (
                     <motion.div
                       key={event.id || i}
                       initial={{ opacity: 0, x: -8 }}
@@ -653,9 +659,9 @@ export default function DashboardPage() {
                             {event.summary}
                           </p>
                           <p className="text-xs text-[var(--text-tertiary)]">
-                            {format(new Date(event.start), "h:mm a")}
-                            {event.end &&
-                              ` - ${format(new Date(event.end), "h:mm a")}`}
+                            {safeFormat(event.start, "h:mm a")}
+                            {safeFormat(event.end, "h:mm a") &&
+                              ` - ${safeFormat(event.end, "h:mm a")}`}
                           </p>
                         </div>
                       </Card>
@@ -739,7 +745,8 @@ export default function DashboardPage() {
                           </p>
                           {task.due && (
                             <p className="text-xs text-[var(--text-tertiary)]">
-                              Due {format(new Date(task.due), "MMM d")}
+                              {safeFormat(task.due, "MMM d") &&
+                                `Due ${safeFormat(task.due, "MMM d")}`}
                             </p>
                           )}
                         </div>
@@ -752,6 +759,7 @@ export default function DashboardPage() {
           </>
         )}
       </motion.div>
+      </ErrorBoundary>
 
       {/* Quick Actions FAB */}
       <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2">
