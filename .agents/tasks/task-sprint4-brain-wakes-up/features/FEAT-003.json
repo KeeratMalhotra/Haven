@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Wire AI context into Tasks and Calendar pages. Add reportAction calls on user interactions (drag-drop, create, delete, complete) and show inline AI suggestion banners. Also add WebSocket notification handling for real-time nudges pushed from the backend proactive scheduler.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/app/dashboard/tasks/page.tsx: Import useAI from AIContextProvider. Call reportAction('task_dragged', {taskId, fromStatus, toStatus}) inside handleDragEnd when a task changes columns. Call reportAction('task_created', {title, priority}) inside handleCreateTask. Call reportAction('task_completed', {title}) inside handleToggleTask when marking done. Call reportAction('task_deleted', {title}) inside handleDeleteTask. Add an AISuggestionBanner above the task board/list that shows the latest task-related suggestion from useAI().suggestions filtered to relevant types. The banner should only show if there is a suggestion and the user has not dismissed it.",
     "In frontend/app/dashboard/calendar/page.tsx: Import useAI from AIContextProvider. Call reportAction('event_created', {summary, startTime, duration}) inside handleCreateEvent. Call reportAction('event_deleted', {summary}) inside handleDeleteEvent. Call reportAction('timeslot_clicked', {day: format(day,'yyyy-MM-dd'), hour}) inside handleTimeSlotClick. Add an AISuggestionBanner below the header that shows calendar-related suggestions (e.g., 'You have a gap here - want to block focus time?').",
@@ -26,5 +26,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run lint"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build and lint pass cleanly. Used reportAction inside setTasks updater for handleToggleTask and handleDeleteTask to access the current task before state changes. Added reportAction to useCallback dependency arrays. The notification socket hook uses a separate WebSocket connection with simple reconnect logic (5s delay). AISuggestionBanner shows the first non-dismissed suggestion in both views."
 }
