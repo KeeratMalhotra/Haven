@@ -28,7 +28,6 @@ const config = {
   },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
-    "\\.glsl$": "<rootDir>/__mocks__/fileMock.js",
   },
   testMatch: ["**/__tests__/**/*.test.(ts|tsx)"],
 };

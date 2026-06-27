@@ -18,7 +18,7 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ChronAI",
   description:
-    "ChronAI — a calm, intelligent companion for your time, tasks, and intentions.",
+    "ChronAI - your calm, intelligent companion for time, tasks, and intentions.",
 };
 
 export default function RootLayout({
@@ -27,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${mono.variable}`}>
-      <body className="min-h-screen bg-base-950 font-sans antialiased">
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
+      <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
