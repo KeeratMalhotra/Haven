@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Complete AI Chat UI redesign - Notion-style matte bubbles, clean composer without glass effects or gradients, proper font sizing, better message spacing, markdown rendering for AI responses, and matte ThinkingShimmer. Install react-markdown + remark-gfm for markdown rendering.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Install react-markdown and remark-gfm: `cd /projects/sandbox/ChronAI/frontend && npm install react-markdown remark-gfm`",
     "Redesign `frontend/components/chat/ChatComposer.tsx`: Remove `glass-strong` class, remove the gradient focus rim div, remove `shadow-glow-cyan`, remove `accent-gradient` from the send button. Replace with matte surface styling using CSS variables: bg-[var(--surface)], border border-[var(--border)], focused state uses border-[var(--border-focus)]. Send button should use bg-accent-500 (solid, not gradient). Voice button should use text-[var(--text-tertiary)] hover:text-accent-500. Keep the same functionality and textarea auto-grow logic.",
@@ -23,5 +23,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build && npm run lint"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Used pnpm add instead of npm install for packages since the project has pnpm-lock.yaml. react-markdown 10.1.0 and remark-gfm 4.0.1 installed successfully. Build and lint both pass cleanly. The MarkdownContent component is inlined in MessageBubble.tsx rather than a separate file to keep things simple."
 }
