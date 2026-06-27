@@ -2,7 +2,7 @@
   "id": "FEAT-005",
   "type": "feat",
   "description": "Add proactive AI suggestions endpoint (GET /api/suggest) and email notification foundation utility for task deadline reminders. The suggestions endpoint returns 2-3 smart nudges based on user tasks/calendar. The email utility provides a reusable function for sending formatted deadline reminder emails.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Add `GET /api/suggest` endpoint in `backend/app/main.py` that: 1) Takes auth_token query param, 2) Verifies the token, 3) Fetches user tasks (via planner.list_tasks) and calendar events (via MCP), 4) Uses Gemini to generate 2-3 smart, actionable suggestions (e.g. 'You have a meeting in 1 hour - prepare notes', 'Your report deadline is tomorrow - start now'), 5) Returns {suggestions: [{text: '...', type: 'reminder'|'productivity'|'preparation'}]}. Keep the Gemini prompt short and focused.",
     "Create `backend/app/utils/email_notifications.py` - a utility module that provides: 1) `async def send_task_reminder(user_email: str, task_title: str, deadline: str, google_tokens: dict) -> bool` - sends an HTML email via Gmail API (similar to the pattern in proactive.py _send_nudge_email but more focused on task reminders with a cleaner template). 2) `async def send_daily_digest(user_email: str, tasks: list, events: list, google_tokens: dict) -> bool` - sends a morning digest email. These are utility functions the proactive scheduler or future notification agent can call.",

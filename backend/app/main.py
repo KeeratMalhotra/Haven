@@ -42,6 +42,7 @@ if _shared_path not in sys.path:
 
 from shared.schemas import WebSocketMessage, AgentResponse, MessageType, ResponseType
 
+logger = logging.getLogger(__name__)
 
 # Global MCP client instance
 mcp_client: MCPClient | None = None
@@ -887,6 +888,101 @@ async def get_priorities(auth_token: str = ""):
         "priorities": result.get("priorities", []),
         "content": result.get("content", ""),
     }
+
+
+@app.get("/api/suggestions")
+async def get_suggestions(auth_token: str = ""):
+    """Get AI-generated smart suggestions based on user tasks and calendar.
+
+    Fetches the user's tasks and today's calendar events, then uses Gemini
+    to generate 2-3 concise, actionable suggestions.
+
+    Args:
+        auth_token: Google OAuth token for authentication.
+
+    Returns:
+        Dict with 'suggestions' list, each item has 'text' and 'type' fields.
+    """
+    if not auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    await verify_google_token(auth_token)
+
+    # Fetch tasks and events
+    tasks_list = []
+    events_list = []
+
+    planner = AgentRegistry.get("planner")
+    if planner and hasattr(planner, "list_tasks"):
+        try:
+            tasks_list = await planner.list_tasks(auth_token)
+        except Exception:
+            pass
+
+    if mcp_client:
+        try:
+            events_result = await mcp_client.call_tool(
+                "google-calendar",
+                "list_events",
+                {"auth_token": auth_token, "days_ahead": 1},
+            )
+            if isinstance(events_result, list):
+                events_list = events_result
+            elif isinstance(events_result, dict):
+                events_list = events_result.get("events", [])
+        except Exception:
+            pass
+
+    # If no data available, return empty suggestions
+    if not tasks_list and not events_list:
+        return {"suggestions": []}
+
+    # Format context for Gemini
+    task_titles = [t.get("title", "") for t in tasks_list[:10] if isinstance(t, dict)]
+    event_summaries = [e.get("summary", "") for e in events_list[:10] if isinstance(e, dict)]
+
+    prompt = (
+        "Given these tasks: " + str(task_titles) + ", and these events: " + str(event_summaries) + ", "
+        "generate 2-3 concise, actionable suggestions (1 sentence each). "
+        "Return ONLY a JSON array like: "
+        '[{"text": "suggestion text", "type": "reminder|productivity|preparation"}]. '
+        "No markdown, no explanation."
+    )
+
+    try:
+        import vertexai.generative_models as genai
+
+        model = genai.GenerativeModel(settings.GEMINI_MODEL)
+        response = await model.generate_content_async(prompt)
+        raw_text = response.text.strip()
+
+        # Parse JSON from response
+        import json
+        # Handle potential markdown code blocks
+        if raw_text.startswith("```"):
+            lines = raw_text.split("\n")
+            raw_text = "\n".join(lines[1:-1] if lines[-1].startswith("```") else lines[1:])
+            raw_text = raw_text.strip()
+
+        suggestions = json.loads(raw_text)
+
+        # Validate structure
+        valid_types = {"reminder", "productivity", "preparation"}
+        validated = []
+        for s in suggestions:
+            if isinstance(s, dict) and "text" in s:
+                s_type = s.get("type", "productivity")
+                if s_type not in valid_types:
+                    s_type = "productivity"
+                validated.append({"text": s["text"], "type": s_type})
+
+        return {"suggestions": validated[:3]}
+    except Exception as e:
+        logger.warning(f"Failed to generate suggestions: {e}")
+        return {"suggestions": []}
 
 
 @app.get("/health")

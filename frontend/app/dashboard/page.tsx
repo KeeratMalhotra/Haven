@@ -14,6 +14,8 @@ import {
   Sparkles,
   Square,
   CheckSquare as CheckSquareFilled,
+  Bell,
+  BookOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -32,6 +34,7 @@ import {
   type HabitItem,
 } from "@/lib/api";
 import Link from "next/link";
+import { fetchSuggestions } from "@/lib/api-extended";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -125,6 +128,9 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [habits, setHabits] = useState<HabitItem[]>([]);
+  const [suggestions, setSuggestions] = useState<
+    { text: string; type: "reminder" | "productivity" | "preparation" }[]
+  >([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   // Chat panel
@@ -174,6 +180,10 @@ export default function DashboardPage() {
       setEvents(e);
       setHabits(h);
       setDataLoading(false);
+    });
+    // Fetch suggestions in parallel (non-blocking)
+    fetchSuggestions(accessToken).then((data) => {
+      setSuggestions(data.suggestions || []);
     });
   }, [onboardingChecked, accessToken]);
 
@@ -506,6 +516,57 @@ export default function DashboardPage() {
                 );
               })}
             </motion.div>
+
+            {/* AI Suggestions */}
+            {suggestions.length > 0 && (
+              <motion.section variants={itemVariants}>
+                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
+                  <Sparkles size={16} className="text-accent-500" />
+                  AI Suggestions
+                </h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {suggestions.map((suggestion, i) => {
+                    const iconMap = {
+                      productivity: Sparkles,
+                      reminder: Bell,
+                      preparation: BookOpen,
+                    };
+                    const colorMap = {
+                      productivity: "text-accent-500",
+                      reminder: "text-warning-500",
+                      preparation: "text-success-500",
+                    };
+                    const bgMap = {
+                      productivity: "bg-accent-500/8",
+                      reminder: "bg-warning-500/8",
+                      preparation: "bg-success-500/8",
+                    };
+                    const Icon = iconMap[suggestion.type] || Sparkles;
+                    const iconColor = colorMap[suggestion.type] || "text-accent-500";
+                    const bgColor = bgMap[suggestion.type] || "bg-accent-500/8";
+
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.08, duration: 0.3 }}
+                        className={`flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-4 py-3 ${bgColor}`}
+                      >
+                        <Icon
+                          size={15}
+                          strokeWidth={1.5}
+                          className={`flex-shrink-0 ${iconColor}`}
+                        />
+                        <span className="text-sm text-[var(--text-primary)]">
+                          {suggestion.text}
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.section>
+            )}
 
             {/* Today's Schedule */}
             <motion.section variants={itemVariants}>
