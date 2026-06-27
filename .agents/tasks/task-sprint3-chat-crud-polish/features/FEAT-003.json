@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "fix",
   "description": "Fix AI greeting response - when user says hey/hi/hello, the orchestrator generates a full daily briefing which is too verbose. Change to return a concise 2-3 line warm greeting with an option to see the full briefing.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Edit `backend/app/agents/orchestrator.py` in the `execute()` method where `_is_greeting()` is true: Instead of calling `_try_generate_briefing()` which returns a massive wall of text, generate a short 2-3 line warm response. The response should acknowledge the user warmly, mention 1 key thing (e.g. 'You have X events today' or 'Your next task is Y' if available), and end with an offer like 'Want me to show your full briefing?' or 'Say \"brief me\" for your full daily overview.'",
     "Create a new method `_generate_short_greeting(self, user_id: str, auth_token: str) -> str` that: 1) Fetches user name from UserRepository, 2) Optionally fetches task count and next event (quick, lightweight calls), 3) Returns a formatted 2-3 line string without calling Gemini (to keep it fast). Example: 'Hey {name}! You have {n} tasks and {m} events today. Say \"brief me\" if you want your full daily overview.'",
