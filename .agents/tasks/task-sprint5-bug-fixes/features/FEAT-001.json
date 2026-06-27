@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix Pomodoro FocusMode: add duration selection screen before timer starts, fix invisible timer text, and make ambient audio work using Web Audio API",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/components/FocusMode.tsx, add a new 'selecting' phase state that is the initial state when `active` becomes true. Show a pre-start screen with duration buttons (25 min, 45 min, 60 min, 90 min). Timer does NOT start until user clicks a duration button. Only after selection, transition to 'focus' phase and start the countdown.",
     "Fix the timer text color: change from text-[#fef3c7] (light amber/yellow that is invisible) to a high-contrast off-white like text-[#f0f0f2] or text-white/90. Apply the same fix to the 'Break complete!' text and any other text using amber/yellow in the timer display.",
@@ -22,5 +22,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build passes cleanly. All three bugs fixed in a single commit: (1) selecting phase prevents auto-start, (2) text color changed to #f0f0f2, (3) Web Audio API replaces external URLs with noise buffer generators and filter chains."
 }
