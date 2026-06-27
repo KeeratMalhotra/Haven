@@ -1,14 +1,14 @@
 """User Preferences API router.
 
 Provides:
-  GET  /api/preferences - Retrieve user preferences and notification_preferences
+  POST /api/preferences/get - Retrieve user preferences and notification_preferences
   PUT  /api/preferences - Partially update user preferences and/or notification_preferences
 """
 
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from app.auth import verify_google_token
@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/preferences", tags=["preferences"])
 
 
+class GetPreferencesRequest(BaseModel):
+    """Request body for fetching preferences."""
+
+    auth_token: str
+
+
 class UpdatePreferencesRequest(BaseModel):
     """Request body for updating preferences."""
 
@@ -27,23 +33,25 @@ class UpdatePreferencesRequest(BaseModel):
     notification_preferences: Optional[dict] = None
 
 
-@router.get("")
-async def get_preferences(auth_token: str = Query(default="")):
+@router.post("/get")
+async def get_preferences(body: GetPreferencesRequest):
     """Get user's preferences and notification_preferences from Firestore.
 
+    Uses POST to avoid leaking the auth token in query parameters/URL.
+
     Args:
-        auth_token: Google OAuth token for authentication.
+        body: Request body containing auth_token.
 
     Returns:
         Dict with 'preferences' and 'notification_preferences' keys.
     """
-    if not auth_token:
+    if not body.auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
         )
 
-    user_info = await verify_google_token(auth_token)
+    user_info = await verify_google_token(body.auth_token)
     user_id = user_info.get("sub", "")
 
     if not user_id:

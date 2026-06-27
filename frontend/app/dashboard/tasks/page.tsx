@@ -690,6 +690,7 @@ function TaskDetailPanel({
   const [researchResults, setResearchResults] = useState<ResearchResult[]>([]);
   const [researchLoading, setResearchLoading] = useState(false);
   const [researchError, setResearchError] = useState<string | null>(null);
+  const [researchDisclaimer, setResearchDisclaimer] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
 
   const handleResearch = async () => {
@@ -703,6 +704,7 @@ function TaskDetailPanel({
         notes: task.notes || undefined,
       });
       setResearchResults(data.results || []);
+      setResearchDisclaimer(data.disclaimer || null);
     } catch (err: any) {
       setResearchError(err?.message || "Failed to research task");
     } finally {
@@ -953,6 +955,7 @@ function TaskDetailPanel({
                 results={researchResults}
                 loading={researchLoading}
                 error={researchError}
+                disclaimer={researchDisclaimer}
               />
             </div>
           )}

@@ -52,6 +52,7 @@ async def research_task(body: ResearchRequest):
     Returns:
         Array of research result cards.
     """
+    # TODO: Add rate limiting per user to prevent abuse and control AI costs
     if not body.auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -130,7 +131,11 @@ async def research_task(body: ResearchRequest):
                 "relevance_snippet": str(item.get("relevance_snippet", ""))[:500],
             })
 
-        return {"results": validated_results}
+        return {
+            "results": validated_results,
+            "ai_generated": True,
+            "disclaimer": "These results are AI-generated suggestions. URLs may not link to real pages. Always verify sources independently.",
+        }
 
     except json.JSONDecodeError as e:
         logger.warning(f"Failed to parse AI response for research: {e}")

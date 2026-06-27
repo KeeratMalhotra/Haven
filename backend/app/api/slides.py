@@ -59,6 +59,7 @@ async def generate_outline(body: GenerateOutlineRequest):
     Returns:
         A presentation outline with title and slides array.
     """
+    # TODO: Add rate limiting per user to prevent abuse and control AI costs
     if not body.auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -213,6 +214,10 @@ async def create_presentation(body: CreatePresentationRequest):
 
         credentials = Credentials(token=body.auth_token)
         slides_service = build("slides", "v1", credentials=credentials)
+
+        # TODO: Add rollback logic to delete the presentation if subsequent
+        # batch-update steps fail, to avoid orphaned empty presentations in
+        # the user's Google Drive.
 
         # Create a new presentation
         presentation = slides_service.presentations().create(

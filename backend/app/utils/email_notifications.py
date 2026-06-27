@@ -6,6 +6,7 @@ including task deadline reminders, daily digest summaries, and weekly reviews.
 
 import asyncio
 import base64
+import html
 import logging
 import re
 from email.mime.multipart import MIMEMultipart
@@ -98,6 +99,9 @@ async def send_task_reminder(
             f"Open ChronAI to take action: {settings.FRONTEND_ORIGIN}"
         )
 
+        safe_title = html.escape(task_title)
+        safe_deadline = html.escape(deadline)
+
         html_body = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -122,8 +126,8 @@ async def send_task_reminder(
       <div class="logo">ChronAI</div>
       <div class="heading">Task Reminder</div>
       <div class="message">
-        <span class="task-badge">{task_title}</span>
-        <p>This task is due <span class="deadline">{deadline}</span>. Make sure to wrap it up before the deadline.</p>
+        <span class="task-badge">{safe_title}</span>
+        <p>This task is due <span class="deadline">{safe_deadline}</span>. Make sure to wrap it up before the deadline.</p>
       </div>
       <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
     </div>
@@ -194,8 +198,8 @@ async def send_daily_digest(
         # Build task HTML rows
         tasks_html = ""
         for t in tasks[:10]:
-            title = t.get("title", "Untitled")
-            due = t.get("due", "")
+            title = html.escape(t.get("title", "Untitled"))
+            due = html.escape(t.get("due", ""))
             due_badge = f'<span style="color:#f59e0b;font-size:12px;margin-left:8px;">due {due}</span>' if due else ""
             tasks_html += f'<div style="padding:10px 0;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;">{title}{due_badge}</div>'
 
@@ -205,8 +209,8 @@ async def send_daily_digest(
         # Build event HTML rows
         events_html = ""
         for ev in events[:10]:
-            summary = ev.get("summary", "Untitled event")
-            start = ev.get("start", "")
+            summary = html.escape(ev.get("summary", "Untitled event"))
+            start = html.escape(ev.get("start", ""))
             time_badge = f'<span style="color:#a78bfa;font-size:12px;margin-left:8px;">{start}</span>' if start else ""
             events_html += f'<div style="padding:10px 0;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;">{summary}{time_badge}</div>'
 
@@ -272,6 +276,7 @@ def _markdown_to_html(markdown_text: str) -> str:
     """Convert basic markdown to HTML (headers, bullets, paragraphs, bold).
 
     Handles ## headings, - bullet lists, **bold**, and paragraph separation.
+    All text content is HTML-escaped before formatting to prevent injection.
 
     Args:
         markdown_text: The markdown string to convert.
@@ -291,23 +296,27 @@ def _markdown_to_html(markdown_text: str) -> str:
             if in_list:
                 html_parts.append("</ul>")
                 in_list = False
-            html_parts.append(f'<h3 style="color:#ffffff;font-size:15px;margin:18px 0 8px 0;">{stripped[4:]}</h3>')
+            safe = html.escape(stripped[4:])
+            html_parts.append(f'<h3 style="color:#ffffff;font-size:15px;margin:18px 0 8px 0;">{safe}</h3>')
         elif stripped.startswith("## "):
             if in_list:
                 html_parts.append("</ul>")
                 in_list = False
-            html_parts.append(f'<h2 style="color:#ffffff;font-size:17px;margin:20px 0 10px 0;">{stripped[3:]}</h2>')
+            safe = html.escape(stripped[3:])
+            html_parts.append(f'<h2 style="color:#ffffff;font-size:17px;margin:20px 0 10px 0;">{safe}</h2>')
         elif stripped.startswith("# "):
             if in_list:
                 html_parts.append("</ul>")
                 in_list = False
-            html_parts.append(f'<h1 style="color:#ffffff;font-size:20px;margin:24px 0 12px 0;">{stripped[2:]}</h1>')
+            safe = html.escape(stripped[2:])
+            html_parts.append(f'<h1 style="color:#ffffff;font-size:20px;margin:24px 0 12px 0;">{safe}</h1>')
         elif stripped.startswith("- ") or stripped.startswith("* "):
             if not in_list:
                 html_parts.append('<ul style="padding-left:20px;margin:8px 0;">')
                 in_list = True
             content = stripped[2:]
-            # Bold
+            # Escape first, then apply bold formatting
+            content = html.escape(content)
             content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", content)
             html_parts.append(f'<li style="color:#e0e0e0;font-size:14px;margin:4px 0;">{content}</li>')
         elif stripped == "":
@@ -319,8 +328,9 @@ def _markdown_to_html(markdown_text: str) -> str:
             if in_list:
                 html_parts.append("</ul>")
                 in_list = False
-            # Bold
-            content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", stripped)
+            # Escape first, then apply bold formatting
+            content = html.escape(stripped)
+            content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", content)
             html_parts.append(f'<p style="color:#b0b0c0;font-size:14px;line-height:1.7;margin:6px 0;">{content}</p>')
 
     if in_list:

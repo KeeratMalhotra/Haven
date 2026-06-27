@@ -8,6 +8,7 @@ Also runs daily digest and weekly review email jobs.
 
 import asyncio
 import base64
+import html as html_mod
 import logging
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
@@ -15,6 +16,7 @@ from email.mime.text import MIMEText
 from typing import Optional
 
 from app.config import settings
+from app.db.firestore import get_db
 from app.db.repositories import UserRepository, TaskRepository
 from app.scheduler.nudge_engine import classify_urgency, generate_nudge, _format_time_remaining
 from app.utils.email_notifications import send_task_reminder, send_daily_digest, send_weekly_review
@@ -25,9 +27,50 @@ from googleapiclient.discovery import build
 
 logger = logging.getLogger(__name__)
 
-# Module-level timestamps for tracking digest/review runs
-_last_daily_digest: Optional[datetime] = None
-_last_weekly_review: Optional[datetime] = None
+# Firestore collection for scheduler state persistence
+_SCHEDULER_STATE_COLLECTION = "scheduler_state"
+_SCHEDULER_STATE_DOC = "timestamps"
+
+
+async def _get_last_run(field: str) -> Optional[datetime]:
+    """Get a last-run timestamp from Firestore scheduler state.
+
+    Args:
+        field: The field name (e.g. 'last_daily_digest', 'last_weekly_review').
+
+    Returns:
+        The datetime value or None if not set.
+    """
+    try:
+        db = get_db()
+        doc = await db.collection(_SCHEDULER_STATE_COLLECTION).document(_SCHEDULER_STATE_DOC).get()
+        if doc.exists:
+            data = doc.to_dict()
+            val = data.get(field)
+            if val is not None:
+                if isinstance(val, datetime):
+                    if val.tzinfo is None:
+                        return val.replace(tzinfo=timezone.utc)
+                    return val
+        return None
+    except Exception as e:
+        logger.warning(f"Failed to read scheduler state for '{field}': {e}")
+        return None
+
+
+async def _set_last_run(field: str, value: datetime) -> None:
+    """Persist a last-run timestamp to Firestore scheduler state.
+
+    Args:
+        field: The field name to update.
+        value: The datetime value to persist.
+    """
+    try:
+        db = get_db()
+        doc_ref = db.collection(_SCHEDULER_STATE_COLLECTION).document(_SCHEDULER_STATE_DOC)
+        await doc_ref.set({field: value}, merge=True)
+    except Exception as e:
+        logger.warning(f"Failed to persist scheduler state for '{field}': {e}")
 
 
 async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str, google_tokens: dict) -> bool:
@@ -64,6 +107,7 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
         service = build("gmail", "v1", credentials=credentials)
 
         # Build HTML email with ChronAI branding
+        safe_nudge = html_mod.escape(nudge_message)
         html_body = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -84,7 +128,7 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
     <div class="card">
       <div class="logo">ChronAI</div>
       <div class="message">
-        <p>{nudge_message}</p>
+        <p>{safe_nudge}</p>
       </div>
       <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
     </div>
@@ -281,21 +325,20 @@ async def run_nudge_check(manager: ConnectionManager, user_id: Optional[str] = N
 async def _run_daily_digest() -> None:
     """Run the daily digest email job.
 
-    Checks if roughly 24 hours have passed since the last run. If so,
-    iterates all users with 'daily_digest' enabled in their notification_preferences,
+    Checks if roughly 24 hours have passed since the last run (persisted in Firestore).
+    If so, iterates all users with 'daily_digest' enabled in their notification_preferences,
     fetches their pending tasks, and sends a daily digest email.
     """
-    global _last_daily_digest
-
     now = datetime.now(timezone.utc)
 
-    # Only run once per 24 hours
-    if _last_daily_digest is not None:
-        elapsed = now - _last_daily_digest
+    # Only run once per 24 hours - check Firestore for last run
+    last_run = await _get_last_run("last_daily_digest")
+    if last_run is not None:
+        elapsed = now - last_run
         if elapsed < timedelta(hours=23):
             return
 
-    _last_daily_digest = now
+    await _set_last_run("last_daily_digest", now)
     logger.info("Running daily digest job")
 
     try:
@@ -334,21 +377,20 @@ async def _run_daily_digest() -> None:
 async def _run_weekly_review() -> None:
     """Run the weekly review email job.
 
-    Checks if roughly 7 days have passed since the last run. If so,
-    iterates all users with 'weekly_review' enabled in their notification_preferences,
+    Checks if roughly 7 days have passed since the last run (persisted in Firestore).
+    If so, iterates all users with 'weekly_review' enabled in their notification_preferences,
     generates a weekly review via the ReviewAgent, and sends the email.
     """
-    global _last_weekly_review
-
     now = datetime.now(timezone.utc)
 
-    # Only run once per 7 days
-    if _last_weekly_review is not None:
-        elapsed = now - _last_weekly_review
+    # Only run once per 7 days - check Firestore for last run
+    last_run = await _get_last_run("last_weekly_review")
+    if last_run is not None:
+        elapsed = now - last_run
         if elapsed < timedelta(days=6, hours=20):
             return
 
-    _last_weekly_review = now
+    await _set_last_run("last_weekly_review", now)
     logger.info("Running weekly review job")
 
     try:

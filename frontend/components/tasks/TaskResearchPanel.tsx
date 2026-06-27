@@ -21,6 +21,7 @@ interface TaskResearchPanelProps {
   results: ResearchResult[];
   loading: boolean;
   error?: string | null;
+  disclaimer?: string | null;
 }
 
 function ResearchCard({ result }: { result: ResearchResult }) {
@@ -68,9 +69,11 @@ function ResearchCard({ result }: { result: ResearchResult }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-accent-500 hover:text-accent-400 transition-colors"
+                  title="AI-suggested link - may not be a real page"
                 >
                   <ExternalLink size={11} strokeWidth={1.5} />
                   <span className="truncate max-w-[200px]">{result.source_url}</span>
+                  <span className="text-[var(--text-tertiary)] ml-1">(AI-suggested)</span>
                 </a>
               )}
             </div>
@@ -85,6 +88,7 @@ export default function TaskResearchPanel({
   results,
   loading,
   error,
+  disclaimer,
 }: TaskResearchPanelProps) {
   if (loading) {
     return (
@@ -115,6 +119,13 @@ export default function TaskResearchPanel({
 
   return (
     <div className="space-y-2">
+      {disclaimer && (
+        <div className="py-2 px-3 rounded-lg bg-warning-500/5 border border-warning-500/20 mb-2">
+          <p className="text-xs text-[var(--text-tertiary)] italic">
+            {disclaimer}
+          </p>
+        </div>
+      )}
       {results.map((result, index) => (
         <ResearchCard key={index} result={result} />
       ))}

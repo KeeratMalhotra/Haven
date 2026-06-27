@@ -46,6 +46,7 @@ async def scan_inbox(body: ScanInboxRequest):
     Returns:
         Array of suggested action items extracted from emails.
     """
+    # TODO: Add rate limiting per user to prevent abuse and control AI/API costs
     if not body.auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -205,6 +206,7 @@ async def reply_email(body: ReplyEmailRequest):
     Returns:
         Status of the reply operation.
     """
+    # TODO: Add rate limiting per user to prevent abuse
     if not body.auth_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

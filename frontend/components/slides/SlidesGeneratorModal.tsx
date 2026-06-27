@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Presentation,
@@ -43,9 +43,10 @@ export function SlidesGeneratorModal({
   const [editTitle, setEditTitle] = useState("");
 
   // Auto-generate on mount
-  useState(() => {
+  useEffect(() => {
     handleGenerate();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleGenerate() {
     setState("generating");

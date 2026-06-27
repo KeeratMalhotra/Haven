@@ -259,6 +259,7 @@ export interface UserPreferences {
 
 /**
  * Fetch user preferences and notification_preferences from the backend.
+ * Uses POST to avoid leaking auth token in query parameters.
  */
 export async function fetchPreferences(
   authToken: string
@@ -274,10 +275,11 @@ export async function fetchPreferences(
     };
   }
   try {
-    const res = await fetch(
-      `${getApiBase()}/api/preferences?auth_token=${encodeURIComponent(authToken)}`,
-      { method: "GET", cache: "no-store" }
-    );
+    const res = await fetch(`${getApiBase()}/api/preferences/get`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_token: authToken }),
+    });
     if (!res.ok) {
       return {
         preferences: {},
@@ -443,11 +445,12 @@ export interface ResearchResult {
 
 /**
  * Research the web for context relevant to a task using AI.
+ * Results are AI-generated suggestions; URLs may not point to real pages.
  */
 export async function researchTask(
   authToken: string,
   taskContext: { title: string; notes?: string }
-): Promise<{ results: ResearchResult[] }> {
+): Promise<{ results: ResearchResult[]; disclaimer?: string }> {
   if (!authToken) throw new Error("No auth token provided");
   const res = await fetch(`${getApiBase()}/api/research`, {
     method: "POST",
@@ -463,5 +466,5 @@ export async function researchTask(
   if (!res.ok) {
     throw new Error(`Failed to research task (${res.status})`);
   }
-  return (await res.json()) as { results: ResearchResult[] };
+  return (await res.json()) as { results: ResearchResult[]; disclaimer?: string };
 }
