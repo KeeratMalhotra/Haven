@@ -31,6 +31,7 @@ from app.api.templates import router as templates_router
 from app.api.gmail import router as gmail_router
 from app.api.slides import router as slides_router
 from app.api.research import router as research_router
+from app.api.preferences import router as preferences_router
 from app.auth import verify_google_token
 from app.config import settings
 from app.db.firestore import init_firestore
@@ -195,6 +196,7 @@ app.include_router(templates_router)
 app.include_router(gmail_router)
 app.include_router(slides_router)
 app.include_router(research_router)
+app.include_router(preferences_router)
 
 
 @app.websocket("/ws")

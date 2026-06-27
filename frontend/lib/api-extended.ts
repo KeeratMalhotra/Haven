@@ -244,6 +244,88 @@ export async function executeAutopilotPlan(
   return (await res.json()) as { plan_id: string; executed: number; failed: number; changes: any[] };
 }
 
+// --- User Preferences ---
+
+export interface UserPreferences {
+  preferences: Record<string, any>;
+  notification_preferences: {
+    email_notifications?: boolean;
+    email_for_urgent_only?: boolean;
+    email_deadline_reminders?: boolean;
+    daily_digest?: boolean;
+    weekly_review?: boolean;
+  };
+}
+
+/**
+ * Fetch user preferences and notification_preferences from the backend.
+ */
+export async function fetchPreferences(
+  authToken: string
+): Promise<UserPreferences> {
+  if (!authToken) {
+    return {
+      preferences: {},
+      notification_preferences: {
+        email_deadline_reminders: true,
+        daily_digest: false,
+        weekly_review: false,
+      },
+    };
+  }
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/preferences?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) {
+      return {
+        preferences: {},
+        notification_preferences: {
+          email_deadline_reminders: true,
+          daily_digest: false,
+          weekly_review: false,
+        },
+      };
+    }
+    return (await res.json()) as UserPreferences;
+  } catch {
+    return {
+      preferences: {},
+      notification_preferences: {
+        email_deadline_reminders: true,
+        daily_digest: false,
+        weekly_review: false,
+      },
+    };
+  }
+}
+
+/**
+ * Update user preferences and/or notification_preferences on the backend.
+ */
+export async function updatePreferences(
+  authToken: string,
+  prefs: {
+    preferences?: Record<string, any>;
+    notification_preferences?: Record<string, any>;
+  }
+): Promise<UserPreferences> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(`${getApiBase()}/api/preferences`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      ...prefs,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to update preferences (${res.status})`);
+  }
+  return (await res.json()) as UserPreferences;
+}
+
 // --- Gmail Integration ---
 
 export interface GmailActionItem {

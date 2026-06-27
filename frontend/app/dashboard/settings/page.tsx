@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import {
@@ -15,12 +15,17 @@ import {
   CheckCircle2,
   Music,
   Zap,
+  Bell,
+  Mail,
+  FileText,
+  Calendar,
 } from "lucide-react";
 
 import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
 import { useTheme } from "@/components/ui/theme-provider";
+import { fetchPreferences, updatePreferences } from "@/lib/api-extended";
 
 type AiTone = "professional" | "casual" | "friendly";
 
@@ -31,6 +36,18 @@ const SHORTCUTS = [
   { keys: "Escape", description: "Close panels" },
 ];
 
+/**
+ * Helper to dispatch a StorageEvent so other components can react to changes.
+ */
+function dispatchStorageChange(key: string, newValue: string) {
+  window.dispatchEvent(
+    new StorageEvent("storage", {
+      key,
+      newValue,
+    })
+  );
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
@@ -40,22 +57,87 @@ export default function SettingsPage() {
   const [aiTone, setAiTone] = useState<AiTone>("casual");
   const [aiSuggestions, setAiSuggestions] = useState(true);
   const [proactiveNotifs, setProactiveNotifs] = useState(true);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [autopilotMode, setAutopilotMode] = useState<"ask_permission" | "full_auto">("ask_permission");
 
+  // Integrations (localStorage)
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("");
+  const [gmailEnabled, setGmailEnabled] = useState(true);
+  const [slidesEnabled, setSlidesEnabled] = useState(true);
+
+  // Notification preferences (localStorage + backend)
+  const [emailDeadlineReminders, setEmailDeadlineReminders] = useState(true);
+  const [dailyDigest, setDailyDigest] = useState(false);
+  const [weeklyReview, setWeeklyReview] = useState(false);
+
+  // Get auth token for backend calls
+  const authToken = (session as any)?.accessToken || "";
+
+  // Load preferences on mount
   useEffect(() => {
+    // Load localStorage values
     const stored = localStorage.getItem("chronai-ai-tone");
     if (stored) setAiTone(stored as AiTone);
+
     const suggestions = localStorage.getItem("chronai-ai-suggestions");
     if (suggestions !== null) setAiSuggestions(suggestions === "true");
+
     const notifs = localStorage.getItem("chronai-proactive-notifs");
     if (notifs !== null) setProactiveNotifs(notifs === "true");
+
     const spotify = localStorage.getItem("chronai-spotify-connected");
     setSpotifyConnected(spotify === "true");
+
+    const playlistUrl = localStorage.getItem("chronai-spotify-playlist-url");
+    if (playlistUrl) setSpotifyPlaylistUrl(playlistUrl);
+
     const autopilot = localStorage.getItem("chronai-autopilot-mode");
     if (autopilot === "full_auto") setAutopilotMode("full_auto");
+
+    const gmail = localStorage.getItem("chronai-gmail-enabled");
+    // Default to true if not set
+    setGmailEnabled(gmail === null ? true : gmail === "true");
+
+    const slides = localStorage.getItem("chronai-slides-enabled");
+    // Default to true if not set
+    setSlidesEnabled(slides === null ? true : slides === "true");
+
+    // Load notification prefs from localStorage (will be overridden by backend if available)
+    const emailReminders = localStorage.getItem("chronai-email-deadline-reminders");
+    if (emailReminders !== null) setEmailDeadlineReminders(emailReminders === "true");
+
+    const digest = localStorage.getItem("chronai-daily-digest");
+    if (digest !== null) setDailyDigest(digest === "true");
+
+    const review = localStorage.getItem("chronai-weekly-review");
+    if (review !== null) setWeeklyReview(review === "true");
   }, []);
 
+  // Fetch backend preferences and sync to state + localStorage
+  useEffect(() => {
+    if (!authToken) return;
+
+    fetchPreferences(authToken).then((data) => {
+      if (data.notification_preferences) {
+        const np = data.notification_preferences;
+
+        if (np.email_deadline_reminders !== undefined) {
+          setEmailDeadlineReminders(np.email_deadline_reminders);
+          localStorage.setItem("chronai-email-deadline-reminders", String(np.email_deadline_reminders));
+        }
+        if (np.daily_digest !== undefined) {
+          setDailyDigest(np.daily_digest);
+          localStorage.setItem("chronai-daily-digest", String(np.daily_digest));
+        }
+        if (np.weekly_review !== undefined) {
+          setWeeklyReview(np.weekly_review);
+          localStorage.setItem("chronai-weekly-review", String(np.weekly_review));
+        }
+      }
+    });
+  }, [authToken]);
+
+  // --- AI Preferences handlers ---
   const updateAiTone = (tone: AiTone) => {
     setAiTone(tone);
     localStorage.setItem("chronai-ai-tone", tone);
@@ -64,31 +146,69 @@ export default function SettingsPage() {
   const updateAiSuggestions = (val: boolean) => {
     setAiSuggestions(val);
     localStorage.setItem("chronai-ai-suggestions", String(val));
+    dispatchStorageChange("chronai-ai-suggestions", String(val));
   };
 
   const updateProactiveNotifs = (val: boolean) => {
     setProactiveNotifs(val);
     localStorage.setItem("chronai-proactive-notifs", String(val));
+    dispatchStorageChange("chronai-proactive-notifs", String(val));
   };
 
   const updateAutopilotMode = (fullAuto: boolean) => {
     const mode = fullAuto ? "full_auto" : "ask_permission";
     setAutopilotMode(mode);
     localStorage.setItem("chronai-autopilot-mode", mode);
+    dispatchStorageChange("chronai-autopilot-mode", mode);
   };
 
+  // --- Integration handlers ---
   const toggleSpotifyConnection = () => {
     const newVal = !spotifyConnected;
     setSpotifyConnected(newVal);
     localStorage.setItem("chronai-spotify-connected", String(newVal));
-    // Dispatch storage event for other components to detect the change
-    window.dispatchEvent(
-      new StorageEvent("storage", {
-        key: "chronai-spotify-connected",
-        newValue: String(newVal),
-      })
-    );
+    dispatchStorageChange("chronai-spotify-connected", String(newVal));
   };
+
+  const handlePlaylistUrlChange = (url: string) => {
+    setSpotifyPlaylistUrl(url);
+    localStorage.setItem("chronai-spotify-playlist-url", url);
+    dispatchStorageChange("chronai-spotify-playlist-url", url);
+    // Also dispatch custom event for components listening specifically for playlist changes
+    window.dispatchEvent(new CustomEvent("chronai-playlist-changed", { detail: { url } }));
+  };
+
+  const toggleGmailEnabled = (val: boolean) => {
+    setGmailEnabled(val);
+    localStorage.setItem("chronai-gmail-enabled", String(val));
+    dispatchStorageChange("chronai-gmail-enabled", String(val));
+  };
+
+  const toggleSlidesEnabled = (val: boolean) => {
+    setSlidesEnabled(val);
+    localStorage.setItem("chronai-slides-enabled", String(val));
+    dispatchStorageChange("chronai-slides-enabled", String(val));
+  };
+
+  // --- Notification handlers (save to localStorage + backend) ---
+  const updateNotificationPref = useCallback(
+    (key: string, value: boolean, setter: (v: boolean) => void) => {
+      setter(value);
+      localStorage.setItem(key, String(value));
+      dispatchStorageChange(key, String(value));
+
+      // Persist to backend
+      if (authToken) {
+        const backendKey = key.replace("chronai-", "").replace(/-/g, "_");
+        updatePreferences(authToken, {
+          notification_preferences: { [backendKey]: value },
+        }).catch(() => {
+          // Silent fail - localStorage still has the value
+        });
+      }
+    },
+    [authToken]
+  );
 
   return (
     <motion.div
@@ -268,42 +388,106 @@ export default function SettingsPage() {
             Integrations
           </h2>
         </div>
-        <div className="space-y-3">
-          {/* Spotify Integration */}
+        <div className="space-y-4">
+          {/* Gmail Integration Toggle */}
           <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                <Music size={18} strokeWidth={1.5} className="text-emerald-500" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
+                <Mail size={18} strokeWidth={1.5} className="text-red-500" />
               </div>
               <div>
                 <p className="text-sm font-medium text-[var(--text-primary)]">
-                  Spotify
+                  Gmail Integration
                 </p>
                 <p className="text-xs text-[var(--text-tertiary)]">
-                  {spotifyConnected ? "Connected - Mini player active" : "Connect for focus music player"}
+                  Scan inbox for action items and create tasks from emails
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {spotifyConnected && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 mr-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Active
-                </span>
-              )}
-              <button
-                onClick={toggleSpotifyConnection}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  spotifyConnected
-                    ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
-                    : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                }`}
-              >
-                {spotifyConnected ? "Disconnect" : "Connect"}
-              </button>
-            </div>
+            <Toggle
+              checked={gmailEnabled}
+              onChange={toggleGmailEnabled}
+            />
           </div>
 
+          {/* Google Slides Integration Toggle */}
+          <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
+                <FileText size={18} strokeWidth={1.5} className="text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Google Slides
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)]">
+                  Generate presentations from task context using AI
+                </p>
+              </div>
+            </div>
+            <Toggle
+              checked={slidesEnabled}
+              onChange={toggleSlidesEnabled}
+            />
+          </div>
+
+          {/* Spotify Integration */}
+          <div className="rounded-lg bg-[var(--bg-tertiary)] px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                  <Music size={18} strokeWidth={1.5} className="text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    Spotify
+                  </p>
+                  <p className="text-xs text-[var(--text-tertiary)]">
+                    {spotifyConnected ? "Connected - Mini player active" : "Connect for focus music player"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {spotifyConnected && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 mr-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Active
+                  </span>
+                )}
+                <button
+                  onClick={toggleSpotifyConnection}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    spotifyConnected
+                      ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                      : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                  }`}
+                >
+                  {spotifyConnected ? "Disconnect" : "Connect"}
+                </button>
+              </div>
+            </div>
+
+            {/* Playlist URL input */}
+            {spotifyConnected && (
+              <div className="pl-11">
+                <label className="block text-xs text-[var(--text-secondary)] mb-1.5">
+                  Custom Playlist URL
+                </label>
+                <input
+                  type="text"
+                  value={spotifyPlaylistUrl}
+                  onChange={(e) => handlePlaylistUrlChange(e.target.value)}
+                  placeholder="https://open.spotify.com/playlist/..."
+                  className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-accent-500"
+                />
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                  Paste a Spotify playlist URL for the focus music mini-player
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Google Account (always connected via OAuth) */}
           <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
@@ -338,18 +522,88 @@ export default function SettingsPage() {
             <CheckCircle2 size={16} strokeWidth={1.5} className="text-emerald-500" />
           </div>
 
-          {["Calendar", "Tasks", "Gmail"].map((service) => (
+          {["Calendar", "Tasks"].map((service) => (
             <div
               key={service}
               className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3"
             >
-              <p className="text-sm text-[var(--text-primary)]">{service}</p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                  <Calendar size={18} strokeWidth={1.5} className="text-blue-500" />
+                </div>
+                <p className="text-sm text-[var(--text-primary)]">{service}</p>
+              </div>
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Connected
               </span>
             </div>
           ))}
+        </div>
+      </Card>
+
+      {/* Notifications Section */}
+      <Card hover={false} className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Bell size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            Notifications
+          </h2>
+        </div>
+        <div className="space-y-4">
+          {/* Email Deadline Reminders */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-primary)]">
+                Email Deadline Reminders
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+                Receive an email reminder 4 hours before task deadlines
+              </p>
+            </div>
+            <Toggle
+              checked={emailDeadlineReminders}
+              onChange={(val) =>
+                updateNotificationPref("chronai-email-deadline-reminders", val, setEmailDeadlineReminders)
+              }
+            />
+          </div>
+
+          {/* Daily Digest */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-primary)]">
+                Daily Digest Email
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+                Get a morning summary of your tasks and schedule for the day
+              </p>
+            </div>
+            <Toggle
+              checked={dailyDigest}
+              onChange={(val) =>
+                updateNotificationPref("chronai-daily-digest", val, setDailyDigest)
+              }
+            />
+          </div>
+
+          {/* Weekly Review */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[var(--text-primary)]">
+                Weekly Review Email
+              </p>
+              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+                Receive a weekly productivity review with insights and trends
+              </p>
+            </div>
+            <Toggle
+              checked={weeklyReview}
+              onChange={(val) =>
+                updateNotificationPref("chronai-weekly-review", val, setWeeklyReview)
+              }
+            />
+          </div>
         </div>
       </Card>
 
