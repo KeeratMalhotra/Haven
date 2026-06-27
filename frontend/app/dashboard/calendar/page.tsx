@@ -8,9 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  X,
-  Clock,
-  MapPin,
   Trash2,
 } from "lucide-react";
 import {
@@ -32,6 +29,16 @@ import {
   setHours,
   setMinutes,
 } from "date-fns";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 
 import {
   fetchCalendarEvents,
@@ -39,6 +46,7 @@ import {
   deleteCalendarEvent,
   type CalendarEvent,
 } from "@/lib/api";
+import { updateCalendarEvent } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import AISuggestionBanner from "@/components/ai/AISuggestionBanner";
 import { Button } from "@/components/ui/Button";
@@ -80,15 +88,17 @@ function EventPill({
   );
 }
 
-// Time block for week/day views
+// Time block for week/day views (draggable)
 function TimeBlock({
   event,
   onClick,
   dayStart,
+  isDragging,
 }: {
   event: CalendarEvent;
   onClick: () => void;
   dayStart: Date;
+  isDragging?: boolean;
 }) {
   const startDate = parseISO(event.start);
   const endDate = parseISO(event.end);
@@ -98,11 +108,27 @@ function TimeBlock({
   const top = Math.max(0, (startMinutes / 60) * 64); // 64px per hour
   const height = Math.max(20, (duration / 60) * 64);
 
+  const dragId = `event-${event.id || event.summary}-${event.start}`;
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: dragId,
+    data: { event },
+  });
+
+  const style: React.CSSProperties = {
+    top: `${top}px`,
+    height: `${height}px`,
+    ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {}),
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
     <button
+      ref={setNodeRef}
       onClick={onClick}
-      className="absolute left-1 right-1 rounded-lg bg-accent-500/15 border border-accent-500/30 px-2 py-1 overflow-hidden hover:bg-accent-500/25 transition-colors group"
-      style={{ top: `${top}px`, height: `${height}px` }}
+      className="absolute left-1 right-1 rounded-lg bg-accent-500/15 border border-accent-500/30 px-2 py-1 overflow-hidden hover:bg-accent-500/25 transition-colors group z-10 cursor-grab active:cursor-grabbing"
+      style={style}
+      {...listeners}
+      {...attributes}
     >
       <p className="text-[11px] font-medium text-accent-600 dark:text-accent-300 truncate">
         {event.summary}
@@ -116,67 +142,29 @@ function TimeBlock({
   );
 }
 
-// Event detail popover
-function EventDetail({
-  event,
-  onClose,
-  onDelete,
+// Droppable time slot for week/day views
+function DroppableTimeSlot({
+  day,
+  hour,
+  onClick,
 }: {
-  event: CalendarEvent;
-  onClose: () => void;
-  onDelete: () => void;
+  day: Date;
+  hour: number;
+  onClick: () => void;
 }) {
-  const start = parseISO(event.start);
-  const end = parseISO(event.end);
+  const slotId = `slot-${format(day, "yyyy-MM-dd")}-${hour.toString().padStart(2, "0")}`;
+  const { isOver, setNodeRef } = useDroppable({ id: slotId });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: -4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: -4 }}
-      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-      className="absolute z-50 top-full mt-2 left-0 w-72 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl p-4"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <h4 className="text-sm font-semibold text-[var(--text-primary)] pr-2">
-          {event.summary}
-        </h4>
-        <button
-          onClick={onClose}
-          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)]"
-        >
-          <X size={12} />
-        </button>
-      </div>
-      <div className="space-y-2 text-xs text-[var(--text-secondary)]">
-        <div className="flex items-center gap-2">
-          <Clock size={12} className="text-[var(--text-tertiary)]" />
-          <span>
-            {format(start, "MMM d, h:mm a")} - {format(end, "h:mm a")}
-          </span>
-        </div>
-        {event.location && (
-          <div className="flex items-center gap-2">
-            <MapPin size={12} className="text-[var(--text-tertiary)]" />
-            <span>{event.location}</span>
-          </div>
-        )}
-        {event.description && (
-          <p className="text-[var(--text-tertiary)] mt-2 pt-2 border-t border-[var(--border)]">
-            {event.description}
-          </p>
-        )}
-      </div>
-      <div className="mt-3 pt-3 border-t border-[var(--border)]">
-        <button
-          onClick={onDelete}
-          className="flex items-center gap-1.5 text-xs text-danger-500 hover:text-danger-600 transition-colors"
-        >
-          <Trash2 size={12} />
-          Delete Event
-        </button>
-      </div>
-    </motion.div>
+    <button
+      ref={setNodeRef}
+      onClick={onClick}
+      className={`h-16 w-full border-b border-[var(--border)]/50 transition-colors ${
+        isOver
+          ? "bg-accent-500/15 ring-1 ring-inset ring-accent-500/40"
+          : "hover:bg-accent-500/5"
+      }`}
+    />
   );
 }
 
@@ -219,6 +207,135 @@ export default function CalendarPage() {
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("09:00");
   const [newDuration, setNewDuration] = useState(60);
+
+  // Edit event form
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSummary, setEditSummary] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("09:00");
+  const [editDuration, setEditDuration] = useState(60);
+
+  // Drag state
+  const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  // Open edit modal for an event
+  const openEditModal = useCallback((event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setEditSummary(event.summary);
+    const start = parseISO(event.start);
+    setEditDate(format(start, "yyyy-MM-dd"));
+    setEditTime(format(start, "HH:mm"));
+    const duration = differenceInMinutes(parseISO(event.end), start);
+    setEditDuration(duration > 0 ? duration : 60);
+    setShowEditModal(true);
+  }, []);
+
+  // Save edited event
+  const handleSaveEdit = async () => {
+    if (!selectedEvent || !editSummary.trim() || !editDate) return;
+    const newStartTime = `${editDate}T${editTime}:00`;
+    const oldTime = selectedEvent.start;
+
+    const newStartISO = new Date(newStartTime).toISOString();
+    const newEndISO = new Date(
+      new Date(newStartTime).getTime() + editDuration * 60000
+    ).toISOString();
+
+    // Update local state immediately
+    setEvents((prev) =>
+      prev.map((e) =>
+        e === selectedEvent
+          ? { ...e, summary: editSummary.trim(), start: newStartISO, end: newEndISO }
+          : e
+      )
+    );
+
+    // Report to AI
+    reportAction("event_edited", {
+      eventId: selectedEvent.id,
+      oldTime,
+      newTime: newStartISO,
+      summary: editSummary.trim(),
+    });
+
+    // Attempt API call
+    if (selectedEvent.id) {
+      try {
+        await updateCalendarEvent(accessToken, selectedEvent.id, {
+          summary: editSummary.trim(),
+          start_time: newStartTime,
+          duration_minutes: editDuration,
+        });
+      } catch {
+        // Local state already updated as fallback
+      }
+    }
+
+    setShowEditModal(false);
+    setSelectedEvent(null);
+  };
+
+  // Handle drag start
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggedEventId(event.active.id as string);
+  };
+
+  // Handle drag end - reschedule event
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setDraggedEventId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const droppedId = over.id as string;
+    if (!droppedId.startsWith("slot-")) return;
+
+    // Parse the target slot: "slot-YYYY-MM-DD-HH"
+    const parts = droppedId.split("-");
+    const hour = parseInt(parts[parts.length - 1], 10);
+    const dayStr = parts.slice(1, parts.length - 1).join("-");
+
+    const draggedEvent = (active.data.current as { event: CalendarEvent })?.event;
+    if (!draggedEvent) return;
+
+    const oldStart = parseISO(draggedEvent.start);
+    const oldEnd = parseISO(draggedEvent.end);
+    const duration = differenceInMinutes(oldEnd, oldStart);
+
+    const newStart = setMinutes(setHours(new Date(`${dayStr}T00:00:00`), hour), 0);
+    const newEnd = new Date(newStart.getTime() + duration * 60000);
+    const newStartISO = newStart.toISOString();
+    const newEndISO = newEnd.toISOString();
+
+    // Update local state
+    setEvents((prev) =>
+      prev.map((e) =>
+        e === draggedEvent ? { ...e, start: newStartISO, end: newEndISO } : e
+      )
+    );
+
+    // Report to AI
+    reportAction("event_edited", {
+      eventId: draggedEvent.id,
+      oldTime: draggedEvent.start,
+      newTime: newStartISO,
+      summary: draggedEvent.summary,
+    });
+
+    // Attempt API call
+    if (draggedEvent.id) {
+      try {
+        await updateCalendarEvent(accessToken, draggedEvent.id, {
+          start_time: format(newStart, "yyyy-MM-dd'T'HH:mm:ss"),
+          duration_minutes: duration,
+        });
+      } catch {
+        // Local state already updated as fallback
+      }
+    }
+  };
 
   // Load events
   useEffect(() => {
@@ -508,7 +625,7 @@ export default function CalendarPage() {
                           <EventPill
                             key={event.id || i}
                             event={event}
-                            onClick={() => setSelectedEvent(event)}
+                            onClick={() => openEditModal(event)}
                           />
                         ))}
                         {dayEvents.length > 3 && (
@@ -556,49 +673,53 @@ export default function CalendarPage() {
                 ))}
               </div>
               {/* Time grid */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="grid grid-cols-[56px_repeat(7,1fr)] relative">
-                  {/* Time labels */}
-                  <div>
-                    {HOURS.map((hour) => (
+              <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-[56px_repeat(7,1fr)] relative">
+                    {/* Time labels */}
+                    <div>
+                      {HOURS.map((hour) => (
+                        <div
+                          key={hour}
+                          className="h-16 flex items-start justify-end pr-2 -mt-2"
+                        >
+                          <span className="text-[10px] text-[var(--text-tertiary)]">
+                            {format(setHours(new Date(), hour), "h a")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Day columns */}
+                    {weekDays.map((day) => (
                       <div
-                        key={hour}
-                        className="h-16 flex items-start justify-end pr-2 -mt-2"
+                        key={day.toISOString()}
+                        className="relative border-l border-[var(--border)]"
                       >
-                        <span className="text-[10px] text-[var(--text-tertiary)]">
-                          {format(setHours(new Date(), hour), "h a")}
-                        </span>
+                        {HOURS.map((hour) => (
+                          <DroppableTimeSlot
+                            key={hour}
+                            day={day}
+                            hour={hour}
+                            onClick={() => handleTimeSlotClick(day, hour)}
+                          />
+                        ))}
+                        {/* Events */}
+                        {getEventsForDay(day).map((event, i) => (
+                          <TimeBlock
+                            key={event.id || i}
+                            event={event}
+                            dayStart={day}
+                            onClick={() => openEditModal(event)}
+                            isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
+                          />
+                        ))}
+                        {/* Current time indicator */}
+                        {isToday(day) && <CurrentTimeIndicator />}
                       </div>
                     ))}
                   </div>
-                  {/* Day columns */}
-                  {weekDays.map((day) => (
-                    <div
-                      key={day.toISOString()}
-                      className="relative border-l border-[var(--border)]"
-                    >
-                      {HOURS.map((hour) => (
-                        <button
-                          key={hour}
-                          onClick={() => handleTimeSlotClick(day, hour)}
-                          className="h-16 w-full border-b border-[var(--border)]/50 hover:bg-accent-500/5 transition-colors"
-                        />
-                      ))}
-                      {/* Events */}
-                      {getEventsForDay(day).map((event, i) => (
-                        <TimeBlock
-                          key={event.id || i}
-                          event={event}
-                          dayStart={day}
-                          onClick={() => setSelectedEvent(event)}
-                        />
-                      ))}
-                      {/* Current time indicator */}
-                      {isToday(day) && <CurrentTimeIndicator />}
-                    </div>
-                  ))}
                 </div>
-              </div>
+              </DndContext>
             </motion.div>
           )}
 
@@ -612,46 +733,48 @@ export default function CalendarPage() {
               transition={{ duration: 0.2 }}
               className="flex-1 flex flex-col overflow-hidden"
             >
-              <div className="flex-1 overflow-y-auto">
-                <div className="grid grid-cols-[56px_1fr] relative">
-                  {/* Time labels */}
-                  <div>
-                    {HOURS.map((hour) => (
-                      <div
-                        key={hour}
-                        className="h-16 flex items-start justify-end pr-2 -mt-2"
-                      >
-                        <span className="text-[10px] text-[var(--text-tertiary)]">
-                          {format(setHours(new Date(), hour), "h a")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Day column */}
-                  <div className="relative border-l border-[var(--border)]">
-                    {HOURS.map((hour) => (
-                      <button
-                        key={hour}
-                        onClick={() =>
-                          handleTimeSlotClick(currentDate, hour)
-                        }
-                        className="h-16 w-full border-b border-[var(--border)]/50 hover:bg-accent-500/5 transition-colors"
-                      />
-                    ))}
-                    {/* Events */}
-                    {getEventsForDay(currentDate).map((event, i) => (
-                      <TimeBlock
-                        key={event.id || i}
-                        event={event}
-                        dayStart={currentDate}
-                        onClick={() => setSelectedEvent(event)}
-                      />
-                    ))}
-                    {/* Current time indicator */}
-                    {isToday(currentDate) && <CurrentTimeIndicator />}
+              <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <div className="flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-[56px_1fr] relative">
+                    {/* Time labels */}
+                    <div>
+                      {HOURS.map((hour) => (
+                        <div
+                          key={hour}
+                          className="h-16 flex items-start justify-end pr-2 -mt-2"
+                        >
+                          <span className="text-[10px] text-[var(--text-tertiary)]">
+                            {format(setHours(new Date(), hour), "h a")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Day column */}
+                    <div className="relative border-l border-[var(--border)]">
+                      {HOURS.map((hour) => (
+                        <DroppableTimeSlot
+                          key={hour}
+                          day={currentDate}
+                          hour={hour}
+                          onClick={() => handleTimeSlotClick(currentDate, hour)}
+                        />
+                      ))}
+                      {/* Events */}
+                      {getEventsForDay(currentDate).map((event, i) => (
+                        <TimeBlock
+                          key={event.id || i}
+                          event={event}
+                          dayStart={currentDate}
+                          onClick={() => openEditModal(event)}
+                          isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
+                        />
+                      ))}
+                      {/* Current time indicator */}
+                      {isToday(currentDate) && <CurrentTimeIndicator />}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </DndContext>
               {/* Day events list */}
               {getEventsForDay(currentDate).length === 0 && (
                 <div className="py-8 text-center">
@@ -665,27 +788,85 @@ export default function CalendarPage() {
         </AnimatePresence>
       )}
 
-      {/* Event Detail Popover */}
-      <AnimatePresence>
-        {selectedEvent && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              onClick={() => setSelectedEvent(null)}
+      {/* Edit Event Modal */}
+      <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setSelectedEvent(null); }}>
+        <div className="p-5">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+            Edit Event
+          </h2>
+          <div className="space-y-4">
+            <Input
+              label="Summary"
+              placeholder="Meeting, Call, etc."
+              value={editSummary}
+              onChange={(e) => setEditSummary(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveEdit();
+              }}
             />
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
-              <EventDetail
-                event={selectedEvent}
-                onClose={() => setSelectedEvent(null)}
-                onDelete={() => handleDeleteEvent(selectedEvent)}
-              />
+            <Input
+              label="Date"
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+            />
+            <Input
+              label="Start Time"
+              type="time"
+              value={editTime}
+              onChange={(e) => setEditTime(e.target.value)}
+            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[var(--text-secondary)]">
+                Duration
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {DURATION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setEditDuration(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                      editDuration === opt.value
+                        ? "bg-accent-500/10 text-accent-500 border-accent-500/30"
+                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] border-transparent hover:border-[var(--border)]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+          <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--border)]">
+            <button
+              onClick={() => {
+                if (selectedEvent) handleDeleteEvent(selectedEvent);
+                setShowEditModal(false);
+              }}
+              className="flex items-center gap-1.5 text-xs text-danger-500 hover:text-danger-600 transition-colors"
+            >
+              <Trash2 size={12} />
+              Delete
+            </button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setShowEditModal(false); setSelectedEvent(null); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={!editSummary.trim() || !editDate}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* Create Event Modal */}
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)}>

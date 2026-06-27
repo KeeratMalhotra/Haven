@@ -4,7 +4,7 @@
  * added for Sprint 3 (Google Tasks create/delete/update, AI prioritize).
  */
 
-import { getApiBase } from "@/lib/api";
+import { getApiBase, type CalendarEvent } from "@/lib/api";
 
 /**
  * Create a task in Google Tasks via the backend.
@@ -108,6 +108,32 @@ export async function fetchSuggestions(
   } catch {
     return { suggestions: [] };
   }
+}
+
+/**
+ * Update a calendar event via the backend.
+ */
+export async function updateCalendarEvent(
+  authToken: string,
+  eventId: string,
+  data: { summary?: string; start_time?: string; duration_minutes?: number }
+): Promise<CalendarEvent> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/calendar/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auth_token: authToken,
+        ...data,
+      }),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to update event (${res.status})`);
+  }
+  return (await res.json()) as CalendarEvent;
 }
 
 /**
