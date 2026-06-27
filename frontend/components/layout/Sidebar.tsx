@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   CheckSquare,
   Calendar,
+  CalendarClock,
   Flame,
   Settings,
   ChevronsLeft,
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Tasks", icon: CheckSquare, path: "/dashboard/tasks" },
   { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
+  { label: "Planner", icon: CalendarClock, path: "/dashboard/planner" },
   { label: "Habits", icon: Flame, path: "/dashboard/habits" },
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
 ];
