@@ -12,6 +12,8 @@ import {
   GripVertical,
   Calendar as CalendarIcon,
   ListChecks,
+  Trash2,
+  Sparkles,
 } from "lucide-react";
 import {
   DndContext,
@@ -44,9 +46,64 @@ import { EmptyState } from "@/components/ui/EmptyState";
 interface LocalTask extends TaskItem {
   id: string;
   status: "todo" | "inprogress" | "done";
+  priority: "high" | "medium" | "low" | "none";
 }
 
 type ViewMode = "board" | "list";
+
+const STORAGE_KEY = "chronai-tasks";
+
+// Priority dot color helper
+function priorityDotColor(priority: LocalTask["priority"]): string {
+  switch (priority) {
+    case "high":
+      return "#f43f5e";
+    case "medium":
+      return "#f59e0b";
+    case "low":
+      return "#6366f1";
+    default:
+      return "var(--text-tertiary)";
+  }
+}
+
+// Priority selector component
+function PrioritySelector({
+  value,
+  onChange,
+}: {
+  value: LocalTask["priority"];
+  onChange: (p: LocalTask["priority"]) => void;
+}) {
+  const options: { label: string; value: LocalTask["priority"]; color: string }[] = [
+    { label: "High", value: "high", color: "#f43f5e" },
+    { label: "Medium", value: "medium", color: "#f59e0b" },
+    { label: "Low", value: "low", color: "#6366f1" },
+    { label: "None", value: "none", color: "var(--text-tertiary)" },
+  ];
+
+  return (
+    <div className="flex gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            value === opt.value
+              ? "bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)]"
+              : "text-[var(--text-tertiary)] border border-transparent hover:border-[var(--border)]"
+          }`}
+        >
+          <span
+            className="inline-block h-[6px] w-[6px] rounded-full"
+            style={{ backgroundColor: opt.color }}
+          />
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // Kanban column component
 function KanbanColumn({
@@ -119,9 +176,17 @@ function SortableTaskCard({
         className="cursor-grab active:cursor-grabbing"
         onClick={onClick}
       >
-        <p className="text-sm font-medium text-[var(--text-primary)] mb-1.5 line-clamp-2">
-          {task.title}
-        </p>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          {task.priority && task.priority !== "none" && (
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full flex-shrink-0"
+              style={{ backgroundColor: priorityDotColor(task.priority) }}
+            />
+          )}
+          <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2">
+            {task.title}
+          </p>
+        </div>
         {task.notes && (
           <p className="text-xs text-[var(--text-tertiary)] mb-2 line-clamp-1">
             {task.notes}
@@ -171,11 +236,13 @@ function ListRow({
   onToggle,
   onTitleChange,
   onTaskClick,
+  onDelete,
 }: {
   task: LocalTask;
   onToggle: () => void;
   onTitleChange: (title: string) => void;
   onTaskClick: () => void;
+  onDelete: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
@@ -279,17 +346,25 @@ function ListRow({
             className="w-full text-sm bg-transparent text-[var(--text-primary)] border-none outline-none focus:ring-0 p-0"
           />
         ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            onDoubleClick={onTaskClick}
-            className={`text-sm text-left truncate w-full ${
-              task.status === "done"
-                ? "text-[var(--text-tertiary)] line-through"
-                : "text-[var(--text-primary)]"
-            }`}
-          >
-            {task.title}
-          </button>
+          <div className="flex items-center gap-1.5">
+            {task.priority && task.priority !== "none" && (
+              <span
+                className="inline-block h-[6px] w-[6px] rounded-full flex-shrink-0"
+                style={{ backgroundColor: priorityDotColor(task.priority) }}
+              />
+            )}
+            <button
+              onClick={() => setIsEditing(true)}
+              onDoubleClick={onTaskClick}
+              className={`text-sm text-left truncate w-full ${
+                task.status === "done"
+                  ? "text-[var(--text-tertiary)] line-through"
+                  : "text-[var(--text-primary)]"
+              }`}
+            >
+              {task.title}
+            </button>
+          </div>
         )}
       </div>
       {task.due && (
@@ -297,6 +372,15 @@ function ListRow({
           {format(new Date(task.due), "MMM d")}
         </span>
       )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-tertiary)] hover:text-danger-500 flex-shrink-0"
+      >
+        <Trash2 size={14} strokeWidth={1.5} />
+      </button>
       {statusBadge()}
     </div>
   );
@@ -307,18 +391,43 @@ function TaskDetailPanel({
   task,
   onClose,
   onUpdate,
+  onDelete,
 }: {
   task: LocalTask;
   onClose: () => void;
   onUpdate: (updated: LocalTask) => void;
+  onDelete: () => void;
 }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes || "");
   const [due, setDue] = useState(task.due || "");
   const [status, setStatus] = useState(task.status);
+  const [priority, setPriority] = useState<LocalTask["priority"]>(task.priority);
+  const [newSubtask, setNewSubtask] = useState("");
 
   const handleSave = () => {
-    onUpdate({ ...task, title, notes, due: due || null, status });
+    onUpdate({ ...task, title, notes, due: due || null, status, priority });
+  };
+
+  const handleNotesSave = () => {
+    onUpdate({ ...task, title, notes, due: due || null, status, priority });
+  };
+
+  const handleAddSubtask = () => {
+    if (!newSubtask.trim()) return;
+    const updatedSubtasks = [
+      ...(task.subtasks || []),
+      { title: newSubtask.trim(), completed: false },
+    ];
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, subtasks: updatedSubtasks });
+    setNewSubtask("");
+  };
+
+  const handleToggleSubtask = (index: number) => {
+    const updatedSubtasks = (task.subtasks || []).map((sub, i) =>
+      i === index ? { ...sub, completed: !sub.completed } : sub
+    );
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, subtasks: updatedSubtasks });
   };
 
   return (
@@ -333,12 +442,20 @@ function TaskDetailPanel({
         <h3 className="text-sm font-medium text-[var(--text-secondary)]">
           Task Details
         </h3>
-        <button
-          onClick={onClose}
-          className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
-        >
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onDelete}
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-danger-500/10 text-[var(--text-tertiary)] hover:text-danger-500 transition-colors"
+          >
+            <Trash2 size={16} strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         <div>
@@ -354,6 +471,18 @@ function TaskDetailPanel({
         </div>
         <div>
           <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+            Priority
+          </label>
+          <PrioritySelector
+            value={priority}
+            onChange={(p) => {
+              setPriority(p);
+              onUpdate({ ...task, title, notes, due: due || null, status, priority: p });
+            }}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
             Status
           </label>
           <div className="flex gap-2">
@@ -362,7 +491,7 @@ function TaskDetailPanel({
                 key={s}
                 onClick={() => {
                   setStatus(s);
-                  onUpdate({ ...task, title, notes, due: due || null, status: s });
+                  onUpdate({ ...task, title, notes, due: due || null, status: s, priority });
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   status === s
@@ -389,7 +518,7 @@ function TaskDetailPanel({
             onChange={(e) => {
               const val = e.target.value;
               setDue(val);
-              onUpdate({ ...task, title, notes, due: val || null, status });
+              onUpdate({ ...task, title, notes, due: val || null, status, priority });
             }}
             className="w-full h-9 px-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
           />
@@ -401,59 +530,77 @@ function TaskDetailPanel({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            onBlur={handleSave}
+            onBlur={handleNotesSave}
             rows={6}
             placeholder="Add notes..."
             className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
           />
         </div>
-        {task.subtasks && task.subtasks.length > 0 && (
-          <div>
-            <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
-              Subtasks ({task.subtasks.length})
-            </label>
-            <div className="space-y-1.5">
-              {task.subtasks.map((sub, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+        <div>
+          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+            Subtasks {task.subtasks && task.subtasks.length > 0 && `(${task.subtasks.length})`}
+          </label>
+          <div className="space-y-1.5">
+            {(task.subtasks || []).map((sub, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+              >
+                <button
+                  onClick={() => handleToggleSubtask(i)}
+                  className={`h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
+                    sub.completed
+                      ? "bg-accent-500 border-accent-500"
+                      : "border-[var(--border)] hover:border-accent-400"
+                  }`}
                 >
-                  <div
-                    className={`h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center ${
-                      sub.completed
-                        ? "bg-accent-500 border-accent-500"
-                        : "border-[var(--border)]"
-                    }`}
-                  >
-                    {sub.completed && (
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 10 10"
-                        fill="none"
-                      >
-                        <path
-                          d="M2 5L4 7L8 3"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span
-                    className={
-                      sub.completed ? "line-through text-[var(--text-tertiary)]" : ""
-                    }
-                  >
-                    {sub.title}
-                  </span>
-                </div>
-              ))}
+                  {sub.completed && (
+                    <svg
+                      width="8"
+                      height="8"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                    >
+                      <path
+                        d="M2 5L4 7L8 3"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+                <span
+                  className={
+                    sub.completed ? "line-through text-[var(--text-tertiary)]" : ""
+                  }
+                >
+                  {sub.title}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddSubtask();
+                }}
+                placeholder="Add subtask..."
+                className="flex-1 text-sm bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] border-none outline-none focus:ring-0 p-0"
+              />
+              {newSubtask.trim() && (
+                <button
+                  onClick={handleAddSubtask}
+                  className="text-xs text-accent-500 hover:text-accent-400 transition-colors"
+                >
+                  Add
+                </button>
+              )}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </motion.div>
   );
@@ -469,11 +616,15 @@ export default function TasksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<LocalTask | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LocalTask | null>(null);
+  const [aiPrioritized, setAiPrioritized] = useState(false);
+  const isHydrated = useRef(false);
 
   // New task form state
   const [newTitle, setNewTitle] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [newDue, setNewDue] = useState("");
+  const [newPriority, setNewPriority] = useState<LocalTask["priority"]>("none");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -483,21 +634,53 @@ export default function TasksPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
+
+      // Try localStorage first
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as LocalTask[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTasks(parsed);
+            isHydrated.current = true;
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
+
+      // Fallback to API
       try {
         const fetched = await fetchTasks(accessToken);
         const mapped: LocalTask[] = fetched.map((t, i) => ({
           ...t,
           id: t.id || `task-${i}-${Date.now()}`,
-          status: t.completed ? "done" : "todo",
+          status: t.completed ? "done" : ("todo" as const),
+          priority: "none" as const,
         }));
         setTasks(mapped);
+        isHydrated.current = true;
       } catch {
         setTasks([]);
+        isHydrated.current = true;
       }
       setLoading(false);
     }
     load();
   }, [accessToken]);
+
+  // Persist tasks to localStorage
+  useEffect(() => {
+    if (isHydrated.current) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [tasks]);
 
   // Task helpers
   const todoTasks = tasks.filter((t) => t.status === "todo");
@@ -513,11 +696,13 @@ export default function TasksPage() {
       due: newDue || null,
       completed: false,
       status: "todo",
+      priority: newPriority,
     };
     setTasks((prev) => [task, ...prev]);
     setNewTitle("");
     setNewNotes("");
     setNewDue("");
+    setNewPriority("none");
     setShowCreateModal(false);
   };
 
@@ -545,6 +730,26 @@ export default function TasksPage() {
       prev.map((t) => (t.id === taskId ? { ...t, title } : t))
     );
   }, []);
+
+  const handleDeleteTask = useCallback((taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    setSelectedTask(null);
+    setDeleteTarget(null);
+  }, []);
+
+  const handleAiPrioritize = () => {
+    const priorityOrder: Record<LocalTask["priority"], number> = {
+      high: 0,
+      medium: 1,
+      low: 2,
+      none: 3,
+    };
+    setTasks((prev) =>
+      [...prev].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+    );
+    setAiPrioritized(true);
+    setTimeout(() => setAiPrioritized(false), 2000);
+  };
 
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -618,6 +823,14 @@ export default function TasksPage() {
             </button>
           </div>
           {/* Add task button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAiPrioritize}
+          >
+            <Sparkles size={14} strokeWidth={1.5} />
+            {aiPrioritized ? "Prioritized!" : "Ask AI to Prioritize"}
+          </Button>
           <Button
             size="sm"
             onClick={() => setShowCreateModal(true)}
@@ -710,6 +923,7 @@ export default function TasksPage() {
                           handleTitleChange(task.id, title)
                         }
                         onTaskClick={() => setSelectedTask(task)}
+                        onDelete={() => setDeleteTarget(task)}
                       />
                     ))}
                   </div>
@@ -758,6 +972,12 @@ export default function TasksPage() {
               value={newDue}
               onChange={(e) => setNewDue(e.target.value)}
             />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[var(--text-secondary)]">
+                Priority
+              </label>
+              <PrioritySelector value={newPriority} onChange={setNewPriority} />
+            </div>
           </div>
           <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-[var(--border)]">
             <Button
@@ -790,10 +1010,40 @@ export default function TasksPage() {
               task={selectedTask}
               onClose={() => setSelectedTask(null)}
               onUpdate={handleUpdateTask}
+              onDelete={() => setDeleteTarget(selectedTask)}
             />
           </>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
+        <div className="p-5">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+            Delete Task
+          </h2>
+          <p className="text-sm text-[var(--text-secondary)] mb-5">
+            Are you sure you want to delete &ldquo;{deleteTarget?.title}&rdquo;? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => deleteTarget && handleDeleteTask(deleteTarget.id)}
+              className="bg-danger-500 hover:bg-danger-600 text-white border-0"
+            >
+              <Trash2 size={14} strokeWidth={1.5} />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 }

@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Task CRUD Deepening: Add delete task with confirmation, inline edit (title/notes), priority labels (high/medium/low colored dots), subtask creation from detail panel, and an 'Ask AI to prioritize' button that sends tasks to chat. Wire task operations to localStorage persistence since backend API only has fetchTasks.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "1. In app/dashboard/tasks/page.tsx, add a delete task button (trash icon) to both the list view rows and kanban cards. Show a confirmation modal before deleting. Remove the task from local state on confirm.",
     "2. Enhance inline editing in ListRow: already has click-to-edit title. Add similar inline editing for notes/description in the task detail panel (TaskDetailPanel) - blur to save.",
