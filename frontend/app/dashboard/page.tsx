@@ -12,6 +12,8 @@ import {
   X,
   ArrowRight,
   Sparkles,
+  Square,
+  CheckSquare as CheckSquareFilled,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -58,6 +60,60 @@ const itemVariants = {
   },
 };
 
+const welcomeContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.15,
+    },
+  },
+};
+
+const welcomeItemVariants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+  },
+};
+
+const quickActions = [
+  {
+    title: "Create your first task",
+    description: "Organize your work with tasks and kanban boards",
+    icon: CheckSquare,
+    href: "/dashboard/tasks",
+    iconBg: "bg-warning-500/8",
+    iconColor: "text-warning-500",
+  },
+  {
+    title: "Check your calendar",
+    description: "View and create events for your day",
+    icon: Calendar,
+    href: "/dashboard/calendar",
+    iconBg: "bg-accent-500/8",
+    iconColor: "text-accent-500",
+  },
+  {
+    title: "Start a habit",
+    description: "Build routines and track your streaks",
+    icon: Flame,
+    href: "/dashboard/habits",
+    iconBg: "bg-success-500/8",
+    iconColor: "text-success-500",
+  },
+] as const;
+
+const aiSuggestionChips = [
+  "Plan my week",
+  "Suggest a routine",
+  "Help me focus",
+  "Organize my tasks",
+];
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -77,6 +133,9 @@ export default function DashboardPage() {
   // Focus mode
   const [focusActive, setFocusActive] = useState(false);
   const [focusTask, setFocusTask] = useState<string | undefined>(undefined);
+
+  // Onboarding checklist
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
 
   const handleFocusMode = useCallback(() => {
     setFocusTask(undefined);
@@ -115,6 +174,23 @@ export default function DashboardPage() {
     });
   }, [onboardingChecked, accessToken]);
 
+  // Read checklist dismissal from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const dismissed = localStorage.getItem("chronai-checklist-dismissed");
+      if (dismissed === "true") {
+        setChecklistDismissed(true);
+      }
+    }
+  }, []);
+
+  const handleDismissChecklist = useCallback(() => {
+    setChecklistDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("chronai-checklist-dismissed", "true");
+    }
+  }, []);
+
   // Loading state
   if (
     status === "loading" ||
@@ -143,6 +219,31 @@ export default function DashboardPage() {
   const todayFormatted = format(new Date(), "EEEE, MMMM d");
   const pendingTasks = tasks.filter((t) => !t.completed);
   const totalStreak = habits.reduce((acc, h) => acc + h.streak, 0);
+
+  const isAllEmpty =
+    !dataLoading &&
+    tasks.length === 0 &&
+    events.length === 0 &&
+    habits.length === 0;
+
+  const focusUsed = (() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const stats = localStorage.getItem("chronai-pomodoro-stats");
+      return !!stats && stats !== "null" && stats !== "{}";
+    } catch {
+      return false;
+    }
+  })();
+
+  const checklistItems = [
+    { label: "Create a task", done: tasks.length > 0 },
+    { label: "Add a calendar event", done: events.length > 0 },
+    { label: "Start a habit", done: habits.length > 0 },
+    { label: "Try focus mode", done: focusUsed },
+  ];
+
+  const checklistProgress = checklistItems.filter((item) => item.done).length;
 
   const statsCards = [
     {
@@ -189,195 +290,372 @@ export default function DashboardPage() {
           </p>
         </motion.div>
 
-        {/* Quick Stats */}
-        <motion.div
-          variants={itemVariants}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-3"
-        >
-          {statsCards.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{
-                  delay: 0.2 + index * 0.1,
-                  duration: 0.5,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
+        {isAllEmpty ? (
+          /* ========== Welcome / Empty State ========== */
+          <motion.div
+            variants={welcomeContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-8"
+          >
+            {/* Warm subheading */}
+            <motion.p
+              variants={welcomeItemVariants}
+              className="text-sm leading-relaxed text-[var(--text-secondary)]"
+            >
+              Let&apos;s get your day started. Here are some things you can do:
+            </motion.p>
+
+            {/* Quick Action Cards */}
+            <motion.div
+              variants={welcomeItemVariants}
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Link key={action.title} href={action.href}>
+                    <Card
+                      hover={false}
+                      className="flex items-start gap-3.5 p-4 transition-colors hover:bg-[var(--surface-hover)]"
+                    >
+                      <div
+                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${action.iconBg}`}
+                      >
+                        <Icon
+                          size={20}
+                          strokeWidth={1.5}
+                          className={action.iconColor}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                          {action.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                          {action.description}
+                        </p>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })}
+
+              {/* Talk to AI - button instead of Link */}
+              <button
+                onClick={() => setChatOpen(true)}
+                className="text-left"
               >
-                <Card hover={false} className="flex items-center gap-4 p-5">
-                  <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bgColor}`}
-                  >
-                    <Icon size={20} strokeWidth={1.5} className={stat.color} />
+                <Card
+                  hover={false}
+                  className="flex items-start gap-3.5 p-4 transition-colors hover:bg-[var(--surface-hover)]"
+                >
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-accent-500/8">
+                    <MessageCircle
+                      size={20}
+                      strokeWidth={1.5}
+                      className="text-accent-500"
+                    />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
-                      {dataLoading ? (
-                        <span className="inline-block h-7 w-6 animate-pulse rounded bg-[var(--surface-hover)]" />
-                      ) : (
-                        stat.count
-                      )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                      Talk to AI
                     </p>
-                    <p className="text-xs text-[var(--text-tertiary)]">
-                      {stat.label}
+                    <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                      Ask your AI assistant for help with anything
                     </p>
                   </div>
                 </Card>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+              </button>
+            </motion.div>
 
-        {/* Today's Schedule */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
-              Today&apos;s Schedule
-            </h2>
-            <Link
-              href="/dashboard/calendar"
-              className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] transition-colors hover:text-accent-500"
+            {/* AI Suggestion Chips */}
+            <motion.div
+              variants={welcomeItemVariants}
+              className="flex flex-wrap gap-2"
             >
-              View all{" "}
-              <ArrowRight
-                size={12}
-                className="transition-transform group-hover:translate-x-0.5"
-              />
-            </Link>
-          </div>
-
-          <div className="mt-3 space-y-2">
-            {dataLoading ? (
-              <>
-                <Skeleton className="h-16" />
-                <Skeleton className="h-16" />
-                <Skeleton className="h-16" />
-              </>
-            ) : events.length === 0 ? (
-              <Card hover={false} className="py-8 text-center">
-                <Calendar
-                  size={24}
-                  strokeWidth={1.5}
-                  className="mx-auto mb-2 text-[var(--text-tertiary)]"
-                />
-                <p className="text-sm text-[var(--text-tertiary)]">
-                  No events scheduled for today
-                </p>
-              </Card>
-            ) : (
-              events.slice(0, 5).map((event, i) => (
-                <motion.div
-                  key={event.id || i}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.3 }}
+              {aiSuggestionChips.map((chip, index) => (
+                <button
+                  key={chip}
+                  onClick={() => setChatOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
                 >
-                  <Card
-                    hover={false}
-                    className="flex items-center gap-4 px-4 py-3 transition-all hover:border-accent-500/20"
-                  >
-                    <div className="h-9 w-[3px] rounded-full bg-gradient-to-b from-accent-400 to-accent-600" />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium text-[var(--text-primary)]">
-                        {event.summary}
-                      </p>
-                      <p className="text-xs text-[var(--text-tertiary)]">
-                        {format(new Date(event.start), "h:mm a")}
-                        {event.end &&
-                          ` - ${format(new Date(event.end), "h:mm a")}`}
-                      </p>
+                  {index === 0 && (
+                    <Sparkles size={12} className="text-accent-500" />
+                  )}
+                  {chip}
+                </button>
+              ))}
+            </motion.div>
+
+            {/* Onboarding Checklist */}
+            {!checklistDismissed && (
+              <motion.div variants={welcomeItemVariants}>
+                <Card hover={false} className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                        Getting Started
+                      </h3>
+                      <span className="text-xs text-[var(--text-tertiary)]">
+                        {checklistProgress}/{checklistItems.length}
+                      </span>
                     </div>
-                  </Card>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </motion.section>
-
-        {/* Recent Tasks */}
-        <motion.section variants={itemVariants}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
-              Recent Tasks
-            </h2>
-            <Link
-              href="/dashboard/tasks"
-              className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] transition-colors hover:text-accent-500"
-            >
-              View all{" "}
-              <ArrowRight
-                size={12}
-                className="transition-transform group-hover:translate-x-0.5"
-              />
-            </Link>
-          </div>
-
-          <div className="mt-3 space-y-2">
-            {dataLoading ? (
-              <>
-                <Skeleton className="h-14" />
-                <Skeleton className="h-14" />
-                <Skeleton className="h-14" />
-              </>
-            ) : tasks.length === 0 ? (
-              <Card hover={false} className="py-8 text-center">
-                <Sparkles
-                  size={24}
-                  strokeWidth={1.5}
-                  className="mx-auto mb-2 text-[var(--text-tertiary)]"
-                />
-                <p className="text-sm text-[var(--text-tertiary)]">
-                  No tasks yet. Ask the AI to create some!
-                </p>
-              </Card>
-            ) : (
-              tasks.slice(0, 5).map((task, i) => (
-                <motion.div
-                  key={task.id || i}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.3 }}
-                >
-                  <Card
-                    hover={false}
-                    className="flex items-center gap-3 px-4 py-3 transition-all hover:border-accent-500/20"
-                  >
-                    <div
-                      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors ${
-                        task.completed
-                          ? "border-success-500 bg-success-500/20"
-                          : "border-[var(--border)] hover:border-[var(--text-tertiary)]"
-                      }`}
+                    <button
+                      onClick={handleDismissChecklist}
+                      className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+                      aria-label="Dismiss checklist"
                     >
-                      {task.completed && (
-                        <CheckSquare size={12} className="text-success-500" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`truncate text-sm ${
-                          task.completed
-                            ? "text-[var(--text-tertiary)] line-through"
-                            : "text-[var(--text-primary)] font-medium"
-                        }`}
+                      <X size={14} strokeWidth={1.5} />
+                    </button>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
+                    <div
+                      className="h-full rounded-full bg-accent-500 transition-all duration-500"
+                      style={{
+                        width: `${(checklistProgress / checklistItems.length) * 100}%`,
+                      }}
+                    />
+                  </div>
+
+                  <ul className="mt-4 space-y-2.5">
+                    {checklistItems.map((item) => (
+                      <li
+                        key={item.label}
+                        className="flex items-center gap-2.5"
                       >
-                        {task.title}
-                      </p>
-                      {task.due && (
-                        <p className="text-xs text-[var(--text-tertiary)]">
-                          Due {format(new Date(task.due), "MMM d")}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </motion.div>
-              ))
+                        {item.done ? (
+                          <CheckSquareFilled
+                            size={16}
+                            strokeWidth={1.5}
+                            className="flex-shrink-0 text-success-500"
+                          />
+                        ) : (
+                          <Square
+                            size={16}
+                            strokeWidth={1.5}
+                            className="flex-shrink-0 text-[var(--text-tertiary)]"
+                          />
+                        )}
+                        <span
+                          className={`text-sm ${
+                            item.done
+                              ? "text-[var(--text-tertiary)] line-through"
+                              : "text-[var(--text-primary)]"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </motion.div>
             )}
-          </div>
-        </motion.section>
+          </motion.div>
+        ) : (
+          /* ========== Normal Data View ========== */
+          <>
+            {/* Quick Stats */}
+            <motion.div
+              variants={itemVariants}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+            >
+              {statsCards.map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      delay: 0.2 + index * 0.1,
+                      duration: 0.5,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  >
+                    <Card hover={false} className="flex items-center gap-4 p-5">
+                      <div
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bgColor}`}
+                      >
+                        <Icon
+                          size={20}
+                          strokeWidth={1.5}
+                          className={stat.color}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
+                          {dataLoading ? (
+                            <span className="inline-block h-7 w-6 animate-pulse rounded bg-[var(--surface-hover)]" />
+                          ) : (
+                            stat.count
+                          )}
+                        </p>
+                        <p className="text-xs text-[var(--text-tertiary)]">
+                          {stat.label}
+                        </p>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+            {/* Today's Schedule */}
+            <motion.section variants={itemVariants}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
+                  Today&apos;s Schedule
+                </h2>
+                <Link
+                  href="/dashboard/calendar"
+                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] transition-colors hover:text-accent-500"
+                >
+                  View all{" "}
+                  <ArrowRight
+                    size={12}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </Link>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {dataLoading ? (
+                  <>
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                  </>
+                ) : events.length === 0 ? (
+                  <Card hover={false} className="py-8 text-center">
+                    <Calendar
+                      size={24}
+                      strokeWidth={1.5}
+                      className="mx-auto mb-2 text-[var(--text-tertiary)]"
+                    />
+                    <p className="text-sm text-[var(--text-tertiary)]">
+                      No events scheduled for today
+                    </p>
+                  </Card>
+                ) : (
+                  events.slice(0, 5).map((event, i) => (
+                    <motion.div
+                      key={event.id || i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05, duration: 0.3 }}
+                    >
+                      <Card
+                        hover={false}
+                        className="flex items-center gap-4 px-4 py-3 transition-all hover:border-accent-500/20"
+                      >
+                        <div className="h-9 w-[3px] rounded-full bg-gradient-to-b from-accent-400 to-accent-600" />
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm font-medium text-[var(--text-primary)]">
+                            {event.summary}
+                          </p>
+                          <p className="text-xs text-[var(--text-tertiary)]">
+                            {format(new Date(event.start), "h:mm a")}
+                            {event.end &&
+                              ` - ${format(new Date(event.end), "h:mm a")}`}
+                          </p>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </motion.section>
+
+            {/* Recent Tasks */}
+            <motion.section variants={itemVariants}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
+                  Recent Tasks
+                </h2>
+                <Link
+                  href="/dashboard/tasks"
+                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] transition-colors hover:text-accent-500"
+                >
+                  View all{" "}
+                  <ArrowRight
+                    size={12}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </Link>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {dataLoading ? (
+                  <>
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                  </>
+                ) : tasks.length === 0 ? (
+                  <Card hover={false} className="py-8 text-center">
+                    <Sparkles
+                      size={24}
+                      strokeWidth={1.5}
+                      className="mx-auto mb-2 text-[var(--text-tertiary)]"
+                    />
+                    <p className="text-sm text-[var(--text-tertiary)]">
+                      No tasks yet. Ask the AI to create some!
+                    </p>
+                  </Card>
+                ) : (
+                  tasks.slice(0, 5).map((task, i) => (
+                    <motion.div
+                      key={task.id || i}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05, duration: 0.3 }}
+                    >
+                      <Card
+                        hover={false}
+                        className="flex items-center gap-3 px-4 py-3 transition-all hover:border-accent-500/20"
+                      >
+                        <div
+                          className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors ${
+                            task.completed
+                              ? "border-success-500 bg-success-500/20"
+                              : "border-[var(--border)] hover:border-[var(--text-tertiary)]"
+                          }`}
+                        >
+                          {task.completed && (
+                            <CheckSquare
+                              size={12}
+                              className="text-success-500"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`truncate text-sm ${
+                              task.completed
+                                ? "text-[var(--text-tertiary)] line-through"
+                                : "text-[var(--text-primary)] font-medium"
+                            }`}
+                          >
+                            {task.title}
+                          </p>
+                          {task.due && (
+                            <p className="text-xs text-[var(--text-tertiary)]">
+                              Due {format(new Date(task.due), "MMM d")}
+                            </p>
+                          )}
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </motion.section>
+          </>
+        )}
       </motion.div>
 
       {/* AI Chat toggle button */}

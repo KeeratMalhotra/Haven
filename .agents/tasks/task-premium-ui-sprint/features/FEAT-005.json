@@ -2,7 +2,7 @@
   "id": "FEAT-005",
   "type": "feat",
   "description": "Dashboard Empty State & Welcome Experience: When user opens dashboard with no data (no tasks, events, habits), show an engaging welcome state with a warm greeting, quick action cards, AI suggestion chips, and a small onboarding checklist widget. The page should feel alive even with zero data.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "1. In app/dashboard/page.tsx, detect when all data arrays are empty (tasks.length === 0 && events.length === 0 && habits.length === 0) after loading completes.",
     "2. When empty, render a dedicated WelcomeState section instead of the current stats/schedule/tasks sections. This should include:",
