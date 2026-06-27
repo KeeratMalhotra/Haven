@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "feat",
   "description": "Spotify Integration: Create a draggable mini player card widget that floats over the app, can be dragged anywhere on screen, and snaps into a small button when dragged to the right edge. Uses Spotify Web Embed (iframe) for playback. Add Spotify connect option in settings page.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "1. Create a new component at components/SpotifyMiniPlayer.tsx. This is a floating draggable card that renders on top of the app (fixed position, high z-index).",
     "2. Implement drag behavior using framer-motion's drag prop or @dnd-kit. The card should be freely draggable anywhere on screen. Track position in state.",
@@ -31,5 +31,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run lint"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build and lint pass cleanly. Used framer-motion drag with useAnimationControls and useMotionValue for position tracking. Snapped state uses a separate fixed-position button element. localStorage used for both connection state and player state persistence. Dispatched custom StorageEvent from settings page for cross-component reactivity."
 }
