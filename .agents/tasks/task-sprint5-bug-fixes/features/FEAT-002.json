@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "fix",
   "description": "Fix Chat scroll issues, client-side AI suggestions, dashboard empty state, replace Command Palette with Quick Actions FAB, and fix microphone error messages",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "CHAT SCROLL FIX: In frontend/components/chat/ChatExperience.tsx, fix the layout so messages appear ABOVE the composer. The issue is the composer is positioned with 'absolute inset-x-0' and when hasMessages is true it uses 'bottom-6'. The MessageList has pb-40 which should give room, but the scroll container needs to properly auto-scroll. Fix: Ensure the message list's scroll container scrolls to bottom on new messages. The MessageList already has a scrollIntoView call in its useEffect - the issue is the parent container in ChatExperience. Make the conversation div properly scrollable and ensure the composer is truly pinned at bottom without overlapping messages. Change the layout from absolute positioning to a flex layout: message area flex-1 overflow-y-auto, composer at bottom in the normal flow (not absolute).",
     "CLIENT-SIDE AI SUGGESTIONS: In frontend/components/ai/AIContextProvider.tsx, add LOCAL heuristic detection logic that fires suggestions WITHOUT calling the backend. Add a new method or enhance reportAction to check: (1) When a task is created/viewed with no deadline, fire suggestion 'This task has no deadline. Want to set one?'. (2) When a task is dragged (action type 'task_dragged' or 'task_moved'), fire 'Task moved! Would you like to reschedule related events?'. (3) When events overlap (action type 'event_created' with time data that overlaps existing events from context), fire warning 'Heads up: this event overlaps with another on your calendar'. (4) When reportAction receives context showing 3+ overdue tasks, fire 'You have several overdue tasks. Want help prioritizing?'. These should fire via addNotification and use the existing AIToast display. Keep the existing backend call as a fallback but ensure local suggestions fire immediately regardless of backend availability.",
@@ -26,5 +26,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 5 sub-tasks implemented and build passes. ChatExperience switched from absolute positioning to flex column layout for the conversation state. MessageList pb-40 reduced to pb-6 since composer no longer overlaps. AIContextProvider fires local suggestions immediately before the debounced backend call. Dashboard Promise.all now has .catch and .finally for robust error handling. CommandPalette import and render removed from dashboard, replaced with a Quick Actions FAB using Plus icon that expands to show 4 action items. Voice button conditionally rendered based on Web Speech API availability."
 }
