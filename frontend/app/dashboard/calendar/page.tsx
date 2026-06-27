@@ -683,9 +683,9 @@ export default function CalendarPage() {
                       {HOURS.map((hour) => (
                         <div
                           key={hour}
-                          className="h-16 flex items-start justify-end pr-2 -mt-2"
+                          className="h-16 flex items-start justify-end pr-2"
                         >
-                          <span className="text-[10px] text-[var(--text-tertiary)]">
+                          <span className="text-[10px] text-[var(--text-tertiary)] -translate-y-[7px]">
                             {format(setHours(new Date(), hour), "h a")}
                           </span>
                         </div>
@@ -743,9 +743,9 @@ export default function CalendarPage() {
                       {HOURS.map((hour) => (
                         <div
                           key={hour}
-                          className="h-16 flex items-start justify-end pr-2 -mt-2"
+                          className="h-16 flex items-start justify-end pr-2"
                         >
-                          <span className="text-[10px] text-[var(--text-tertiary)]">
+                          <span className="text-[10px] text-[var(--text-tertiary)] -translate-y-[7px]">
                             {format(setHours(new Date(), hour), "h a")}
                           </span>
                         </div>

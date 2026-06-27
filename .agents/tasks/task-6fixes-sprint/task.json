@@ -1,0 +1,7 @@
+{
+  "task_id": "task-6fixes-sprint",
+  "task_description": "Fix 6 issues: dashboard blank page, Pomodoro light mode timer text, add PATCH calendar events endpoint, Day View alignment, persistent AI chat button, and toast error handling.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}

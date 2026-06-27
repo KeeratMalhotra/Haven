@@ -1,0 +1,9 @@
+{
+  "project_type": "Full-stack app: Next.js 15 App Router frontend + FastAPI backend",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && npm run build",
+  "test_command": "cd /projects/sandbox/ChronAI/backend && python3 -m py_compile app/main.py",
+  "verification_instructions": "1. Run npm run build in frontend/ 2. Run python3 -m py_compile app/main.py in backend/",
+  "setup_instructions": "cd /projects/sandbox/ChronAI/frontend && npm install",
+  "environment_constraints": "DO NOT modify: hooks/useChatSocket.ts, lib/api.ts, lib/ws.ts, lib/voice.ts, middleware.ts, Providers.tsx, entity/, mcp-servers/, shared/"
+}

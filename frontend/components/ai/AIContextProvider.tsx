@@ -178,7 +178,7 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
               : undefined
           );
 
-          if (result.suggestion) {
+          if (result && result.suggestion) {
             const newSuggestion: AISuggestion = {
               id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
               text: result.suggestion,
@@ -198,7 +198,8 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
             }, 12000);
           }
         } catch {
-          // Silently fail - AI suggestions are non-critical
+          // Silently fail - AI suggestions are non-critical.
+          // One failed API call (e.g. PATCH 405) must not prevent future suggestions.
         }
       }, 500);
     },

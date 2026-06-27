@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix 6 bugs: dashboard blank page, Pomodoro light mode timer text, PATCH /api/calendar/events/{id} endpoint, Day View alignment, persistent AI chat FAB, and toast error handling.",
+  "status": "in_progress",
+  "steps": [
+    "Fix dashboard blank page - ensure page always renders content even when API data is empty",
+    "Fix Pomodoro light mode timer text - use text-[var(--text-primary)] for visibility",
+    "Add PATCH /api/calendar/events/{id} endpoint to backend/app/main.py",
+    "Fix Day View calendar alignment in app/dashboard/calendar/page.tsx",
+    "Move AI chat button/panel to app/dashboard/layout.tsx for all pages",
+    "Add error handling in AIContextProvider.tsx for PATCH 405 failures"
+  ],
+  "acceptance_criteria": [
+    "Dashboard page always renders greeting + stats + quick actions, never blank",
+    "Pomodoro timer text is visible in both light and dark modes",
+    "PATCH /api/calendar/events/{id} endpoint works for event updates",
+    "Day view time labels align with their hour rows",
+    "AI chat button appears on all dashboard pages",
+    "AI context suggestions continue working after a PATCH 405 error"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/backend && python3 -m py_compile app/main.py"
+  ],
+  "blocked_reason": null
+}

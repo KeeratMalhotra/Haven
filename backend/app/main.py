@@ -604,6 +604,14 @@ class CreateEventRequest(BaseModel):
     auth_token: str
 
 
+class UpdateEventRequest(BaseModel):
+    """Request body for updating a calendar event."""
+    auth_token: str
+    summary: Optional[str] = None
+    start_time: Optional[str] = None
+    duration_minutes: Optional[int] = None
+
+
 @app.post("/api/calendar/events")
 async def create_calendar_event(body: CreateEventRequest):
     """Create a new calendar event.
@@ -646,6 +654,112 @@ async def create_calendar_event(body: CreateEventRequest):
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail="MCP client not available",
     )
+
+
+@app.patch("/api/calendar/events/{event_id}")
+async def update_calendar_event(event_id: str, body: UpdateEventRequest):
+    """Update a calendar event (summary, start_time, duration).
+
+    Attempts to use the 'update_event' MCP tool. If that tool is unavailable,
+    falls back to deleting the old event and recreating it with updated fields.
+
+    Args:
+        event_id: The ID of the event to update.
+        body: Validated JSON body with auth_token and optional fields to update.
+
+    Returns:
+        The updated event data.
+    """
+    if not body.auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    await verify_google_token(body.auth_token)
+
+    if not mcp_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MCP client not available",
+        )
+
+    # Build the update payload with only provided fields
+    update_params: dict = {
+        "auth_token": body.auth_token,
+        "event_id": event_id,
+    }
+    if body.summary is not None:
+        update_params["summary"] = body.summary
+    if body.start_time is not None:
+        update_params["start_time"] = body.start_time
+    if body.duration_minutes is not None:
+        update_params["duration_minutes"] = body.duration_minutes
+
+    try:
+        # Try the update_event tool first
+        result = await mcp_client.call_tool(
+            "google-calendar",
+            "update_event",
+            update_params,
+        )
+        return result
+    except Exception as update_err:
+        # If update_event tool is not available, fall back to delete + recreate
+        logger.info(f"update_event failed ({update_err}), trying delete+recreate fallback")
+
+        try:
+            # Fetch original event details to preserve unchanged fields
+            events_result = await mcp_client.call_tool(
+                "google-calendar",
+                "list_events",
+                {"auth_token": body.auth_token, "days_ahead": 60},
+            )
+            original_event = None
+            events_list = events_result if isinstance(events_result, list) else events_result.get("events", []) if isinstance(events_result, dict) else []
+            for ev in events_list:
+                if isinstance(ev, dict) and ev.get("id") == event_id:
+                    original_event = ev
+                    break
+
+            # Determine final values
+            summary = body.summary or (original_event.get("summary", "Event") if original_event else "Event")
+            start_time = body.start_time or (original_event.get("start", "") if original_event else "")
+            duration_minutes = body.duration_minutes or 60
+
+            if original_event and not body.duration_minutes and original_event.get("end") and original_event.get("start"):
+                from datetime import datetime as _dt
+                try:
+                    _start = _dt.fromisoformat(original_event["start"].replace("Z", "+00:00"))
+                    _end = _dt.fromisoformat(original_event["end"].replace("Z", "+00:00"))
+                    duration_minutes = int((_end - _start).total_seconds() / 60)
+                except Exception:
+                    duration_minutes = 60
+
+            # Delete old event
+            await mcp_client.call_tool(
+                "google-calendar",
+                "delete_event",
+                {"auth_token": body.auth_token, "event_id": event_id},
+            )
+
+            # Create new event with updated data
+            new_event = await mcp_client.call_tool(
+                "google-calendar",
+                "create_event",
+                {
+                    "auth_token": body.auth_token,
+                    "summary": summary,
+                    "start_time": start_time,
+                    "duration_minutes": duration_minutes,
+                },
+            )
+            return new_event
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update event: {e}",
+            )
 
 
 @app.delete("/api/calendar/events/{event_id}")

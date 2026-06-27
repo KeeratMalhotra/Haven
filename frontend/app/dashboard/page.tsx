@@ -23,7 +23,6 @@ import { format } from "date-fns";
 
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import AIChatPanel from "@/components/chat/AIChatPanel";
 import FocusMode from "@/components/FocusMode";
 import {
   fetchOnboardingStatus,
@@ -134,8 +133,7 @@ export default function DashboardPage() {
   >([]);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // Chat panel
-  const [chatOpen, setChatOpen] = useState(false);
+  // Chat panel state removed - now handled by layout.tsx
 
   // Focus mode
   const [focusActive, setFocusActive] = useState(false);
@@ -153,13 +151,18 @@ export default function DashboardPage() {
   // Onboarding gate
   useEffect(() => {
     if (status !== "authenticated" || !accessToken) return;
-    fetchOnboardingStatus(accessToken).then((data) => {
-      if (!data.complete) {
-        router.push("/onboarding");
-      } else {
+    fetchOnboardingStatus(accessToken)
+      .then((data) => {
+        if (!data.complete) {
+          router.push("/onboarding");
+        } else {
+          setOnboardingChecked(true);
+        }
+      })
+      .catch(() => {
+        // If onboarding check fails, allow dashboard to render anyway
         setOnboardingChecked(true);
-      }
-    });
+      });
   }, [status, accessToken, router]);
 
   // Fetch dashboard data
@@ -222,7 +225,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Loading state
+  // Loading state - only show skeleton briefly, never stay blank forever
   if (
     status === "loading" ||
     (status === "authenticated" && !onboardingChecked)
@@ -233,8 +236,14 @@ export default function DashboardPage() {
         animate={{ opacity: 1 }}
         className="space-y-6"
       >
-        <Skeleton className="h-10 w-72" />
-        <Skeleton className="h-4 w-44" />
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
+            {getGreeting()}
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-tertiary)] font-normal">
+            {format(new Date(), "EEEE, MMMM d")}
+          </p>
+        </div>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Skeleton className="h-28" />
           <Skeleton className="h-28" />
@@ -364,7 +373,7 @@ export default function DashboardPage() {
 
               {/* Talk to AI - button instead of Link */}
               <button
-                onClick={() => setChatOpen(true)}
+                onClick={() => {/* Chat handled by layout FAB */}}
                 className="text-left"
               >
                 <Card
@@ -398,7 +407,7 @@ export default function DashboardPage() {
               {aiSuggestionChips.map((chip, index) => (
                 <button
                   key={chip}
-                  onClick={() => setChatOpen(true)}
+                  onClick={() => {/* Chat handled by layout FAB */}}
                   className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
                 >
                   {index === 0 && (
@@ -757,11 +766,6 @@ export default function DashboardPage() {
                   icon: Timer,
                   action: () => { setFocusActive(true); setFabOpen(false); },
                 },
-                {
-                  label: "Ask AI",
-                  icon: MessageCircle,
-                  action: () => { setChatOpen(true); setFabOpen(false); },
-                },
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
@@ -801,14 +805,6 @@ export default function DashboardPage() {
           </motion.div>
         </motion.button>
       </div>
-
-      {/* AI Chat side panel */}
-      <AIChatPanel
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-        accessToken={accessToken}
-        userName={user?.name ?? undefined}
-      />
 
       {/* Focus Mode overlay */}
       <FocusMode

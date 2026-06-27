@@ -628,7 +628,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                   <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
                 )}
                 <div className="text-center space-y-2">
-                  <p className="text-2xl font-medium text-[#f0f0f2]">
+                  <p className="text-2xl font-medium text-[var(--text-primary)]">
                     Choose Focus Duration
                   </p>
                   <p className="text-sm text-[var(--text-tertiary)]">
@@ -682,7 +682,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
             {/* Timer display */}
             {!isDone && !isSelecting && (
               <div className="text-center">
-                <p className="text-7xl font-light tabular-nums tracking-wider text-[#f0f0f2]">
+                <p className="text-7xl font-light tabular-nums tracking-wider text-[var(--text-primary)]">
                   {timeDisplay}
                 </p>
                 <p className="mt-2 text-sm text-[var(--text-tertiary)]">
@@ -698,7 +698,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
             {/* Done state */}
             {isDone && !isSelecting && (
               <div className="text-center space-y-2">
-                <p className="text-2xl font-medium text-[#f0f0f2]">
+                <p className="text-2xl font-medium text-[var(--text-primary)]">
                   Break complete!
                 </p>
                 <p className="text-sm text-[var(--text-tertiary)]">
