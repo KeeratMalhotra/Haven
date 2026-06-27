@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "fix",
   "description": "Address code review issues: prompt injection sanitization, debounce queue instead of last-write-wins, action button no-ops, notification socket auth failure handling, calendar reportAction timing, stale reportAction closures in tasks page.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Fix prompt injection in backend /api/context-suggest: Separate user data from instructions using system/user message roles or structural sanitization. Strip instruction-boundary characters from action_data and context.",
     "Fix debounce dropping actions: Replace last-write-wins pendingActionRef with a queue that batches all actions within the 500ms window and sends them together.",
@@ -28,5 +28,5 @@
     "cd /projects/sandbox/ChronAI/backend && python3 -m py_compile app/main.py"
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All 6 review issues addressed. Build, lint, and py_compile all pass. Used system_instruction parameter on GenerativeModel for Gemini role separation. Added tasks to useCallback dependency arrays where needed for stale closure fix. Action buttons removed from banners entirely (no handlers exist); toast keeps a single 'Got it' dismiss button."
 }
