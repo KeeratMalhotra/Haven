@@ -1,0 +1,7 @@
+{
+  "task_id": "task-calendar-fixes-v2",
+  "task_description": "Fix 6 frontend issues: button nesting hydration, AI toast positioning, PATCH debounce, custom cursors, TimeBlock sizing, overlap handling",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}

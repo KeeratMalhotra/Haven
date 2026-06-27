@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix 6 calendar/UI issues: button nesting hydration, AI toast positioning, PATCH debounce, custom cursors, TimeBlock sizing, overlap handling",
+  "status": "in_progress",
+  "steps": [
+    "Fix EventPill button nesting - change from <button> to <div role='button' tabIndex={0}>",
+    "Move AI toasts from bottom-right to top-right, increase duration to 12s, add slide-in from right animation",
+    "Add 500ms debounce to calendar PATCH calls on drag",
+    "Add custom cursor styles in globals.css for premium feel",
+    "Fix TimeBlock sizing with accurate height calculation and 24px minimum",
+    "Handle overlapping events - detect overlaps and display side-by-side with conflict indicators"
+  ],
+  "acceptance_criteria": [
+    "EventPill uses div role=button instead of button to fix hydration error",
+    "AIToast is positioned top-right with 12s auto-dismiss and slide-in from right",
+    "Calendar PATCH calls are debounced by 500ms",
+    "All interactive elements have proper cursor states (pointer on buttons/links, grab on draggable)",
+    "TimeBlock height = (duration_minutes / 60) * 64px with minimum 24px",
+    "Overlapping events display side-by-side with warning indicators",
+    "Frontend build passes with no errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -432,3 +432,70 @@ body {
     transform: none;
   }
 }
+
+/* ============================================================
+   Premium Cursor System
+   Ensures every interactive element has proper cursor states
+   ============================================================ */
+
+/* All buttons, links, and interactive elements get pointer cursor */
+button,
+a,
+[role="button"],
+label[for],
+select,
+summary,
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+input[type="reset"],
+input[type="button"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Draggable elements get grab cursor */
+[draggable="true"],
+.cursor-grab {
+  cursor: grab;
+}
+
+[draggable="true"]:active,
+.cursor-grab:active,
+.cursor-grabbing {
+  cursor: grabbing;
+}
+
+/* Text inputs get text cursor */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+[contenteditable="true"] {
+  cursor: text;
+}
+
+/* Disabled elements get not-allowed cursor */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Cards and clickable surfaces */
+.cursor-card {
+  cursor: pointer;
+}
+
+.cursor-card:active {
+  cursor: grabbing;
+}

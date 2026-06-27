@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Plus,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   format,
@@ -67,7 +68,7 @@ const DURATION_OPTIONS = [
   { label: "3 hours", value: 180 },
 ];
 
-// Event pill for month view
+// Event pill for month view (uses div role="button" to avoid button nesting hydration error)
 function EventPill({
   event,
   onClick,
@@ -76,16 +77,72 @@ function EventPill({
   onClick: () => void;
 }) {
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent-500/15 text-accent-600 dark:text-accent-300 truncate hover:bg-accent-500/25 transition-colors"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.stopPropagation();
+          onClick();
+        }
+      }}
+      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent-500/15 text-accent-600 dark:text-accent-300 truncate hover:bg-accent-500/25 transition-colors cursor-pointer"
     >
       {event.summary}
-    </button>
+    </div>
   );
+}
+
+// Row height constant (h-16 = 64px)
+const ROW_HEIGHT = 64;
+
+// Overlap detection: group events that overlap in time
+interface OverlapInfo {
+  index: number; // position within the overlap group (0-based)
+  total: number; // total events in the overlap group
+}
+
+function computeOverlaps(events: CalendarEvent[]): Map<string, OverlapInfo> {
+  const result = new Map<string, OverlapInfo>();
+  if (events.length === 0) return result;
+
+  // Sort by start time
+  const sorted = [...events].sort(
+    (a, b) => parseISO(a.start).getTime() - parseISO(b.start).getTime()
+  );
+
+  // Build overlap groups using a sweep-line approach
+  const groups: CalendarEvent[][] = [];
+  let currentGroup: CalendarEvent[] = [sorted[0]];
+  let groupEnd = parseISO(sorted[0].end).getTime();
+
+  for (let i = 1; i < sorted.length; i++) {
+    const eventStart = parseISO(sorted[i].start).getTime();
+    if (eventStart < groupEnd) {
+      // Overlaps with current group
+      currentGroup.push(sorted[i]);
+      groupEnd = Math.max(groupEnd, parseISO(sorted[i].end).getTime());
+    } else {
+      groups.push(currentGroup);
+      currentGroup = [sorted[i]];
+      groupEnd = parseISO(sorted[i].end).getTime();
+    }
+  }
+  groups.push(currentGroup);
+
+  // Assign overlap info
+  for (const group of groups) {
+    for (let i = 0; i < group.length; i++) {
+      const key = `${group[i].id || group[i].summary}-${group[i].start}`;
+      result.set(key, { index: i, total: group.length });
+    }
+  }
+
+  return result;
 }
 
 // Time block for week/day views (draggable)
@@ -94,19 +151,25 @@ function TimeBlock({
   onClick,
   dayStart,
   isDragging,
+  overlapInfo,
 }: {
   event: CalendarEvent;
   onClick: () => void;
   dayStart: Date;
   isDragging?: boolean;
+  overlapInfo?: OverlapInfo;
 }) {
   const startDate = parseISO(event.start);
   const endDate = parseISO(event.end);
-  const startMinutes = differenceInMinutes(startDate, setHours(setMinutes(dayStart, 0), 6));
+  const startHour = startDate.getHours();
+  const startMinuteOfDay = startDate.getMinutes();
   const duration = differenceInMinutes(endDate, startDate);
 
-  const top = Math.max(0, (startMinutes / 60) * 64); // 64px per hour
-  const height = Math.max(20, (duration / 60) * 64);
+  // Accurate positioning: top = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT
+  const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
+  const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
+  // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 24px
+  const height = Math.max(24, (duration / 60) * ROW_HEIGHT);
 
   const dragId = `event-${event.id || event.summary}-${event.start}`;
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -114,31 +177,62 @@ function TimeBlock({
     data: { event },
   });
 
+  // Calculate overlap positioning
+  const overlapIndex = overlapInfo?.index ?? 0;
+  const overlapTotal = overlapInfo?.total ?? 1;
+  const widthPercent = 100 / overlapTotal;
+  const leftPercent = overlapIndex * widthPercent;
+  const isOverlapping = overlapTotal > 1;
+  const isSecondaryOverlap = overlapIndex > 0;
+
   const style: React.CSSProperties = {
     top: `${top}px`,
     height: `${height}px`,
+    left: overlapTotal > 1 ? `calc(${leftPercent}% + 4px)` : "4px",
+    right: overlapTotal > 1 ? `calc(${100 - leftPercent - widthPercent}% + 4px)` : "4px",
+    maxHeight: `${HOURS.length * ROW_HEIGHT - top}px`,
     ...(transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : {}),
     opacity: isDragging ? 0.5 : 1,
   };
 
   return (
-    <button
+    <div
       ref={setNodeRef}
       onClick={onClick}
-      className="absolute left-1 right-1 rounded-lg bg-accent-500/15 border border-accent-500/30 px-2 py-1 overflow-hidden hover:bg-accent-500/25 transition-colors group z-10 cursor-grab active:cursor-grabbing"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick();
+      }}
+      className={`absolute rounded-lg px-2 py-1 overflow-hidden hover:bg-accent-500/25 transition-colors group z-10 cursor-grab active:cursor-grabbing ${
+        isSecondaryOverlap
+          ? "bg-warning-500/10 border border-warning-500/40"
+          : "bg-accent-500/15 border border-accent-500/30"
+      }`}
       style={style}
       {...listeners}
       {...attributes}
     >
-      <p className="text-[11px] font-medium text-accent-600 dark:text-accent-300 truncate">
-        {event.summary}
-      </p>
+      <div className="flex items-center gap-1">
+        {isOverlapping && (
+          <AlertTriangle size={10} className="text-warning-500 shrink-0" />
+        )}
+        <p className={`text-[11px] font-medium truncate ${
+          isSecondaryOverlap
+            ? "text-warning-600 dark:text-warning-300"
+            : "text-accent-600 dark:text-accent-300"
+        }`}>
+          {event.summary}
+        </p>
+      </div>
       {height > 36 && (
-        <p className="text-[10px] text-accent-500/70 dark:text-accent-400/70">
+        <p className={`text-[10px] ${
+          isSecondaryOverlap
+            ? "text-warning-500/70 dark:text-warning-400/70"
+            : "text-accent-500/70 dark:text-accent-400/70"
+        }`}>
           {format(startDate, "h:mm a")} - {format(endDate, "h:mm a")}
         </p>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -220,6 +314,13 @@ export default function CalendarPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
+
+  // Debounce ref for PATCH calls during rapid drag (500ms)
+  const patchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPatchRef = useRef<{
+    eventId: string;
+    data: { start_time?: string; duration_minutes?: number; summary?: string };
+  } | null>(null);
 
   // Open edit modal for an event
   const openEditModal = useCallback((event: CalendarEvent) => {
@@ -326,16 +427,32 @@ export default function CalendarPage() {
       summary: draggedEvent.summary,
     });
 
-    // Attempt API call
+    // Debounced PATCH call (500ms) - only fires the last one during rapid drags
     if (draggedEvent.id) {
-      try {
-        await updateCalendarEvent(accessToken, draggedEvent.id, {
+      // Clear any pending debounce
+      if (patchDebounceRef.current) {
+        clearTimeout(patchDebounceRef.current);
+      }
+
+      pendingPatchRef.current = {
+        eventId: draggedEvent.id,
+        data: {
           start_time: format(newStart, "yyyy-MM-dd'T'HH:mm:ss"),
           duration_minutes: duration,
-        });
-      } catch {
-        // Local state already updated as fallback
-      }
+        },
+      };
+
+      patchDebounceRef.current = setTimeout(async () => {
+        const pending = pendingPatchRef.current;
+        if (pending) {
+          try {
+            await updateCalendarEvent(accessToken, pending.eventId, pending.data);
+          } catch {
+            // Local state already updated as fallback
+          }
+          pendingPatchRef.current = null;
+        }
+      }, 500);
     }
   };
 
@@ -706,15 +823,23 @@ export default function CalendarPage() {
                           />
                         ))}
                         {/* Events */}
-                        {getEventsForDay(day).map((event, i) => (
-                          <TimeBlock
-                            key={event.id || i}
-                            event={event}
-                            dayStart={day}
-                            onClick={() => openEditModal(event)}
-                            isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
-                          />
-                        ))}
+                        {(() => {
+                          const dayEvents = getEventsForDay(day);
+                          const overlaps = computeOverlaps(dayEvents);
+                          return dayEvents.map((event, i) => {
+                            const key = `${event.id || event.summary}-${event.start}`;
+                            return (
+                              <TimeBlock
+                                key={event.id || i}
+                                event={event}
+                                dayStart={day}
+                                onClick={() => openEditModal(event)}
+                                isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
+                                overlapInfo={overlaps.get(key)}
+                              />
+                            );
+                          });
+                        })()}
                         {/* Current time indicator */}
                         {isToday(day) && <CurrentTimeIndicator />}
                       </div>
@@ -762,15 +887,23 @@ export default function CalendarPage() {
                         />
                       ))}
                       {/* Events */}
-                      {getEventsForDay(currentDate).map((event, i) => (
-                        <TimeBlock
-                          key={event.id || i}
-                          event={event}
-                          dayStart={currentDate}
-                          onClick={() => openEditModal(event)}
-                          isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
-                        />
-                      ))}
+                      {(() => {
+                        const dayEvents = getEventsForDay(currentDate);
+                        const overlaps = computeOverlaps(dayEvents);
+                        return dayEvents.map((event, i) => {
+                          const key = `${event.id || event.summary}-${event.start}`;
+                          return (
+                            <TimeBlock
+                              key={event.id || i}
+                              event={event}
+                              dayStart={currentDate}
+                              onClick={() => openEditModal(event)}
+                              isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
+                              overlapInfo={overlaps.get(key)}
+                            />
+                          );
+                        });
+                      })()}
                       {/* Current time indicator */}
                       {isToday(currentDate) && <CurrentTimeIndicator />}
                     </div>
