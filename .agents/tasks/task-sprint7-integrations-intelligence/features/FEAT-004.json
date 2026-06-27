@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "feat",
   "description": "Settings Toggles for EVERYTHING: Add comprehensive settings toggles for all new integrations. Gmail on/off, Google Slides on/off, Spotify on/off + playlist URL input, Email deadline reminders on/off, Daily digest on/off, Weekly review on/off, preserve existing AI suggestions toggle, Auto-Pilot default mode selector. All persist via localStorage and backend user preferences endpoint.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Create backend endpoint GET/PUT /api/preferences in backend/app/main.py or a new router backend/app/api/preferences.py. GET returns the user's current preferences and notification_preferences from Firestore. PUT accepts a partial update object and persists to Firestore via UserRepository.update().",
     "2. Add frontend API functions in frontend/lib/api-extended.ts: fetchPreferences(authToken) and updatePreferences(authToken, prefs).",
@@ -31,5 +31,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m py_compile app/main.py"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All verification passed: npm run build, npm run lint, python -m py_compile on both main.py and preferences.py. The preferences router uses partial merge updates via UserRepository.update(). Notification toggles persist to both localStorage and backend. Integration toggles (Gmail, Slides, Spotify) are localStorage-only since they control frontend visibility only. StorageEvents dispatched on all toggle changes for cross-component reactivity. Custom 'chronai-playlist-changed' event also dispatched when playlist URL changes."
 }
