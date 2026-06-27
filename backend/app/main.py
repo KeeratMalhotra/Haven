@@ -275,20 +275,23 @@ async def websocket_chat(websocket: WebSocket):
                         }
                     )
 
-                    # Then send audio response
-                    voice_agent = AgentRegistry.get("voice")
-                    if voice_agent:
-                        audio_result = await voice_agent.execute(
-                            {"message": result["content"]}
-                        )
-                        if audio_result.get("content"):
-                            await websocket.send_json(
-                                {
-                                    "type": "audio",
-                                    "content": audio_result["content"],
-                                    "agent": "voice",
-                                }
+                    # Then send audio response (optional, fail silently)
+                    try:
+                        voice_agent = AgentRegistry.get("voice")
+                        if voice_agent:
+                            audio_result = await voice_agent.execute(
+                                {"message": result["content"]}
                             )
+                            if audio_result.get("content"):
+                                await websocket.send_json(
+                                    {
+                                        "type": "audio",
+                                        "content": audio_result["content"],
+                                        "agent": "voice",
+                                    }
+                                )
+                    except Exception:
+                        pass  # Voice TTS is optional; don't break chat flow
 
             else:
                 # Standard chat message
