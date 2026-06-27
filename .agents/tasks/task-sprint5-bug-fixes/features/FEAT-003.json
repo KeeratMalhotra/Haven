@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Calendar event editing and drag-to-reschedule: click event to open edit modal, drag events between time slots in week/day view",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add an updateCalendarEvent function to frontend/lib/api-extended.ts that calls PATCH /api/calendar/events/:id with auth_token, summary, start_time, and duration_minutes. Follow the pattern of existing API functions in that file. Include a try-catch that falls back to local state update if API fails.",
     "In frontend/app/dashboard/calendar/page.tsx, replace the EventDetail popover (which only shows info + delete) with a proper Edit Modal. When user clicks an event, open a modal pre-filled with the event's current title, date, time, and duration. Allow editing all fields. Add Save and Cancel buttons. On Save, call updateCalendarEvent and update local state. Keep the Delete button in the modal.",
@@ -24,5 +24,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Successfully implemented edit modal and drag-to-reschedule. Removed EventDetail popover component in favor of a proper Modal. Added updateCalendarEvent to api-extended.ts. Used @dnd-kit useDraggable/useDroppable for drag-to-reschedule in week and day views. Cleaned up unused imports (X, Clock, MapPin, GripVertical, DragOverlay). Build passes cleanly."
 }
