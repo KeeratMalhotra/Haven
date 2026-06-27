@@ -1,0 +1,39 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Recurring Tasks + Labels/Tags System + Right-Click Context Menu + Bulk Multi-Select Actions. This feature adds task metadata enhancements: recurring tasks that auto-regenerate on completion, colored labels/tags for tasks with filtering, a right-click context menu for quick actions, and checkbox-based bulk selection with bulk operations.",
+  "status": "in_progress",
+  "steps": [
+    "STEP 1 - Extend the LocalTask interface in frontend/app/dashboard/tasks/page.tsx to include new fields: recurrence?: { type: 'daily' | 'weekly' | 'monthly' | 'custom'; interval?: number; days?: number[] } | null; labels?: { id: string; name: string; color: string }[]; These are stored in localStorage alongside existing task data.",
+    "STEP 2 - Create a new component at frontend/components/tasks/LabelManager.tsx that allows creating custom labels with name + color picker. Default labels: Work (#3b82f6 blue), Personal (#8b5cf6 purple), Urgent (#ef4444 red), Health (#10b981 green), Learning (#f59e0b amber). Store labels in localStorage key 'chronai-labels'. Export a useable hook or context for labels.",
+    "STEP 3 - Add label display on task cards (SortableTaskCard and ListRow in tasks/page.tsx): Show small colored dots or pills next to the task title. In the TaskDetailPanel, add a label selector section that shows available labels as clickable chips.",
+    "STEP 4 - Add a label filter bar above the task board/list: horizontal scrollable row of label chips. Clicking a label filters tasks to only show those with that label. An 'All' chip to clear filter. Store active filter in component state.",
+    "STEP 5 - Add recurrence UI to the TaskDetailPanel and Create Task Modal: a 'Repeat' dropdown with options: None, Daily, Weekly, Monthly, Custom. For Custom, show interval input and day-of-week checkboxes. Visual indicator on task cards: a small repeat/refresh icon next to recurring tasks.",
+    "STEP 6 - Implement recurring task auto-regeneration: In the handleToggleTask function, when a recurring task is marked as 'done', automatically create a new copy of the task with status 'todo', the same title/labels/priority, and an updated due date (calculated from the recurrence pattern). The completed original stays in 'done'.",
+    "STEP 7 - Create a right-click context menu component at frontend/components/tasks/TaskContextMenu.tsx: Uses a portal-based absolutely-positioned menu that appears on right-click. Menu items: Edit (opens detail panel), Delete, Duplicate, Move to... (submenu: To Do, In Progress, Done), Add Label (submenu with available labels), Set Priority (submenu: High, Medium, Low, None). Style: dark bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl, items with hover states.",
+    "STEP 8 - Wire up the context menu to task cards: On SortableTaskCard and ListRow, add onContextMenu handler that prevents default and shows the context menu at cursor position. Implement each menu action (edit opens detail, delete shows confirmation, duplicate creates a copy with 'Copy of' prefix, move changes status, add label toggles label, set priority updates priority).",
+    "STEP 9 - Add bulk multi-select mode: Add a 'Select' toggle button in the tasks header. When active, show checkboxes on each task card/row. Selected tasks tracked in component state as Set<string>. Bulk action bar appears at bottom when 1+ tasks selected: Complete All, Delete All, Move to..., Set Priority, Add Label. Each bulk action applies to all selected tasks.",
+    "STEP 10 - Verify: Run npm run build and npm run lint to ensure everything compiles cleanly."
+  ],
+  "acceptance_criteria": [
+    "npm run build succeeds with no errors",
+    "npm run lint shows no errors",
+    "LocalTask interface includes recurrence and labels fields",
+    "Labels can be created with custom names and colors",
+    "Default labels (Work, Personal, Urgent, Health, Learning) exist",
+    "Tasks display their labels as colored indicators",
+    "Label filter bar filters tasks by selected label",
+    "Recurrence can be set on tasks (daily/weekly/monthly/custom)",
+    "Recurring tasks show a visual indicator (repeat icon)",
+    "Completing a recurring task auto-creates the next occurrence",
+    "Right-click on any task shows a context menu with Edit/Delete/Duplicate/Move/Label/Priority",
+    "Bulk select mode shows checkboxes and a bulk action bar",
+    "Bulk actions (complete, delete, move, priority, label) work on selected tasks"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

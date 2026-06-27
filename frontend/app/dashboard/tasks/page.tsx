@@ -14,6 +14,11 @@ import {
   ListChecks,
   Trash2,
   Sparkles,
+  Repeat,
+  CheckCircle2,
+  ArrowRight,
+  Tag,
+  Flag,
 } from "lucide-react";
 import {
   DndContext,
@@ -31,7 +36,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { format } from "date-fns";
+import { format, addDays, addWeeks, addMonths } from "date-fns";
 
 import { fetchTasks, type TaskItem } from "@/lib/api";
 import {
@@ -49,12 +54,33 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  useLabels,
+  LabelSelector,
+  LabelFilterBar,
+  LabelCreator,
+  type TaskLabel,
+} from "@/components/tasks/LabelManager";
+import {
+  TaskContextMenu,
+  type ContextMenuPosition,
+  type ContextMenuActions,
+} from "@/components/tasks/TaskContextMenu";
+
+// Recurrence config
+export interface RecurrenceConfig {
+  type: "daily" | "weekly" | "monthly" | "custom";
+  interval?: number;
+  days?: number[];
+}
 
 // Extended task type with local status
 interface LocalTask extends TaskItem {
   id: string;
   status: "todo" | "inprogress" | "done";
   priority: "high" | "medium" | "low" | "none";
+  recurrence?: RecurrenceConfig | null;
+  labels?: TaskLabel[];
 }
 
 type ViewMode = "board" | "list";
@@ -113,17 +139,137 @@ function PrioritySelector({
   );
 }
 
+// Recurrence selector component
+function RecurrenceSelector({
+  value,
+  onChange,
+}: {
+  value: RecurrenceConfig | null | undefined;
+  onChange: (r: RecurrenceConfig | null) => void;
+}) {
+  const currentType = value?.type || "none";
+  const [customInterval, setCustomInterval] = useState(value?.interval || 1);
+  const [customDays, setCustomDays] = useState<number[]>(value?.days || []);
+
+  const options: { label: string; val: string }[] = [
+    { label: "None", val: "none" },
+    { label: "Daily", val: "daily" },
+    { label: "Weekly", val: "weekly" },
+    { label: "Monthly", val: "monthly" },
+    { label: "Custom", val: "custom" },
+  ];
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.val}
+            onClick={() => {
+              if (opt.val === "none") {
+                onChange(null);
+              } else if (opt.val === "custom") {
+                onChange({ type: "custom", interval: customInterval, days: customDays });
+              } else {
+                onChange({ type: opt.val as RecurrenceConfig["type"] });
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              currentType === opt.val || (opt.val === "none" && !value)
+                ? "bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)]"
+                : "text-[var(--text-tertiary)] border border-transparent hover:border-[var(--border)]"
+            }`}
+          >
+            {opt.val !== "none" && <Repeat size={10} />}
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      {currentType === "custom" && (
+        <div className="space-y-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)]">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-secondary)]">Every</span>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={customInterval}
+              onChange={(e) => {
+                const val = Math.max(1, parseInt(e.target.value) || 1);
+                setCustomInterval(val);
+                onChange({ type: "custom", interval: val, days: customDays });
+              }}
+              className="w-14 h-7 px-2 rounded border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-primary)] text-center focus:outline-none focus:border-accent-400"
+            />
+            <span className="text-xs text-[var(--text-secondary)]">day(s)</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {dayNames.map((day, idx) => (
+              <button
+                key={day}
+                onClick={() => {
+                  const newDays = customDays.includes(idx)
+                    ? customDays.filter((d) => d !== idx)
+                    : [...customDays, idx];
+                  setCustomDays(newDays);
+                  onChange({ type: "custom", interval: customInterval, days: newDays });
+                }}
+                className={`h-7 w-9 rounded text-xs font-medium transition-colors ${
+                  customDays.includes(idx)
+                    ? "bg-accent-500 text-white"
+                    : "bg-[var(--surface)] text-[var(--text-tertiary)] border border-[var(--border)] hover:border-accent-400"
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Compute next due date for a recurring task
+function getNextDueDate(currentDue: string | null | undefined, recurrence: RecurrenceConfig): string {
+  const baseDate = currentDue ? new Date(currentDue) : new Date();
+  switch (recurrence.type) {
+    case "daily":
+      return addDays(baseDate, 1).toISOString().split("T")[0];
+    case "weekly":
+      return addWeeks(baseDate, 1).toISOString().split("T")[0];
+    case "monthly":
+      return addMonths(baseDate, 1).toISOString().split("T")[0];
+    case "custom": {
+      const interval = recurrence.interval || 1;
+      return addDays(baseDate, interval).toISOString().split("T")[0];
+    }
+    default:
+      return addDays(baseDate, 1).toISOString().split("T")[0];
+  }
+}
+
 // Kanban column component
 function KanbanColumn({
   title,
   tasks,
   color,
   onTaskClick,
+  onContextMenu,
+  isSelectMode,
+  selectedTasks,
+  onSelect,
 }: {
   title: string;
   tasks: LocalTask[];
   color: string;
   onTaskClick: (task: LocalTask) => void;
+  onContextMenu?: (e: React.MouseEvent, task: LocalTask) => void;
+  isSelectMode?: boolean;
+  selectedTasks?: Set<string>;
+  onSelect?: (taskId: string) => void;
 }) {
   return (
     <div className="flex-1 min-w-[280px]">
@@ -146,6 +292,10 @@ function KanbanColumn({
               key={task.id}
               task={task}
               onClick={() => onTaskClick(task)}
+              onContextMenu={onContextMenu ? (e) => onContextMenu(e, task) : undefined}
+              isSelectMode={isSelectMode}
+              isSelected={selectedTasks?.has(task.id)}
+              onSelect={onSelect ? () => onSelect(task.id) : undefined}
             />
           ))}
         </div>
@@ -158,9 +308,17 @@ function KanbanColumn({
 function SortableTaskCard({
   task,
   onClick,
+  onContextMenu,
+  isSelectMode,
+  isSelected,
+  onSelect,
 }: {
   task: LocalTask;
   onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }) {
   const {
     attributes,
@@ -181,20 +339,59 @@ function SortableTaskCard({
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card
         hover
-        className="cursor-grab active:cursor-grabbing"
-        onClick={onClick}
+        className={`cursor-grab active:cursor-grabbing ${isSelected ? "ring-2 ring-accent-500/50" : ""}`}
+        onClick={isSelectMode ? onSelect : onClick}
+        onContextMenu={onContextMenu}
       >
         <div className="flex items-center gap-1.5 mb-1.5">
+          {isSelectMode && (
+            <span
+              className={`flex-shrink-0 h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+                isSelected
+                  ? "bg-accent-500 border-accent-500"
+                  : "border-[var(--border)]"
+              }`}
+            >
+              {isSelected && (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
+          )}
           {task.priority && task.priority !== "none" && (
             <span
               className="inline-block h-[6px] w-[6px] rounded-full flex-shrink-0"
               style={{ backgroundColor: priorityDotColor(task.priority) }}
             />
           )}
+          {task.recurrence && (
+            <Repeat size={11} className="text-accent-400 flex-shrink-0" />
+          )}
           <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2">
             {task.title}
           </p>
         </div>
+        {task.labels && task.labels.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {task.labels.map((label) => (
+              <span
+                key={label.id}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                style={{
+                  backgroundColor: `${label.color}20`,
+                  color: label.color,
+                }}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: label.color }}
+                />
+                {label.name}
+              </span>
+            ))}
+          </div>
+        )}
         {task.notes && (
           <p className="text-xs text-[var(--text-tertiary)] mb-2 line-clamp-1">
             {task.notes}
@@ -245,12 +442,20 @@ function ListRow({
   onTitleChange,
   onTaskClick,
   onDelete,
+  onContextMenu,
+  isSelectMode,
+  isSelected,
+  onSelect,
 }: {
   task: LocalTask;
   onToggle: () => void;
   onTitleChange: (title: string) => void;
   onTaskClick: () => void;
   onDelete: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
@@ -301,8 +506,29 @@ function ListRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg border border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors duration-150"
+      onContextMenu={onContextMenu}
+      className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors duration-150 ${
+        isSelected
+          ? "border-accent-500/50 bg-accent-500/5"
+          : "border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
+      }`}
     >
+      {isSelectMode && (
+        <button
+          onClick={onSelect}
+          className={`flex-shrink-0 h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+            isSelected
+              ? "bg-accent-500 border-accent-500"
+              : "border-[var(--border)] hover:border-accent-400"
+          }`}
+        >
+          {isSelected && (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+      )}
       <button
         className="text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
         {...attributes}
@@ -361,6 +587,9 @@ function ListRow({
                 style={{ backgroundColor: priorityDotColor(task.priority) }}
               />
             )}
+            {task.recurrence && (
+              <Repeat size={11} className="text-accent-400 flex-shrink-0" />
+            )}
             <button
               onClick={() => setIsEditing(true)}
               onDoubleClick={onTaskClick}
@@ -375,6 +604,18 @@ function ListRow({
           </div>
         )}
       </div>
+      {task.labels && task.labels.length > 0 && (
+        <div className="flex gap-1 flex-shrink-0">
+          {task.labels.slice(0, 3).map((label) => (
+            <span
+              key={label.id}
+              className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: label.color }}
+              title={label.name}
+            />
+          ))}
+        </div>
+      )}
       {task.due && (
         <span className="text-xs text-[var(--text-tertiary)] flex-shrink-0">
           {format(new Date(task.due), "MMM d")}
@@ -400,25 +641,38 @@ function TaskDetailPanel({
   onClose,
   onUpdate,
   onDelete,
+  allLabels,
 }: {
   task: LocalTask;
   onClose: () => void;
   onUpdate: (updated: LocalTask) => void;
   onDelete: () => void;
+  allLabels: TaskLabel[];
 }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes || "");
   const [due, setDue] = useState(task.due || "");
   const [status, setStatus] = useState(task.status);
   const [priority, setPriority] = useState<LocalTask["priority"]>(task.priority);
+  const [recurrence, setRecurrence] = useState<RecurrenceConfig | null>(task.recurrence || null);
+  const [taskLabels, setTaskLabels] = useState<TaskLabel[]>(task.labels || []);
   const [newSubtask, setNewSubtask] = useState("");
 
   const handleSave = () => {
-    onUpdate({ ...task, title, notes, due: due || null, status, priority });
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence, labels: taskLabels });
   };
 
   const handleNotesSave = () => {
-    onUpdate({ ...task, title, notes, due: due || null, status, priority });
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence, labels: taskLabels });
+  };
+
+  const handleToggleLabel = (label: TaskLabel) => {
+    const exists = taskLabels.some((l) => l.id === label.id);
+    const updated = exists
+      ? taskLabels.filter((l) => l.id !== label.id)
+      : [...taskLabels, label];
+    setTaskLabels(updated);
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence, labels: updated });
   };
 
   const handleAddSubtask = () => {
@@ -427,7 +681,7 @@ function TaskDetailPanel({
       ...(task.subtasks || []),
       { title: newSubtask.trim(), completed: false },
     ];
-    onUpdate({ ...task, title, notes, due: due || null, status, priority, subtasks: updatedSubtasks });
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence, labels: taskLabels, subtasks: updatedSubtasks });
     setNewSubtask("");
   };
 
@@ -435,7 +689,7 @@ function TaskDetailPanel({
     const updatedSubtasks = (task.subtasks || []).map((sub, i) =>
       i === index ? { ...sub, completed: !sub.completed } : sub
     );
-    onUpdate({ ...task, title, notes, due: due || null, status, priority, subtasks: updatedSubtasks });
+    onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence, labels: taskLabels, subtasks: updatedSubtasks });
   };
 
   return (
@@ -485,7 +739,7 @@ function TaskDetailPanel({
             value={priority}
             onChange={(p) => {
               setPriority(p);
-              onUpdate({ ...task, title, notes, due: due || null, status, priority: p });
+              onUpdate({ ...task, title, notes, due: due || null, status, priority: p, recurrence, labels: taskLabels });
             }}
           />
         </div>
@@ -499,7 +753,7 @@ function TaskDetailPanel({
                 key={s}
                 onClick={() => {
                   setStatus(s);
-                  onUpdate({ ...task, title, notes, due: due || null, status: s, priority });
+                  onUpdate({ ...task, title, notes, due: due || null, status: s, priority, recurrence, labels: taskLabels });
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   status === s
@@ -526,9 +780,31 @@ function TaskDetailPanel({
             onChange={(e) => {
               const val = e.target.value;
               setDue(val);
-              onUpdate({ ...task, title, notes, due: val || null, status, priority });
+              onUpdate({ ...task, title, notes, due: val || null, status, priority, recurrence, labels: taskLabels });
             }}
             className="w-full h-9 px-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+            Labels
+          </label>
+          <LabelSelector
+            labels={allLabels}
+            selectedLabels={taskLabels}
+            onToggle={handleToggleLabel}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+            Repeat
+          </label>
+          <RecurrenceSelector
+            value={recurrence}
+            onChange={(r) => {
+              setRecurrence(r);
+              onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence: r, labels: taskLabels });
+            }}
           />
         </div>
         <div>
@@ -629,11 +905,24 @@ export default function TasksPage() {
   const [aiPrioritized, setAiPrioritized] = useState(false);
   const isHydrated = useRef(false);
 
+  // Labels system
+  const { labels: allLabels, addLabel } = useLabels();
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [showLabelCreator, setShowLabelCreator] = useState(false);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; task: LocalTask } | null>(null);
+
+  // Bulk select mode
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+
   // New task form state
   const [newTitle, setNewTitle] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [newDue, setNewDue] = useState("");
   const [newPriority, setNewPriority] = useState<LocalTask["priority"]>("none");
+  const [newRecurrence, setNewRecurrence] = useState<RecurrenceConfig | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -691,10 +980,13 @@ export default function TasksPage() {
     }
   }, [tasks]);
 
-  // Task helpers
-  const todoTasks = tasks.filter((t) => t.status === "todo");
-  const inProgressTasks = tasks.filter((t) => t.status === "inprogress");
-  const doneTasks = tasks.filter((t) => t.status === "done");
+  // Task helpers - apply label filter
+  const filteredTasks = labelFilter
+    ? tasks.filter((t) => t.labels?.some((l) => l.id === labelFilter))
+    : tasks;
+  const todoTasks = filteredTasks.filter((t) => t.status === "todo");
+  const inProgressTasks = filteredTasks.filter((t) => t.status === "inprogress");
+  const doneTasks = filteredTasks.filter((t) => t.status === "done");
 
   const handleCreateTask = async () => {
     if (!newTitle.trim()) return;
@@ -706,6 +998,8 @@ export default function TasksPage() {
       completed: false,
       status: "todo",
       priority: newPriority,
+      recurrence: newRecurrence,
+      labels: [],
     };
 
     // Calculate due_days_from_now from the due date
@@ -721,6 +1015,7 @@ export default function TasksPage() {
     setNewNotes("");
     setNewDue("");
     setNewPriority("none");
+    setNewRecurrence(null);
     setShowCreateModal(false);
 
     // Report action to AI context
@@ -763,17 +1058,32 @@ export default function TasksPage() {
       );
     }
 
-    setTasks((prev) =>
-      prev.map((t) =>
+    setTasks((prev) => {
+      const updated = prev.map((t) =>
         t.id === taskId
           ? {
               ...t,
-              status: t.status === "done" ? "todo" : "done",
+              status: (t.status === "done" ? "todo" : "done") as LocalTask["status"],
               completed: t.status !== "done",
             }
           : t
-      )
-    );
+      );
+
+      // If marking as done and it is a recurring task, create next occurrence
+      if (newCompleted && task?.recurrence) {
+        const nextDue = getNextDueDate(task.due, task.recurrence);
+        const nextTask: LocalTask = {
+          ...task,
+          id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          status: "todo",
+          completed: false,
+          due: nextDue,
+        };
+        return [nextTask, ...updated];
+      }
+
+      return updated;
+    });
   }, [accessToken, reportAction, tasks]);
 
   const handleUpdateTask = useCallback((updated: LocalTask) => {
@@ -896,6 +1206,127 @@ export default function TasksPage() {
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
+  // Context menu handler
+  const handleContextMenu = useCallback((e: React.MouseEvent, task: LocalTask) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ position: { x: e.clientX, y: e.clientY }, task });
+  }, []);
+
+  const contextMenuActions: ContextMenuActions | null = contextMenu
+    ? {
+        onEdit: () => setSelectedTask(contextMenu.task),
+        onDelete: () => setDeleteTarget(contextMenu.task),
+        onDuplicate: () => {
+          const original = contextMenu.task;
+          const dup: LocalTask = {
+            ...original,
+            id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            title: `Copy of ${original.title}`,
+            completed: false,
+            status: "todo",
+          };
+          setTasks((prev) => [dup, ...prev]);
+        },
+        onMoveTo: (status) => {
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === contextMenu.task.id
+                ? { ...t, status, completed: status === "done" }
+                : t
+            )
+          );
+        },
+        onAddLabel: (label) => {
+          setTasks((prev) =>
+            prev.map((t) => {
+              if (t.id !== contextMenu.task.id) return t;
+              const existing = t.labels || [];
+              const hasLabel = existing.some((l) => l.id === label.id);
+              return {
+                ...t,
+                labels: hasLabel
+                  ? existing.filter((l) => l.id !== label.id)
+                  : [...existing, label],
+              };
+            })
+          );
+        },
+        onSetPriority: (priority) => {
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === contextMenu.task.id ? { ...t, priority } : t
+            )
+          );
+        },
+      }
+    : null;
+
+  // Bulk select handlers
+  const handleToggleSelect = useCallback((taskId: string) => {
+    setSelectedTasks((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBulkComplete = useCallback(() => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        selectedTasks.has(t.id) ? { ...t, status: "done" as const, completed: true } : t
+      )
+    );
+    setSelectedTasks(new Set());
+    setIsSelectMode(false);
+  }, [selectedTasks]);
+
+  const handleBulkDelete = useCallback(() => {
+    setTasks((prev) => prev.filter((t) => !selectedTasks.has(t.id)));
+    setSelectedTasks(new Set());
+    setIsSelectMode(false);
+  }, [selectedTasks]);
+
+  const handleBulkMove = useCallback((status: "todo" | "inprogress" | "done") => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        selectedTasks.has(t.id) ? { ...t, status, completed: status === "done" } : t
+      )
+    );
+    setSelectedTasks(new Set());
+    setIsSelectMode(false);
+  }, [selectedTasks]);
+
+  const handleBulkPriority = useCallback((priority: LocalTask["priority"]) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        selectedTasks.has(t.id) ? { ...t, priority } : t
+      )
+    );
+    setSelectedTasks(new Set());
+    setIsSelectMode(false);
+  }, [selectedTasks]);
+
+  const handleBulkLabel = useCallback((label: TaskLabel) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (!selectedTasks.has(t.id)) return t;
+        const existing = t.labels || [];
+        const hasLabel = existing.some((l) => l.id === label.id);
+        return {
+          ...t,
+          labels: hasLabel ? existing : [...existing, label],
+        };
+      })
+    );
+    setSelectedTasks(new Set());
+    setIsSelectMode(false);
+  }, [selectedTasks]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -943,6 +1374,18 @@ export default function TasksPage() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => {
+              setIsSelectMode(!isSelectMode);
+              if (isSelectMode) setSelectedTasks(new Set());
+            }}
+            className={isSelectMode ? "bg-accent-500/10 text-accent-500" : ""}
+          >
+            <CheckCircle2 size={14} strokeWidth={1.5} />
+            {isSelectMode ? "Cancel" : "Select"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleAiPrioritize}
             disabled={aiLoading}
           >
@@ -958,6 +1401,17 @@ export default function TasksPage() {
           </Button>
         </div>
       </div>
+
+      {/* Label Filter Bar */}
+      {allLabels.length > 0 && (
+        <div className="mb-4">
+          <LabelFilterBar
+            labels={allLabels}
+            activeFilter={labelFilter}
+            onFilterChange={setLabelFilter}
+          />
+        </div>
+      )}
 
       {/* AI Suggestion Banner */}
       {(() => {
@@ -1021,18 +1475,30 @@ export default function TasksPage() {
                   tasks={todoTasks}
                   color="bg-[var(--text-tertiary)]"
                   onTaskClick={setSelectedTask}
+                  onContextMenu={handleContextMenu}
+                  isSelectMode={isSelectMode}
+                  selectedTasks={selectedTasks}
+                  onSelect={handleToggleSelect}
                 />
                 <KanbanColumn
                   title="In Progress"
                   tasks={inProgressTasks}
                   color="bg-warning-500"
                   onTaskClick={setSelectedTask}
+                  onContextMenu={handleContextMenu}
+                  isSelectMode={isSelectMode}
+                  selectedTasks={selectedTasks}
+                  onSelect={handleToggleSelect}
                 />
                 <KanbanColumn
                   title="Done"
                   tasks={doneTasks}
                   color="bg-success-500"
                   onTaskClick={setSelectedTask}
+                  onContextMenu={handleContextMenu}
+                  isSelectMode={isSelectMode}
+                  selectedTasks={selectedTasks}
+                  onSelect={handleToggleSelect}
                 />
               </motion.div>
             ) : (
@@ -1045,11 +1511,11 @@ export default function TasksPage() {
                 className="flex-1"
               >
                 <SortableContext
-                  items={tasks.map((t) => t.id)}
+                  items={filteredTasks.map((t) => t.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-0.5">
-                    {tasks.map((task) => (
+                    {filteredTasks.map((task) => (
                       <ListRow
                         key={task.id}
                         task={task}
@@ -1059,6 +1525,10 @@ export default function TasksPage() {
                         }
                         onTaskClick={() => setSelectedTask(task)}
                         onDelete={() => setDeleteTarget(task)}
+                        onContextMenu={(e) => handleContextMenu(e, task)}
+                        isSelectMode={isSelectMode}
+                        isSelected={selectedTasks.has(task.id)}
+                        onSelect={() => handleToggleSelect(task.id)}
                       />
                     ))}
                   </div>
@@ -1113,6 +1583,12 @@ export default function TasksPage() {
               </label>
               <PrioritySelector value={newPriority} onChange={setNewPriority} />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[var(--text-secondary)]">
+                Repeat
+              </label>
+              <RecurrenceSelector value={newRecurrence} onChange={setNewRecurrence} />
+            </div>
           </div>
           <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-[var(--border)]">
             <Button
@@ -1146,6 +1622,7 @@ export default function TasksPage() {
               onClose={() => setSelectedTask(null)}
               onUpdate={handleUpdateTask}
               onDelete={() => setDeleteTarget(selectedTask)}
+              allLabels={allLabels}
             />
           </>
         )}
@@ -1179,6 +1656,96 @@ export default function TasksPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Context Menu */}
+      {contextMenuActions && (
+        <TaskContextMenu
+          position={contextMenu?.position || null}
+          actions={contextMenuActions}
+          labels={allLabels}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* Label Creator Modal */}
+      <Modal open={showLabelCreator} onClose={() => setShowLabelCreator(false)}>
+        <LabelCreator
+          onCreateLabel={addLabel}
+          onClose={() => setShowLabelCreator(false)}
+        />
+      </Modal>
+
+      {/* Bulk Action Bar */}
+      <AnimatePresence>
+        {isSelectMode && selectedTasks.size > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl"
+          >
+            <span className="text-xs font-medium text-[var(--text-secondary)] mr-2">
+              {selectedTasks.size} selected
+            </span>
+            <button
+              onClick={handleBulkComplete}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-success-500 bg-success-500/10 hover:bg-success-500/20 transition-colors"
+            >
+              <CheckCircle2 size={13} />
+              Complete
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-danger-500 bg-danger-500/10 hover:bg-danger-500/20 transition-colors"
+            >
+              <Trash2 size={13} />
+              Delete
+            </button>
+            <div className="relative group">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors">
+                <ArrowRight size={13} />
+                Move to
+              </button>
+              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
+                <button onClick={() => handleBulkMove("todo")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">To Do</button>
+                <button onClick={() => handleBulkMove("inprogress")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">In Progress</button>
+                <button onClick={() => handleBulkMove("done")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Done</button>
+              </div>
+            </div>
+            <div className="relative group">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors">
+                <Flag size={13} />
+                Priority
+              </button>
+              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[100px]">
+                <button onClick={() => handleBulkPriority("high")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">High</button>
+                <button onClick={() => handleBulkPriority("medium")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Medium</button>
+                <button onClick={() => handleBulkPriority("low")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Low</button>
+                <button onClick={() => handleBulkPriority("none")} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">None</button>
+              </div>
+            </div>
+            <div className="relative group">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors">
+                <Tag size={13} />
+                Label
+              </button>
+              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
+                {allLabels.map((label) => (
+                  <button
+                    key={label.id}
+                    onClick={() => handleBulkLabel(label)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+                    {label.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
