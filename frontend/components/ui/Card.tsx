@@ -10,6 +10,12 @@ interface CardProps extends Omit<HTMLMotionProps<"div">, "children"> {
   className?: string;
 }
 
+const springTransition = {
+  type: "spring" as const,
+  stiffness: 300,
+  damping: 30,
+};
+
 export function Card({
   children,
   hover = true,
@@ -19,13 +25,21 @@ export function Card({
 }: CardProps) {
   return (
     <motion.div
-      whileHover={hover ? { y: -2, boxShadow: "0 8px 24px -8px rgba(0, 0, 0, 0.12)" } : undefined}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      whileHover={
+        hover
+          ? {
+              y: -2,
+              boxShadow:
+                "0 8px 24px -8px rgba(0, 0, 0, 0.12), 0 2px 8px -2px rgba(0, 0, 0, 0.05)",
+            }
+          : undefined
+      }
+      transition={springTransition}
       className={`
         rounded-xl border bg-[var(--surface)] p-4
-        transition-colors duration-150
-        ${accent ? "border-accent-400/30" : "border-[var(--border)]"}
-        ${hover ? "hover:border-[var(--border)] hover:bg-[var(--surface-hover)]" : ""}
+        shadow-xs transition-colors duration-200
+        ${accent ? "border-accent-400/30 shadow-glow-sm" : "border-[var(--border)]"}
+        ${hover ? "hover:border-[var(--text-tertiary)]/30 hover:bg-[var(--surface-hover)]" : ""}
         ${className}
       `}
       {...props}

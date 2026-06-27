@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Foundation layer: Rebuild the design system (globals.css, tailwind.config.ts, layout.tsx, ui primitives) with Notion-style fonts, premium CSS variables, enhanced animation tokens, and polished base components.",
+  "status": "in_progress",
+  "steps": [
+    "Rewrite app/globals.css with a complete premium theme system: enhanced CSS variables for both dark and light mode with Notion-inspired warm grays, refined glass morphism utilities, improved gradient text classes, smoother scrollbar styling, new utility classes for micro-interactions (hover-lift, press-scale, etc.), enhanced focus ring styles. Dark mode should be default.",
+    "Rewrite tailwind.config.ts with updated design tokens: Notion-style system font stack as default sans-serif (Inter as primary with -apple-system, BlinkMacSystemFont, Segoe UI fallbacks), JetBrains Mono for monospace, refined spacing scale, updated color palette with warm neutrals, enhanced shadow system (subtle Notion-style shadows + accent glows), new animation keyframes for page transitions and micro-interactions, background gradients.",
+    "Rewrite app/layout.tsx: Keep Providers wrapper and ThemeProvider usage, update fonts to use Inter (from next/font/google) with the Notion-style variable, update metadata to be more premium, keep the same dark class on html element.",
+    "Rebuild components/ui/Button.tsx with enhanced variants, better hover/active/focus states, smoother spring animations, and press feedback. Keep the same props interface (variant, size, loading, children).",
+    "Rebuild components/ui/Card.tsx with refined borders, subtle shadows, better hover states with lift animation. Keep same props interface.",
+    "Rebuild components/ui/Input.tsx with cleaner styling, better focus states, smoother animations. Keep same props interface.",
+    "Rebuild components/ui/Modal.tsx with better backdrop blur, smoother spring transitions, refined borders. Keep same props interface.",
+    "Rebuild components/ui/Badge.tsx with slightly refined styling. Keep same props interface.",
+    "Rebuild components/ui/Toggle.tsx with smoother knob animation, better color transitions. Keep same props interface.",
+    "Rebuild components/ui/Skeleton.tsx with better shimmer animation. Keep same props interface.",
+    "Rebuild components/ui/EmptyState.tsx with slightly enhanced styling. Keep same props interface.",
+    "Keep components/ui/theme-provider.tsx exactly as-is since it provides the useTheme hook used everywhere.",
+    "Run pnpm build to verify no type errors or build failures."
+  ],
+  "acceptance_criteria": [
+    "pnpm build passes without errors",
+    "The CSS variable system supports both dark (default) and light mode",
+    "Font family uses Notion-style system font stack with Inter as primary",
+    "All ui/ components maintain their existing prop interfaces",
+    "theme-provider.tsx is unchanged"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

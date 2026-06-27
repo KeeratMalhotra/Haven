@@ -10,6 +10,12 @@ interface ToggleProps {
   className?: string;
 }
 
+const springTransition = {
+  type: "spring" as const,
+  stiffness: 300,
+  damping: 30,
+};
+
 export function Toggle({
   checked,
   onChange,
@@ -30,17 +36,17 @@ export function Toggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`
-          relative inline-flex h-5 w-9 items-center rounded-full
-          transition-colors duration-200 focus-ring
+          relative inline-flex h-[22px] w-[40px] items-center rounded-full
+          transition-colors duration-200 ease-spring focus-ring
           ${checked ? "bg-accent-500" : "bg-[var(--border)]"}
         `}
       >
         <motion.span
           layout
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          transition={springTransition}
           className={`
-            inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm
-            ${checked ? "ml-[18px]" : "ml-[3px]"}
+            inline-block h-4 w-4 rounded-full bg-white shadow-sm
+            ${checked ? "ml-[20px]" : "ml-[3px]"}
           `}
         />
       </button>

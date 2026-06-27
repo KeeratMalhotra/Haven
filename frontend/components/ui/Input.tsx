@@ -9,6 +9,12 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   wrapperClassName?: string;
 }
 
+const springTransition = {
+  type: "spring" as const,
+  stiffness: 300,
+  damping: 30,
+};
+
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
@@ -32,7 +38,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-[var(--text-secondary)]"
+            className="text-[13px] font-medium text-[var(--text-secondary)]"
           >
             {label}
           </label>
@@ -40,16 +46,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         <motion.input
           ref={ref}
           id={inputId}
-          whileFocus={{ scale: 1.005 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          whileFocus={{ scale: 1.002 }}
+          transition={springTransition}
           className={`
             h-10 w-full rounded-lg border px-3 text-sm
             bg-[var(--surface)] text-[var(--text-primary)]
             border-[var(--border)] placeholder:text-[var(--text-tertiary)]
-            focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20
-            transition-colors duration-150
+            focus:outline-none focus:border-[var(--border-focus)]
+            focus:ring-2 focus:ring-[var(--accent)]/15
+            transition-all duration-200 ease-spring
             disabled:opacity-50 disabled:cursor-not-allowed
-            ${error ? "border-danger-400 focus:border-danger-400 focus:ring-danger-400/20" : ""}
+            ${error ? "border-danger-400 focus:border-danger-400 focus:ring-danger-400/15" : ""}
             ${className}
           `}
           {...(props as Record<string, unknown>)}
@@ -58,6 +65,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={springTransition}
             className="text-xs text-danger-400"
           >
             {error}

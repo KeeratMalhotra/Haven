@@ -17,9 +17,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChronAI",
+  title: "ChronAI - Your Intelligent Time Companion",
   description:
-    "ChronAI - a calm, intelligent companion for your time, tasks, and intentions.",
+    "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
 };
 
 export default function RootLayout({

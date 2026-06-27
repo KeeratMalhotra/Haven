@@ -5,39 +5,52 @@
 /* ============================================================
    CSS Variable Theme System
    Dark mode is the default (html has 'dark' class)
+   Inspired by Notion's clarity + Apple's premium feel
    ============================================================ */
 
 :root {
   /* Light mode variables */
   --bg: #ffffff;
-  --bg-secondary: #fafafa;
-  --bg-tertiary: #f5f5f4;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
   --surface: #ffffff;
-  --surface-hover: #f5f5f4;
-  --border: #e7e5e4;
-  --border-subtle: #eeeeec;
-  --text-primary: #1c1917;
-  --text-secondary: #57534e;
-  --text-tertiary: #a8a29e;
+  --surface-hover: #f9fafb;
+  --surface-elevated: #ffffff;
+  --border: #e5e7eb;
+  --border-subtle: #f0f0f0;
+  --border-focus: #6366f1;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #9ca3af;
+  --text-inverse: #ffffff;
   --accent: #6366f1;
   --accent-hover: #4f46e5;
   --accent-subtle: #eef2ff;
+  --accent-muted: rgba(99, 102, 241, 0.08);
+  --shadow-color: 220 3% 15%;
+  --overlay: rgba(0, 0, 0, 0.4);
 }
 
 .dark {
-  --bg: #0c0a09;
-  --bg-secondary: #1c1917;
-  --bg-tertiary: #292524;
-  --surface: #1c1917;
-  --surface-hover: #292524;
-  --border: #44403c;
-  --border-subtle: #37322f;
-  --text-primary: #fafafa;
-  --text-secondary: #a8a29e;
-  --text-tertiary: #78716c;
+  --bg: #0a0a0b;
+  --bg-secondary: #141415;
+  --bg-tertiary: #1e1e20;
+  --surface: #141415;
+  --surface-hover: #1e1e20;
+  --surface-elevated: #1a1a1c;
+  --border: #2a2a2d;
+  --border-subtle: #1f1f22;
+  --border-focus: #818cf8;
+  --text-primary: #f9fafb;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #6b6b76;
+  --text-inverse: #0a0a0b;
   --accent: #818cf8;
   --accent-hover: #6366f1;
   --accent-subtle: #1e1b4b;
+  --accent-muted: rgba(129, 140, 248, 0.08);
+  --shadow-color: 220 40% 2%;
+  --overlay: rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================================
@@ -58,33 +71,35 @@ body {
   color: var(--text-primary);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
 /* ============================================================
-   Glass Surfaces
+   Glass Surfaces (use surgically)
    ============================================================ */
 
 .glass {
   background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px) saturate(130%);
-  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid var(--border-subtle);
 }
 
 .glass-strong {
-  background: rgba(28, 25, 23, 0.85);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  background: rgba(20, 20, 21, 0.88);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid var(--border-subtle);
 }
 
 :root .glass {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 :root .glass-strong {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 /* ============================================================
@@ -102,9 +117,16 @@ body {
   background: linear-gradient(
     135deg,
     rgba(99, 102, 241, 0.9) 0%,
-    rgba(139, 92, 246, 0.9) 50%,
+    rgba(139, 92, 246, 0.85) 50%,
     rgba(167, 139, 250, 0.9) 100%
   );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-text-warm {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #ef4444 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -114,32 +136,34 @@ body {
    Scrollbar Styling
    ============================================================ */
 
-.scroll-thin::-webkit-scrollbar,
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-.scroll-thin::-webkit-scrollbar-track,
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.scroll-thin::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: var(--border);
   border-radius: 9999px;
+  transition: background 0.2s;
 }
 
-.scroll-thin::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--border);
+  background: var(--text-tertiary);
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
 /* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-subtle) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 /* ============================================================
@@ -151,11 +175,54 @@ body {
 }
 
 .focus-ring:focus-visible {
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-focus);
+  border-radius: inherit;
 }
 
 /* ============================================================
-   Thinking / Shimmer Effects (legacy support)
+   Micro-interaction Utilities
+   ============================================================ */
+
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.15);
+}
+
+.press-scale {
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.press-scale:active {
+  transform: scale(0.97);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px -4px rgba(99, 102, 241, 0.2);
+}
+
+.interactive {
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.interactive:hover {
+  background-color: var(--surface-hover);
+}
+
+.interactive:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================
+   Thinking / Shimmer Effects
    ============================================================ */
 
 .thinking-shimmer {
@@ -185,7 +252,7 @@ body {
 }
 
 /* ============================================================
-   Ambient Background (legacy support)
+   Ambient Background
    ============================================================ */
 
 .ambient-canvas {
@@ -200,7 +267,7 @@ body {
   position: absolute;
   border-radius: 9999px;
   filter: blur(120px);
-  opacity: 0.3;
+  opacity: 0.25;
   will-change: transform;
 }
 
@@ -211,10 +278,10 @@ body {
   top: -16vh;
   background: radial-gradient(
     circle at center,
-    rgba(99, 102, 241, 0.4),
+    rgba(99, 102, 241, 0.35),
     transparent 65%
   );
-  animation: float 14s ease-in-out infinite;
+  animation: ambient-float 16s ease-in-out infinite;
 }
 
 .ambient-blob--cyan {
@@ -224,25 +291,25 @@ body {
   bottom: -18vh;
   background: radial-gradient(
     circle at center,
-    rgba(139, 92, 246, 0.35),
+    rgba(139, 92, 246, 0.3),
     transparent 65%
   );
-  animation: float 18s ease-in-out infinite reverse;
+  animation: ambient-float 20s ease-in-out infinite reverse;
 }
 
 .ambient-grid {
   position: absolute;
   inset: 0;
   background-image: radial-gradient(
-    rgba(255, 255, 255, 0.02) 1px,
+    rgba(255, 255, 255, 0.015) 1px,
     transparent 1px
   );
-  background-size: 40px 40px;
+  background-size: 48px 48px;
   mask-image: radial-gradient(circle at 50% 40%, black, transparent 80%);
 }
 
 /* ============================================================
-   Animations
+   Animations (keyframes)
    ============================================================ */
 
 @keyframes message-in {
@@ -253,6 +320,19 @@ body {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes ambient-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(1.5%, -2%) scale(1.01);
+  }
+  66% {
+    transform: translate(-1%, 1.5%) scale(0.99);
   }
 }
 
@@ -275,6 +355,36 @@ body {
   }
 }
 
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes spin-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
 .animate-message-in {
   animation: message-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -291,14 +401,15 @@ body {
   animation: caret-blink 1s steps(1) infinite;
 }
 
-@keyframes caret-blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
+/* ============================================================
+   Notion-style Divider
+   ============================================================ */
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  border: none;
+  margin: 0;
 }
 
 /* ============================================================
@@ -313,5 +424,13 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  .press-scale:active {
+    transform: none;
   }
 }
