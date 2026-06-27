@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-005",
+  "type": "fix",
+  "description": "Address review issues: fix connection status indicator (stuck on connecting), make suggestion chips clickable, remove unused recharts dependency, fix FocusMode light-mode theme breakage.",
+  "status": "completed",
+  "steps": [
+    "Fix app/dashboard/layout.tsx connection status: Remove the hardcoded useState('connecting') and instead pass an onConnectionChange callback through to AIChatPanel/ChatExperience so that the real connection state propagates up to AppShell/TopBar. A pragmatic approach is to lift a connection state into the layout that ChatExperience updates via onConnectionChange.",
+    "Fix components/chat/AIChatPanel.tsx suggestion chips: Convert inert spans to clickable buttons. Use ChatExperience's onSendReady prop to get a reference to the send function, then call it when a chip is clicked.",
+    "Remove recharts from package.json dependencies (unused).",
+    "Fix components/FocusMode.tsx light-mode theme breakage: Replace hard-coded bg-base-950, text-white, text-white/XX with CSS variable equivalents."
+  ],
+  "acceptance_criteria": [
+    "pnpm build passes without errors",
+    "Connection status dot in TopBar reflects real WebSocket state when chat is active",
+    "Suggestion chips in AIChatPanel are clickable buttons that send the suggestion text",
+    "recharts is not in package.json",
+    "FocusMode uses CSS variables instead of hard-coded dark-mode colors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "All four review issues addressed. Created a ConnectionContext (components/chat/ConnectionContext.tsx) to bridge WebSocket state from ChatExperience to the dashboard layout without violating the constraint of not modifying useChatSocket.ts. The context is provided at the DashboardLayout level and consumed by both the layout (for TopBar) and AIChatPanel (which sets the state via ChatExperience's onConnectionChange). When no chat is active, the connection shows as undefined (amber dot). Suggestion chips now use onSendReady to get a send function reference. recharts removed from package.json and lock file updated. FocusMode fully themed with CSS variables. Build passes cleanly."
+}
