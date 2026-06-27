@@ -573,64 +573,69 @@ Be concise but include all relevant information."""
             auth_token: Auth token for MCP calls.
 
         Returns:
-            Short greeting string, or None if user has not completed onboarding.
+            Short greeting string, or None if user has not completed onboarding
+            or if any error occurs (allows graceful fallback to direct_response).
         """
-        from datetime import datetime
+        try:
+            from datetime import datetime
 
-        from app.db.repositories import UserRepository
+            from app.db.repositories import UserRepository
 
-        user = await UserRepository.get_by_id(user_id)
-        if not user or not user.profile.onboarding_complete:
+            user = await UserRepository.get_by_id(user_id)
+            if not user or not user.profile.onboarding_complete:
+                return None
+
+            name = user.profile.name or "there"
+            first_name = name.split()[0] if name else "there"
+
+            # Time-of-day greeting variation
+            hour = datetime.now().hour
+            if hour < 12:
+                time_greeting = "Good morning"
+            elif hour < 17:
+                time_greeting = "Good afternoon"
+            else:
+                time_greeting = "Good evening"
+
+            # Lightweight stat fetches - fail gracefully
+            task_count = None
+            event_count = None
+
+            if self.mcp_client and auth_token:
+                try:
+                    tasks = await self.mcp_client.call_tool(
+                        "google-tasks", "list_tasks", {"auth_token": auth_token}
+                    )
+                    if isinstance(tasks, list):
+                        task_count = len(tasks)
+                except Exception:
+                    pass
+
+                try:
+                    events = await self.mcp_client.call_tool(
+                        "google-calendar", "list_events", {"auth_token": auth_token, "days_ahead": 1}
+                    )
+                    if isinstance(events, list):
+                        event_count = len(events)
+                except Exception:
+                    pass
+
+            # Build the greeting
+            greeting = f"{time_greeting}, {first_name}!"
+
+            if task_count is not None and event_count is not None:
+                greeting += f" You have {task_count} task{'s' if task_count != 1 else ''} and {event_count} event{'s' if event_count != 1 else ''} lined up today."
+            elif task_count is not None:
+                greeting += f" You have {task_count} task{'s' if task_count != 1 else ''} on your plate today."
+            elif event_count is not None:
+                greeting += f" You have {event_count} event{'s' if event_count != 1 else ''} on your calendar today."
+
+            greeting += ' Say "brief me" for your full daily overview.'
+
+            return greeting
+        except Exception as e:
+            logger.warning(f"[orchestrator] Short greeting generation failed: {e}")
             return None
-
-        name = user.profile.name or "there"
-        first_name = name.split()[0] if name else "there"
-
-        # Time-of-day greeting variation
-        hour = datetime.now().hour
-        if hour < 12:
-            time_greeting = "Good morning"
-        elif hour < 17:
-            time_greeting = "Good afternoon"
-        else:
-            time_greeting = "Good evening"
-
-        # Lightweight stat fetches - fail gracefully
-        task_count = None
-        event_count = None
-
-        if self.mcp_client and auth_token:
-            try:
-                tasks = await self.mcp_client.call_tool(
-                    "google-tasks", "list_tasks", {"auth_token": auth_token}
-                )
-                if isinstance(tasks, list):
-                    task_count = len(tasks)
-            except Exception:
-                pass
-
-            try:
-                events = await self.mcp_client.call_tool(
-                    "google-calendar", "list_events", {"auth_token": auth_token, "days_ahead": 1}
-                )
-                if isinstance(events, list):
-                    event_count = len(events)
-            except Exception:
-                pass
-
-        # Build the greeting
-        greeting = f"{time_greeting}, {first_name}!"
-
-        if task_count is not None and event_count is not None:
-            greeting += f" You have {task_count} task{'s' if task_count != 1 else ''} and {event_count} event{'s' if event_count != 1 else ''} lined up today."
-        elif task_count is not None:
-            greeting += f" You have {task_count} task{'s' if task_count != 1 else ''} on your plate today."
-        elif event_count is not None:
-            greeting += f" You have {event_count} event{'s' if event_count != 1 else ''} on your calendar today."
-
-        greeting += ' Say "brief me" for your full daily overview.'
-
-        return greeting
 
     async def _try_generate_briefing(self, user_id: str, auth_token: str) -> str | None:
         """Attempt to generate a daily briefing if user has a profile.
