@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Rebuild the dashboard layout (AppShell, Sidebar, TopBar) and the main dashboard page with a premium multi-panel workspace. The sidebar should be collapsible with smooth animations, the topbar should have Notion-style minimalism, and the dashboard home should show quick stats, today's schedule, recent tasks, and an AI suggestions section.",
+  "status": "completed",
+  "steps": [
+    "Rewrite components/layout/Sidebar.tsx: Premium collapsible sidebar with animated brand logo, navigation items (Dashboard, Tasks, Calendar, Habits, Settings) with active indicator using layoutId animation, hover tooltips in collapsed state, theme toggle button, collapse/expand button. Smooth width animation between collapsed (68px) and expanded (260px). Mobile overlay with backdrop blur. Store collapsed state in localStorage.",
+    "Rewrite components/layout/TopBar.tsx: Notion-style minimal top bar with page title (animated on change), command palette trigger (Cmd+K display), connection status dot, and user avatar. Clean, unobtrusive design.",
+    "Rewrite components/layout/AppShell.tsx: Flex layout with sidebar left + main content right. Main content has TopBar on top and scrollable content area. Pass connection status and user image as props. Track mobile menu state.",
+    "Rewrite app/dashboard/layout.tsx: Wraps children in AppShell, passes session user image and connection state.",
+    "Rewrite app/dashboard/page.tsx: Premium dashboard home with greeting header (Good morning/afternoon/evening + user name), today's date, quick stat cards (Events today, Pending tasks, Habit streak) with animated counters, Today's Schedule section showing upcoming events, Recent Tasks section, and AI chat toggle button + AIChatPanel integration. Must import from @/lib/api (fetchOnboardingStatus, fetchTasks, fetchCalendarEvents, fetchHabits and their types). Must check onboarding status and redirect if not complete. Keep CommandPalette and FocusMode integrations."
+  ],
+  "acceptance_criteria": [
+    "pnpm build passes without errors",
+    "Sidebar collapses/expands with spring animation",
+    "Dashboard page fetches data from API functions in lib/api.ts",
+    "Onboarding gate redirects to /onboarding if not complete",
+    "AIChatPanel, CommandPalette, and FocusMode are integrated in the dashboard"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "All 5 files (Sidebar.tsx, TopBar.tsx, AppShell.tsx, dashboard/layout.tsx, dashboard/page.tsx) were already implemented in commit e5d9aa4. Build passes cleanly. All acceptance criteria verified: sidebar spring animations, API data fetching, onboarding gate, AIChatPanel/CommandPalette/FocusMode integrations."
+}
