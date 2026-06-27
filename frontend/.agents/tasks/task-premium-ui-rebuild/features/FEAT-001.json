@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "chore",
   "description": "Install new dependencies and establish the design system foundation: new Tailwind config with Notion-inspired tokens, complete globals.css theme system with CSS variables for dark/light mode, design system components (Button, Input, Modal, Toggle, Card, Badge), and updated app/layout.tsx with theme context provider.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add new dependencies to package.json: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, date-fns, recharts. Run pnpm install.",
     "Rewrite tailwind.config.ts with Notion-inspired design tokens: neutral gray palette (like Notion's warm grays), accent colors (indigo/violet primary, emerald success, amber warning, rose danger), Notion-like font stack (Inter for UI, JetBrains Mono for code), generous spacing scale, refined border-radius tokens, subtle shadows, spring-based animation keyframes (fade-in, slide-up, slide-down, scale-in, float, breathe, shimmer).",
@@ -23,5 +23,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm install && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build and lint pass cleanly. Had to strip conflicting React event handler props (onAnimationStart, onDragStart, onDragEnd, onDrag) from Input component before spreading onto motion.input to avoid Framer Motion type conflict. Used `as Record<string, unknown>` cast for the remaining props spread. The recharts package shows a deprecation warning for v2 but installs and works fine. pnpm-lock.yaml was updated."
 }
