@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Template Library - Pre-built workflow templates (Product Launch, Interview Prep, Weekly Review, Move to New City) that generate full task trees with deadlines on one click. AI can also generate custom templates from a goal description.",
+  "status": "completed",
+  "steps": [
+    "STEP 1 - Create frontend/components/templates/TemplateLibrary.tsx: A modal/panel component showing a grid of template cards. Each card has an icon, title, description, and number of tasks. Clicking a card shows a preview of the tasks it will create, then a 'Use Template' button generates all tasks.",
+    "STEP 2 - Define the built-in templates as a constant array in frontend/lib/templates.ts. Each template: { id, title, description, icon (lucide icon name), category, tasks: [{ title, notes, due_days_from_now, priority, subtasks? }] }. Templates: (a) 'Product Launch' - 8 tasks covering research, MVP, testing, marketing, launch day. (b) 'Interview Prep' - 6 tasks: research company, practice questions, prepare stories, plan outfit, prep questions to ask, review resume. (c) 'Weekly Review' - 5 tasks: review completed tasks, plan next week, clean inbox, update goals, reflect. (d) 'Move to New City' - 8 tasks: research areas, find housing, transfer utilities, update address, pack, arrange transport, set up new space, explore neighborhood.",
+    "STEP 3 - Add AI custom template generation: In the TemplateLibrary component, add a 'Create Custom Template' section with a text input where user describes their goal (e.g., 'Plan a wedding'). On submit, call a new backend endpoint POST /api/templates/generate that uses Gemini to produce a task list from the goal description.",
+    "STEP 4 - Backend: Add a POST /api/templates/generate endpoint in backend/app/main.py (or a new router file backend/app/api/templates.py). It accepts { auth_token, goal_description } and uses Gemini to generate 5-8 tasks with titles, notes, due_days_from_now, and priority. Return the generated template.",
+    "STEP 5 - Frontend API: Add generateTemplate(authToken, goalDescription) function in frontend/lib/api-extended.ts.",
+    "STEP 6 - When 'Use Template' is clicked (for built-in or AI-generated), batch-create all tasks in the user's task list by calling the existing createTask API for each, and also add them to localStorage. Show a success message with count of tasks created.",
+    "STEP 7 - Add access to the Template Library: Add a 'Templates' button in the tasks page header (next to 'Add Task'). Also add a template card in the dashboard empty state / quick actions area.",
+    "STEP 8 - Verify: Run frontend build + lint, and python3 -m py_compile on backend."
+  ],
+  "acceptance_criteria": [
+    "npm run build succeeds with no errors",
+    "npm run lint shows no errors",
+    "python3 -m py_compile on all modified backend files succeeds",
+    "TemplateLibrary component renders a grid of 4+ built-in templates",
+    "Clicking a template shows a preview and 'Use Template' button",
+    "Using a template creates all tasks in localStorage and via API",
+    "AI custom template generation has a text input and calls the backend",
+    "POST /api/templates/generate endpoint uses Gemini to create task templates",
+    "Templates button accessible from the tasks page header"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "python3 -m py_compile /projects/sandbox/ChronAI/backend/app/main.py"
+  ],
+  "blocked_reason": null,
+  "findings": "All verification passed: npm run build succeeds, npm run lint has no errors, python3 -m py_compile on main.py and templates.py succeeds. BookTemplate icon from lucide-react confirmed available. The TemplateLibrary component handles both built-in and AI-generated templates with proper modal UX."
+}
