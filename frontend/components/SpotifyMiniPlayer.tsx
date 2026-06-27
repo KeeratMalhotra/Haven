@@ -141,7 +141,7 @@ export default function SpotifyMiniPlayer() {
           height: SNAPPED_BUTTON_SIZE,
           right: 0,
           top: playerState.position.y || "50%",
-          transform: "translateX(4px)",
+          transform: "translateX(0)",
         }}
         aria-label="Expand Spotify player"
       >

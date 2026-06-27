@@ -183,11 +183,11 @@ body {
    Micro-interaction Utilities
    ============================================================ */
 
-.hover-lift {
+.hover-surface {
   transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.hover-lift:hover {
+.hover-surface:hover {
   background-color: var(--surface-hover);
 }
 
@@ -424,7 +424,7 @@ body {
     scroll-behavior: auto !important;
   }
 
-  .hover-lift:hover {
+  .hover-surface:hover {
     background-color: var(--surface-hover);
   }
 

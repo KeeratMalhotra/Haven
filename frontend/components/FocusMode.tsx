@@ -305,7 +305,8 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
     return () => {
       // Cleanup handled by deactivation effect
     };
-  }, [active, ambient, paused, phase, volume]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, ambient, paused, phase]);
 
   // Update volume when slider changes
   useEffect(() => {

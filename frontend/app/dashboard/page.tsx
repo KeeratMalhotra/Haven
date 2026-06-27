@@ -137,6 +137,9 @@ export default function DashboardPage() {
   // Onboarding checklist
   const [checklistDismissed, setChecklistDismissed] = useState(false);
 
+  // Focus mode usage tracking (hydration-safe)
+  const [focusUsed, setFocusUsed] = useState(false);
+
   const handleFocusMode = useCallback(() => {
     setFocusTask(undefined);
     setFocusActive(true);
@@ -184,6 +187,16 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // Read focus mode usage from localStorage (hydration-safe)
+  useEffect(() => {
+    try {
+      const stats = localStorage.getItem("chronai-pomodoro-stats");
+      setFocusUsed(!!stats && stats !== "null" && stats !== "{}");
+    } catch {
+      // silently fail
+    }
+  }, []);
+
   const handleDismissChecklist = useCallback(() => {
     setChecklistDismissed(true);
     if (typeof window !== "undefined") {
@@ -225,16 +238,6 @@ export default function DashboardPage() {
     tasks.length === 0 &&
     events.length === 0 &&
     habits.length === 0;
-
-  const focusUsed = (() => {
-    if (typeof window === "undefined") return false;
-    try {
-      const stats = localStorage.getItem("chronai-pomodoro-stats");
-      return !!stats && stats !== "null" && stats !== "{}";
-    } catch {
-      return false;
-    }
-  })();
 
   const checklistItems = [
     { label: "Create a task", done: tasks.length > 0 },
