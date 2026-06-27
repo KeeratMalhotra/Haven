@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix 6 calendar/UI issues: button nesting hydration, AI toast positioning, PATCH debounce, custom cursors, TimeBlock sizing, overlap handling",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Fix EventPill button nesting - change from <button> to <div role='button' tabIndex={0}>",
     "Move AI toasts from bottom-right to top-right, increase duration to 12s, add slide-in from right animation",
@@ -24,5 +24,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "dnd-kit useDraggable attributes include role=button and tabIndex=0, so explicit role/tabIndex on the TimeBlock div causes duplicate prop TS errors. Resolved by letting attributes provide those props. EmptyState import was already unused in original code but does not cause build failure. Build passes with all 10 routes generating. Lint passes with zero warnings."
 }
