@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Build the core app shell: collapsible sidebar navigation, top header bar with theme toggle, and the authenticated dashboard layout. The sidebar should have Notion-style navigation with sections for Today, Calendar, Tasks, Habits, and Settings. Include user avatar/menu in sidebar footer.",
+  "status": "completed",
+  "steps": [
+    "Create components/layout/Sidebar.tsx: collapsible left sidebar (expanded ~240px, collapsed ~64px icon-only). Sections: top logo/brand, navigation items (Today/Home with sun icon, Calendar with calendar icon, Tasks with check-square icon, Habits with target icon), bottom section (Settings with gear icon, user avatar with name/email, collapse toggle). Use lucide-react icons. Notion-style: clean borders, subtle hover states, rounded items.",
+    "Create components/layout/Header.tsx: top bar spanning the content area (to the right of sidebar). Contains: page title (dynamic), breadcrumb optional, right side: theme toggle button (sun/moon icon using next-themes useTheme), notification bell icon placeholder, user avatar dropdown.",
+    "Create components/layout/ThemeToggle.tsx: a button that cycles between light/dark/system using next-themes. Show sun icon for light, moon for dark, monitor for system.",
+    "Create components/layout/AppShell.tsx: the main layout wrapper that composes Sidebar + Header + main content area. Handles sidebar collapsed state. Content area takes remaining width with proper padding.",
+    "Create app/dashboard/layout.tsx: uses AppShell to wrap all /dashboard/* child routes. Requires authentication (useSession check, redirect if unauthenticated).",
+    "Update app/dashboard/page.tsx: simple 'Today' page placeholder with a greeting (Good morning/afternoon/evening, {name}) and empty state content.",
+    "Create app/dashboard/calendar/page.tsx: placeholder page with heading 'Calendar'.",
+    "Create app/dashboard/tasks/page.tsx: placeholder page with heading 'Tasks'.",
+    "Create app/dashboard/habits/page.tsx: placeholder page with heading 'Habits'.",
+    "Create app/dashboard/settings/page.tsx: placeholder page with heading 'Settings'.",
+    "Ensure sidebar navigation links use Next.js Link component and highlight the active route using usePathname.",
+    "Run pnpm build to confirm all routes and components compile."
+  ],
+  "acceptance_criteria": [
+    "pnpm build succeeds",
+    "Sidebar renders with navigation items: Today, Calendar, Tasks, Habits, Settings",
+    "Sidebar is collapsible (state managed via useState or context)",
+    "Header shows theme toggle that actually switches between light and dark mode",
+    "All /dashboard/* routes render within the AppShell layout",
+    "Active navigation item is visually highlighted based on current pathname",
+    "User info (name, avatar) appears in sidebar from next-auth session"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "Build passes cleanly. Used next/image for user avatar to avoid ESLint warning. Added remotePatterns config for Google OAuth avatar domain. Dashboard layout uses useSession with required:true for auth gating. All placeholder pages are server components except dashboard/page.tsx which needs useSession for greeting."
+}
