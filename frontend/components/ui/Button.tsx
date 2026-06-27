@@ -11,6 +11,7 @@ interface ButtonProps
   variant?: Variant;
   size?: Size;
   loading?: boolean;
+  iconOnly?: boolean;
   children: React.ReactNode;
   className?: string;
 }
@@ -32,6 +33,12 @@ const sizeStyles: Record<Size, string> = {
   lg: "h-11 px-5 text-[15px] gap-2.5 rounded-xl",
 };
 
+const iconOnlySizeStyles: Record<Size, string> = {
+  sm: "h-8 w-8 rounded-lg",
+  md: "h-9 w-9 rounded-lg",
+  lg: "h-11 w-11 rounded-xl",
+};
+
 const springTransition = {
   type: "spring" as const,
   stiffness: 300,
@@ -44,6 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       loading = false,
+      iconOnly = false,
       children,
       className = "",
       disabled,
@@ -64,7 +72,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           disabled:opacity-50 disabled:pointer-events-none
           select-none cursor-pointer
           ${variantStyles[variant]}
-          ${sizeStyles[size]}
+          ${iconOnly ? iconOnlySizeStyles[size] : sizeStyles[size]}
+          ${iconOnly ? "p-0" : ""}
           ${className}
         `}
         {...props}
