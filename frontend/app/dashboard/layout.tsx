@@ -1,25 +1,39 @@
 "use client";
 
-import { useState } from "react";
 import { useSession } from "next-auth/react";
 import AppShell from "@/components/layout/AppShell";
-import type { ConnectionState } from "@/hooks/useChatSocket";
+import {
+  ConnectionProvider,
+  useConnectionState,
+} from "@/components/chat/ConnectionContext";
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
+  const { connection } = useConnectionState();
+  const userImage = session?.user?.image ?? null;
+
+  const connected =
+    connection === "connected"
+      ? true
+      : connection === "disconnected"
+        ? false
+        : undefined;
+
+  return (
+    <AppShell connected={connected} userImage={userImage}>
+      {children}
+    </AppShell>
+  );
+}
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession();
-  const [connection] = useState<ConnectionState>("connecting");
-  const userImage = session?.user?.image ?? null;
-
   return (
-    <AppShell
-      connected={connection === "connected"}
-      userImage={userImage}
-    >
-      {children}
-    </AppShell>
+    <ConnectionProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </ConnectionProvider>
   );
 }

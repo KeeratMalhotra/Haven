@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import ChatExperience from "./ChatExperience";
+import { useConnectionState } from "./ConnectionContext";
 
 interface AIChatPanelProps {
   open: boolean;
@@ -24,6 +25,9 @@ export default function AIChatPanel({
   accessToken,
   userName,
 }: AIChatPanelProps) {
+  const { setConnection } = useConnectionState();
+  const sendRef = useRef<((content: string) => void) | null>(null);
+
   // Close on Escape
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -38,6 +42,16 @@ export default function AIChatPanel({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
+
+  const handleSendReady = useCallback((sendFn: (content: string) => void) => {
+    sendRef.current = sendFn;
+  }, []);
+
+  const handleSuggestionClick = useCallback((suggestion: string) => {
+    if (sendRef.current) {
+      sendRef.current(suggestion);
+    }
+  }, []);
 
   return (
     <AnimatePresence>
@@ -82,6 +96,8 @@ export default function AIChatPanel({
               <ChatExperience
                 accessToken={accessToken}
                 userName={userName}
+                onConnectionChange={setConnection}
+                onSendReady={handleSendReady}
               />
             </div>
 
@@ -89,12 +105,14 @@ export default function AIChatPanel({
             <div className="border-t border-[var(--border-subtle)] px-4 py-3">
               <div className="flex flex-wrap gap-2">
                 {SUGGESTIONS.map((suggestion) => (
-                  <span
+                  <button
                     key={suggestion}
-                    className="inline-flex items-center rounded-full bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] cursor-default"
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="inline-flex items-center rounded-full bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-secondary)] cursor-pointer transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
                   >
                     {suggestion}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>

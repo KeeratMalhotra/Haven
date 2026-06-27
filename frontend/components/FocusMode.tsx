@@ -76,8 +76,8 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="fixed inset-0 z-[100] flex items-center justify-center"
         >
-          {/* Background */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.08),transparent_60%)] bg-base-950" />
+          {/* Background - uses CSS variable with fallback gradient overlay */}
+          <div className="absolute inset-0 bg-[var(--bg)] before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.08),transparent_60%)]" />
 
           {/* Content */}
           <motion.div
@@ -89,15 +89,15 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
           >
             {/* Task name */}
             {taskName && (
-              <p className="text-base text-white/60 font-medium">{taskName}</p>
+              <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
             )}
 
             {/* Timer display */}
             <div className="text-center">
-              <p className="text-7xl font-light tabular-nums text-white tracking-wider">
+              <p className="text-7xl font-light tabular-nums text-[var(--text-primary)] tracking-wider">
                 {timeDisplay}
               </p>
-              <p className="mt-2 text-sm text-white/40">
+              <p className="mt-2 text-sm text-[var(--text-tertiary)]">
                 {paused ? "Paused" : "Focused time"}
               </p>
             </div>
@@ -113,14 +113,14 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                 }}
                 className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-400/30 to-purple-400/30 border border-indigo-400/20"
               />
-              <span className="text-xs text-white/30">Breathe</span>
+              <span className="text-xs text-[var(--text-tertiary)]">Breathe</span>
             </div>
 
             {/* Controls */}
             <div className="flex items-center gap-4">
               <button
                 onClick={togglePause}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 transition hover:bg-white/15"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-primary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--bg-tertiary)]"
                 aria-label={paused ? "Resume" : "Pause"}
               >
                 {paused ? (
@@ -131,7 +131,7 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
               </button>
               <button
                 onClick={onStop}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-300 ring-1 ring-red-500/30 transition hover:bg-red-500/30"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20 text-red-500 dark:text-red-300 ring-1 ring-red-500/30 transition hover:bg-red-500/30"
                 aria-label="Stop"
               >
                 <StopCircle size={24} />
@@ -146,8 +146,8 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                   onClick={() => setAmbient(opt.key)}
                   className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ring-1 ${
                     ambient === opt.key
-                      ? "bg-white/10 text-white ring-white/30"
-                      : "text-white/40 ring-white/10 hover:text-white/70 hover:bg-white/5"
+                      ? "bg-[var(--surface-hover)] text-[var(--text-primary)] ring-[var(--border)]"
+                      : "text-[var(--text-tertiary)] ring-[var(--border-subtle)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
                   }`}
                 >
                   {opt.icon}
