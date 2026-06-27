@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import AppShell from "@/components/layout/AppShell";
+import SpotifyMiniPlayer from "@/components/SpotifyMiniPlayer";
 import {
   ConnectionProvider,
   useConnectionState,
@@ -22,6 +23,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <AppShell connected={connected} userImage={userImage}>
       {children}
+      <SpotifyMiniPlayer />
     </AppShell>
   );
 }

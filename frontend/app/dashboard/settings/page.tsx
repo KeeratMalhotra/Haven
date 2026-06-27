@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   CheckCircle2,
+  Music,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -38,6 +39,7 @@ export default function SettingsPage() {
   const [aiTone, setAiTone] = useState<AiTone>("casual");
   const [aiSuggestions, setAiSuggestions] = useState(true);
   const [proactiveNotifs, setProactiveNotifs] = useState(true);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("chronai-ai-tone");
@@ -46,6 +48,8 @@ export default function SettingsPage() {
     if (suggestions !== null) setAiSuggestions(suggestions === "true");
     const notifs = localStorage.getItem("chronai-proactive-notifs");
     if (notifs !== null) setProactiveNotifs(notifs === "true");
+    const spotify = localStorage.getItem("chronai-spotify-connected");
+    setSpotifyConnected(spotify === "true");
   }, []);
 
   const updateAiTone = (tone: AiTone) => {
@@ -61,6 +65,19 @@ export default function SettingsPage() {
   const updateProactiveNotifs = (val: boolean) => {
     setProactiveNotifs(val);
     localStorage.setItem("chronai-proactive-notifs", String(val));
+  };
+
+  const toggleSpotifyConnection = () => {
+    const newVal = !spotifyConnected;
+    setSpotifyConnected(newVal);
+    localStorage.setItem("chronai-spotify-connected", String(newVal));
+    // Dispatch storage event for other components to detect the change
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: "chronai-spotify-connected",
+        newValue: String(newVal),
+      })
+    );
   };
 
   return (
@@ -221,6 +238,41 @@ export default function SettingsPage() {
           </h2>
         </div>
         <div className="space-y-3">
+          {/* Spotify Integration */}
+          <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                <Music size={18} strokeWidth={1.5} className="text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Spotify
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)]">
+                  {spotifyConnected ? "Connected - Mini player active" : "Connect for focus music player"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {spotifyConnected && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500 mr-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Active
+                </span>
+              )}
+              <button
+                onClick={toggleSpotifyConnection}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  spotifyConnected
+                    ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                    : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                }`}
+              >
+                {spotifyConnected ? "Disconnect" : "Connect"}
+              </button>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
