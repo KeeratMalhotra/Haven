@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Build the Habits page with heat map visualization, streak tracking, satisfying check-in animations, and habit CRUD. Build the Settings page with full sections: Profile, Appearance (dark/light toggle), AI preferences, Integrations status, Activity log, and Keyboard shortcuts reference. Build the enhanced Focus Mode and Command Palette. Build the AI Chat side panel component.",
+  "status": "pending",
+  "steps": [
+    "Create app/dashboard/habits/page.tsx: 1) Header with title and 'New Habit' button. 2) Habit cards grid: each card shows habit name, frequency, current streak (flame icon + number), last completed timestamp, and a check-in button. 3) Check-in button: on click calls checkinHabit from lib/api.ts, plays a satisfying spring scale + color flash animation (green pulse), updates streak counter with a counting animation. 4) Heat map visualization: a GitHub-style contribution grid showing the last 12 weeks of check-in history (using habit.history array). Each cell colored by completion (empty = gray, completed = green gradient intensity). 5) Streak display: large number with flame icon and 'days' label. 6) Create habit modal: name input, frequency selector (daily/weekly), target days number input. Calls createHabit from lib/api.ts. 7) Delete habit with swipe or menu action, calls deleteHabit. 8) Empty state for no habits. 9) All data from fetchHabits API.",
+    "Create app/dashboard/settings/page.tsx: Full settings page with tabbed sections: 1) Profile: display user name, email, avatar from session. Read-only info from Google account. 2) Appearance: theme toggle (dark/light) using useTheme(), accent color picker (selection of preset colors), font size preference (compact/default/comfortable). 3) AI Preferences: AI tone selector (professional/casual/friendly), enable/disable AI suggestions toggle, enable/disable proactive notifications toggle. 4) Integrations: show connected Google account status (calendar, tasks, gmail), re-auth button. 5) Keyboard Shortcuts: reference table of all shortcuts (Cmd+K for palette, etc.). Each section is a card with clear headings. Save preferences to localStorage.",
+    "Rebuild components/CommandPalette.tsx: Enhanced command palette using cmdk library. 1) Groups: Navigation (go to Tasks, Calendar, etc.), Actions (Create Task, Create Event, Start Focus, Toggle Theme), AI (Ask AI anything - sends to chat). 2) Fuzzy search across all commands. 3) Recent commands section. 4) Beautiful styling matching design system. 5) Trigger with Cmd+K. 6) Animated appearance (scale + fade with spring).",
+    "Rebuild components/FocusMode.tsx: Enhanced focus mode overlay. 1) Full-screen dark overlay with subtle gradient. 2) Large timer display (digital clock style). 3) Current task name display (if provided). 4) Ambient sound selector (rain, cafe, silence - just UI buttons, actual audio not required). 5) Session controls: pause/resume, stop, extend (+5min). 6) Minimal distractions - hides sidebar and topbar. 7) Breathing animation guide (expanding/contracting circle). 8) Session complete celebration animation.",
+    "Create components/chat/AIChatPanel.tsx: A slide-in side panel (right side, ~400px wide) for AI chat that integrates the existing ChatExperience component. 1) Panel header with 'AI Assistant' title and close button. 2) Slide-in animation from right with spring physics. 3) Contextual suggestions based on current page (e.g., on Tasks page: 'Prioritize my tasks', 'What should I focus on?'). 4) Toggleable via sidebar nav or keyboard shortcut. 5) Uses the existing ChatExperience/useChatSocket under the hood.",
+    "Clean up old components that are no longer needed: remove components/drawers/ directory (CalendarDrawer, TasksDrawer, HabitsDrawer, ScheduleDrawer, Drawer.tsx since these are now full pages), remove components/layout/SideDock.tsx (replaced by Sidebar), remove old components/ui/AmbientBackground.tsx (replaced by new CSS-based backgrounds), remove components/settings/SettingsMenu.tsx (replaced by settings page). Keep components/voice/VoiceMode.tsx, components/chat/* (ChatExperience, ChatComposer, MessageList, MessageBubble, GreetingHero, ThinkingShimmer)."
+  ],
+  "acceptance_criteria": [
+    "Habits page renders with habit cards, heat map, and check-in functionality",
+    "Habits page uses fetchHabits, checkinHabit, createHabit, deleteHabit from lib/api.ts",
+    "Check-in animation plays a satisfying spring + color flash effect",
+    "Settings page has all sections: Profile, Appearance, AI, Integrations, Shortcuts",
+    "Theme toggle in Settings uses the ThemeProvider context",
+    "Command palette opens with Cmd+K and has navigation, actions, and AI groups",
+    "Focus mode shows timer, task name, controls, and breathing animation",
+    "AI chat panel slides in from right side",
+    "Old unused components (drawers/, SideDock, AmbientBackground, SettingsMenu) are removed",
+    "pnpm build succeeds"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

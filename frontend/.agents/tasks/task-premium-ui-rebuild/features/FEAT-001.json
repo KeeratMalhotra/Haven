@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Install new dependencies and establish the design system foundation: new Tailwind config with Notion-inspired tokens, complete globals.css theme system with CSS variables for dark/light mode, design system components (Button, Input, Modal, Toggle, Card, Badge), and updated app/layout.tsx with theme context provider.",
+  "status": "in_progress",
+  "steps": [
+    "Add new dependencies to package.json: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, date-fns, recharts. Run pnpm install.",
+    "Rewrite tailwind.config.ts with Notion-inspired design tokens: neutral gray palette (like Notion's warm grays), accent colors (indigo/violet primary, emerald success, amber warning, rose danger), Notion-like font stack (Inter for UI, JetBrains Mono for code), generous spacing scale, refined border-radius tokens, subtle shadows, spring-based animation keyframes (fade-in, slide-up, slide-down, scale-in, float, breathe, shimmer).",
+    "Rewrite app/globals.css with a complete CSS variable theme system: :root for light mode, .dark class for dark mode variables. Variables for --bg, --bg-secondary, --bg-tertiary, --surface, --surface-hover, --border, --border-subtle, --text-primary, --text-secondary, --text-tertiary, --accent, --accent-hover, --accent-subtle. Include utility classes: .glass (subtle blur), .glass-strong (heavy blur), gradient text utilities, smooth scrollbar styling, focus ring utilities, reduced motion media query. Dark mode should be the default (html has 'dark' class).",
+    "Create components/ui/theme-provider.tsx: A React context that manages dark/light theme preference via localStorage and applies 'dark' class on <html>. Export useTheme() hook.",
+    "Create design system base components in components/ui/: Button.tsx (variants: primary, secondary, ghost, danger; sizes: sm, md, lg; with loading state and spring hover/tap animation via framer-motion), Input.tsx (with label, error state, focus ring animation), Modal.tsx (portal-based, backdrop blur, scale-in animation, dismissible on escape/backdrop click), Toggle.tsx (animated switch with spring transition), Card.tsx (surface with hover elevation, optional border glow), Badge.tsx (color variants, pill shape).",
+    "Update app/layout.tsx to wrap children with ThemeProvider (inside Providers). Keep Inter and JetBrains_Mono font loading. Update metadata title/description. Keep the existing Providers wrapping SessionProvider."
+  ],
+  "acceptance_criteria": [
+    "pnpm install succeeds with all new deps resolved",
+    "pnpm build succeeds with no TypeScript errors",
+    "Theme provider exports useTheme() hook that toggles dark/light mode",
+    "All design system components (Button, Input, Modal, Toggle, Card, Badge) exist and export properly",
+    "CSS variables defined for both light and dark themes in globals.css",
+    "tailwind.config.ts has the new Notion-inspired token system"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm install && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,7 @@
+{
+  "task_id": "task-premium-ui-rebuild",
+  "task_description": "Complete premium UI/UX rebuild of ChronAI frontend. Nuke existing pages and components, rebuild with Notion-inspired design system, premium animations, Kanban tasks, full calendar, habits with heat map, settings page, enhanced command palette and focus mode, and AI chat side panel. Keep existing API integrations, auth flow, and WebSocket chat hook untouched.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

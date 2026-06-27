@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Build the main application shell: Sidebar navigation, TopBar, and Dashboard layout with resizable panels. This is the structural frame that all feature pages (Tasks, Calendar, Habits, Settings) will live inside. Includes the sidebar with navigation items, user avatar, theme toggle, and the responsive layout system.",
+  "status": "pending",
+  "steps": [
+    "Create components/layout/Sidebar.tsx: A collapsible sidebar (expanded ~260px, collapsed ~68px) with: 1) Logo/brand at top. 2) Navigation items: Dashboard (home icon), Tasks (check-square), Calendar (calendar), Habits (flame/target), Chat (message-circle), Focus (zap). 3) Each nav item has an active state indicator (subtle indigo left border or bg highlight), hover animation, and icon + label. 4) Bottom section: user avatar with online indicator, theme toggle (sun/moon with rotation animation), settings gear icon. 5) Collapse/expand toggle button. 6) Smooth width transition with framer-motion layout animation. Use lucide-react icons.",
+    "Create components/layout/TopBar.tsx (replace existing): A minimal top bar that shows: 1) Breadcrumb or current page title. 2) Search trigger button (opens command palette). 3) Connection status dot (green/yellow/red). 4) Quick actions: notifications bell, AI chat toggle. Clean, Notion-style minimal header with subtle bottom border.",
+    "Create components/layout/AppShell.tsx: The main layout wrapper used in dashboard and sub-pages. Takes children and renders: Sidebar + TopBar + main content area. Handles responsive behavior (sidebar collapses to icon-only on mobile, slides out as overlay). Main content area has proper padding and scroll behavior.",
+    "Rewrite app/dashboard/page.tsx: Use the AppShell layout. Keep the onboarding check logic (fetchOnboardingStatus redirect). The main content area shows: 1) A greeting section (Good morning, {name}) with today's date. 2) Quick stats cards row: upcoming events count, pending tasks count, current streak. 3) Today's schedule timeline (compact view using fetchCalendarEvents). 4) Recent tasks list (compact using fetchTasks). 5) AI chat panel as a slide-in side panel (not full-page) that uses ChatExperience. Keep all existing auth/session/WebSocket logic. Keep CommandPalette and FocusMode integration.",
+    "Create app/dashboard/layout.tsx that wraps all /dashboard/* pages with the AppShell component.",
+    "Add route pages as stubs (will be fleshed out in later features): app/dashboard/tasks/page.tsx, app/dashboard/calendar/page.tsx, app/dashboard/habits/page.tsx, app/dashboard/settings/page.tsx. Each stub just renders a placeholder heading inside the AppShell."
+  ],
+  "acceptance_criteria": [
+    "Sidebar renders with all navigation items and is collapsible",
+    "TopBar shows page title and connection status",
+    "AppShell combines Sidebar + TopBar + content area",
+    "Dashboard page still checks onboarding status and redirects if needed",
+    "Dashboard shows greeting, quick stats, today's schedule, and recent tasks sections",
+    "AI chat is accessible as a slide-in side panel",
+    "CommandPalette still works (Cmd+K)",
+    "All sub-route stubs exist and render within the AppShell",
+    "pnpm build succeeds"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
