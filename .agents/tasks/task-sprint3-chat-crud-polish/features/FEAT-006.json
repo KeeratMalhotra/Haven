@@ -2,7 +2,7 @@
   "id": "FEAT-006",
   "type": "fix",
   "description": "Address 5 issues from the sprint 3 code review: (1) PATCH no-op for uncomplete, (2) prompt injection in suggestions, (3) triplicated fallback sort, (4) non-list parse guard, (5) email utility blocks event loop.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Fix PATCH /api/tasks/{task_id} to call uncomplete_task MCP tool when completed=false",
     "Sanitize user content in suggestions prompt to prevent prompt injection",
@@ -24,5 +24,5 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build"
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All 5 review issues fixed. Backend py_compile passes for main.py and email_notifications.py. Frontend build passes with no lint errors. The uncomplete_task MCP tool name matches the pattern used by complete_task (google-tasks server). asyncio.to_thread wraps the synchronous _send_email helper so the event loop stays unblocked."
 }
