@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Rebuild the Tasks page with premium Kanban board + list view, drag-and-drop via @dnd-kit, inline editing, task detail panel, create modal, and the Chat components (AIChatPanel, CommandPalette, FocusMode).",
+  "status": "completed",
+  "steps": [
+    "Rebuild app/dashboard/tasks/page.tsx with: (1) Kanban board view with To Do, In Progress, Done columns. (2) List view alternative. (3) Drag-and-drop via @dnd-kit/core and @dnd-kit/sortable (already in package.json). (4) Inline title editing in list view. (5) Task detail slide-in panel with title, status, due date, notes, subtasks. (6) Create task modal with title, notes, due date fields. (7) View toggle (board/list). (8) Premium card styling with priority colors, due date badges. (9) Spring animations on transitions. Keep using fetchTasks() from @/lib/api with same TaskItem type. Keep the same local state management pattern (mapping API tasks to LocalTask with status field).",
+    "Rebuild components/chat/AIChatPanel.tsx with: (1) Slide-in panel from right with spring animation. (2) Header with AI Assistant label and close button. (3) Integration of ChatExperience component (DO NOT modify ChatExperience.tsx itself since it uses useChatSocket). (4) Suggestion chips at bottom. Keep same props interface (open, onClose, accessToken, userName).",
+    "Rebuild components/CommandPalette.tsx with: (1) Premium command palette using cmdk. (2) Search input with icon. (3) Grouped items: Navigation (Dashboard, Tasks, Calendar, Habits, Settings), Actions (Create Task, Create Event, Start Focus, Toggle Theme), AI (Ask AI, Open Chat). (4) Keyboard shortcut Cmd+K to open. (5) Smooth backdrop and entrance animation. Keep same props interface (onFocusMode, onOpenChat).",
+    "Rebuild components/FocusMode.tsx with: (1) Full-screen overlay with ambient background. (2) Timer display (count up). (3) Pause/Resume and Stop controls. (4) Ambient sound selector (Rain, Cafe, Silence). (5) Breathing guide animation. (6) Premium typography for timer. Keep same props interface (active, taskName, onStop).",
+    "Run pnpm build to verify no type errors or build failures."
+  ],
+  "acceptance_criteria": [
+    "pnpm build passes without errors",
+    "Tasks page supports board and list views with toggle",
+    "Drag-and-drop works with @dnd-kit",
+    "AIChatPanel renders ChatExperience (without modifying ChatExperience.tsx)",
+    "CommandPalette opens on Cmd+K with navigation and action items",
+    "FocusMode shows fullscreen timer overlay with controls"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "All 4 components (Tasks page, AIChatPanel, CommandPalette, FocusMode) were already fully implemented from prior commits (f28cf58, 5a34197) and survived the subsequent rebuilds in FEAT-001/002/003. The code already satisfies all acceptance criteria: Kanban+list view with dnd-kit drag-and-drop, inline editing, task detail panel, create modal, DragOverlay with rotation, grip handles in list view, status badges, ChatExperience integration in AIChatPanel, cmdk-based CommandPalette with Cmd+K shortcut, and full-screen FocusMode with timer/pause/ambient/breathing guide. Build, lint, and tests all pass without errors."
+}
