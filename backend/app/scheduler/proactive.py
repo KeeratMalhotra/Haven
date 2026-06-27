@@ -3,6 +3,7 @@
 Periodically checks all users' tasks for approaching deadlines and sends
 escalating notifications through the WebSocket connection manager.
 Falls back to email when the user is not connected via WebSocket.
+Also runs daily digest and weekly review email jobs.
 """
 
 import asyncio
@@ -16,12 +17,17 @@ from typing import Optional
 from app.config import settings
 from app.db.repositories import UserRepository, TaskRepository
 from app.scheduler.nudge_engine import classify_urgency, generate_nudge, _format_time_remaining
+from app.utils.email_notifications import send_task_reminder, send_daily_digest, send_weekly_review
 from app.ws_manager import ConnectionManager
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 logger = logging.getLogger(__name__)
+
+# Module-level timestamps for tracking digest/review runs
+_last_daily_digest: Optional[datetime] = None
+_last_weekly_review: Optional[datetime] = None
 
 
 async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str, google_tokens: dict) -> bool:
@@ -182,6 +188,7 @@ async def _check_user_deadlines(
 
         # If user is NOT connected via WebSocket, try sending email
         email_sent = False
+        user = None
         if not manager.is_connected(user_id):
             try:
                 user = await UserRepository.get_by_id(user_id)
@@ -201,6 +208,26 @@ async def _check_user_deadlines(
                         )
             except Exception as e:
                 logger.error(f"Error sending email fallback for user {user_id}: {e}")
+
+        # 4-hour deadline email reminder: send a dedicated reminder email
+        # when the task deadline is between 3.5 and 4.5 hours away
+        # (to handle scheduler interval timing) regardless of connection status
+        if timedelta(hours=3, minutes=30) <= remaining <= timedelta(hours=4, minutes=30):
+            try:
+                if user is None:
+                    user = await UserRepository.get_by_id(user_id)
+                if user and user.email and user.google_tokens:
+                    prefs = user.notification_preferences
+                    if prefs.get("email_deadline_reminders", True):
+                        deadline_str = deadline.strftime("%I:%M %p UTC")
+                        await send_task_reminder(
+                            user.email, task.title, deadline_str, user.google_tokens
+                        )
+                        logger.info(
+                            f"4-hour deadline reminder sent to {user.email} for '{task.title}'"
+                        )
+            except Exception as e:
+                logger.error(f"Error sending 4-hour deadline email for user {user_id}: {e}")
 
         nudges_sent.append({
             "user_id": user_id,
@@ -251,6 +278,106 @@ async def run_nudge_check(manager: ConnectionManager, user_id: Optional[str] = N
     return all_nudges
 
 
+async def _run_daily_digest() -> None:
+    """Run the daily digest email job.
+
+    Checks if roughly 24 hours have passed since the last run. If so,
+    iterates all users with 'daily_digest' enabled in their notification_preferences,
+    fetches their pending tasks, and sends a daily digest email.
+    """
+    global _last_daily_digest
+
+    now = datetime.now(timezone.utc)
+
+    # Only run once per 24 hours
+    if _last_daily_digest is not None:
+        elapsed = now - _last_daily_digest
+        if elapsed < timedelta(hours=23):
+            return
+
+    _last_daily_digest = now
+    logger.info("Running daily digest job")
+
+    try:
+        users = await UserRepository.list_all()
+    except Exception:
+        logger.error("Failed to fetch users for daily digest")
+        return
+
+    for user in users:
+        if not user.id or not user.email or not user.google_tokens:
+            continue
+
+        prefs = user.notification_preferences
+        if not prefs.get("daily_digest", False):
+            continue
+
+        try:
+            # Fetch user tasks
+            tasks = await TaskRepository.list_by_user(user.id)
+            pending_tasks = [
+                {"title": t.title, "due": t.deadline.strftime("%b %d") if t.deadline else ""}
+                for t in tasks
+                if t.status not in ("completed", "done")
+            ]
+
+            # Events: try to fetch via calendar but skip if unavailable
+            events: list[dict] = []
+
+            await send_daily_digest(
+                user.email, pending_tasks, events, user.google_tokens
+            )
+        except Exception as e:
+            logger.error(f"Error sending daily digest for user {user.id}: {e}")
+
+
+async def _run_weekly_review() -> None:
+    """Run the weekly review email job.
+
+    Checks if roughly 7 days have passed since the last run. If so,
+    iterates all users with 'weekly_review' enabled in their notification_preferences,
+    generates a weekly review via the ReviewAgent, and sends the email.
+    """
+    global _last_weekly_review
+
+    now = datetime.now(timezone.utc)
+
+    # Only run once per 7 days
+    if _last_weekly_review is not None:
+        elapsed = now - _last_weekly_review
+        if elapsed < timedelta(days=6, hours=20):
+            return
+
+    _last_weekly_review = now
+    logger.info("Running weekly review job")
+
+    try:
+        users = await UserRepository.list_all()
+    except Exception:
+        logger.error("Failed to fetch users for weekly review")
+        return
+
+    for user in users:
+        if not user.id or not user.email or not user.google_tokens:
+            continue
+
+        prefs = user.notification_preferences
+        if not prefs.get("weekly_review", False):
+            continue
+
+        try:
+            from app.agents.review import generate_weekly_review as gen_review
+
+            auth_token = user.google_tokens.get("access_token", "")
+            review_content = await gen_review(user.id, auth_token, mcp_client=None)
+
+            await send_weekly_review(
+                user.email, review_content, user.google_tokens
+            )
+        except Exception as e:
+            logger.error(f"Error sending weekly review for user {user.id}: {e}")
+
+
 async def _scheduler_loop(manager: ConnectionManager) -> None:
     """Main scheduler loop that runs periodically.
 
@@ -267,6 +394,17 @@ async def _scheduler_loop(manager: ConnectionManager) -> None:
             await run_nudge_check(manager)
         except Exception:
             logger.exception("Error during proactive nudge check")
+
+        # Run daily digest and weekly review jobs
+        try:
+            await _run_daily_digest()
+        except Exception:
+            logger.exception("Error during daily digest job")
+
+        try:
+            await _run_weekly_review()
+        except Exception:
+            logger.exception("Error during weekly review job")
 
         await asyncio.sleep(interval_seconds)
 

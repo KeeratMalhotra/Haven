@@ -30,7 +30,13 @@ class User(BaseModel):
     google_tokens: dict = Field(default_factory=dict)
     preferences: dict = Field(default_factory=dict)
     notification_preferences: dict = Field(
-        default_factory=lambda: {"email_notifications": True, "email_for_urgent_only": False}
+        default_factory=lambda: {
+            "email_notifications": True,
+            "email_for_urgent_only": False,
+            "email_deadline_reminders": True,
+            "daily_digest": False,
+            "weekly_review": False,
+        }
     )
     profile: UserProfile = Field(default_factory=UserProfile)
     created_at: datetime = Field(default_factory=datetime.utcnow)

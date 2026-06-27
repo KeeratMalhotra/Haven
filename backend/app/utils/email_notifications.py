@@ -1,12 +1,13 @@
 """Email notification utilities for ChronAI.
 
 Provides reusable functions for sending formatted HTML emails via Gmail API,
-including task deadline reminders and daily digest summaries.
+including task deadline reminders, daily digest summaries, and weekly reviews.
 """
 
 import asyncio
 import base64
 import logging
+import re
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -178,9 +179,9 @@ async def send_daily_digest(
             task_lines += f"  - {title}" + (f" (due {due})" if due else "") + "\n"
 
         event_lines = ""
-        for e in events[:10]:
-            summary = e.get("summary", "Untitled event")
-            start = e.get("start", "")
+        for ev in events[:10]:
+            summary = ev.get("summary", "Untitled event")
+            start = ev.get("start", "")
             event_lines += f"  - {summary}" + (f" at {start}" if start else "") + "\n"
 
         plain_text = (
@@ -203,9 +204,9 @@ async def send_daily_digest(
 
         # Build event HTML rows
         events_html = ""
-        for e in events[:10]:
-            summary = e.get("summary", "Untitled event")
-            start = e.get("start", "")
+        for ev in events[:10]:
+            summary = ev.get("summary", "Untitled event")
+            start = ev.get("start", "")
             time_badge = f'<span style="color:#a78bfa;font-size:12px;margin-left:8px;">{start}</span>' if start else ""
             events_html += f'<div style="padding:10px 0;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;">{summary}{time_badge}</div>'
 
@@ -260,6 +261,147 @@ async def send_daily_digest(
     except Exception as e:
         logger.error(
             "Failed to send daily digest email to %s: [%s] %s",
+            user_email,
+            type(e).__name__,
+            e,
+        )
+        return False
+
+
+def _markdown_to_html(markdown_text: str) -> str:
+    """Convert basic markdown to HTML (headers, bullets, paragraphs, bold).
+
+    Handles ## headings, - bullet lists, **bold**, and paragraph separation.
+
+    Args:
+        markdown_text: The markdown string to convert.
+
+    Returns:
+        HTML string with basic formatting.
+    """
+    lines = markdown_text.split("\n")
+    html_parts: list[str] = []
+    in_list = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Headings
+        if stripped.startswith("### "):
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append(f'<h3 style="color:#ffffff;font-size:15px;margin:18px 0 8px 0;">{stripped[4:]}</h3>')
+        elif stripped.startswith("## "):
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append(f'<h2 style="color:#ffffff;font-size:17px;margin:20px 0 10px 0;">{stripped[3:]}</h2>')
+        elif stripped.startswith("# "):
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append(f'<h1 style="color:#ffffff;font-size:20px;margin:24px 0 12px 0;">{stripped[2:]}</h1>')
+        elif stripped.startswith("- ") or stripped.startswith("* "):
+            if not in_list:
+                html_parts.append('<ul style="padding-left:20px;margin:8px 0;">')
+                in_list = True
+            content = stripped[2:]
+            # Bold
+            content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", content)
+            html_parts.append(f'<li style="color:#e0e0e0;font-size:14px;margin:4px 0;">{content}</li>')
+        elif stripped == "":
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            html_parts.append("<br>")
+        else:
+            if in_list:
+                html_parts.append("</ul>")
+                in_list = False
+            # Bold
+            content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", stripped)
+            html_parts.append(f'<p style="color:#b0b0c0;font-size:14px;line-height:1.7;margin:6px 0;">{content}</p>')
+
+    if in_list:
+        html_parts.append("</ul>")
+
+    return "\n".join(html_parts)
+
+
+async def send_weekly_review(
+    user_email: str, review_content: str, google_tokens: dict
+) -> bool:
+    """Send a weekly review email via Gmail API.
+
+    Formats the markdown review content from the ReviewAgent as an HTML email
+    with ChronAI dark-theme branding.
+
+    Args:
+        user_email: The recipient email address.
+        review_content: Markdown string from the ReviewAgent (weekly review).
+        google_tokens: Dict with access_token and/or refresh_token.
+
+    Returns:
+        True if the email was sent successfully, False otherwise.
+    """
+    try:
+        service = _build_gmail_service(google_tokens)
+
+        # Plain text is the raw markdown
+        plain_text = (
+            "Your Weekly Review from ChronAI\n\n"
+            f"{review_content}\n\n"
+            f"Open ChronAI: {settings.FRONTEND_ORIGIN}"
+        )
+
+        # Convert markdown review to HTML
+        review_html = _markdown_to_html(review_content)
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{ margin: 0; padding: 0; background-color: #0f0f14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    .container {{ max-width: 560px; margin: 0 auto; padding: 40px 20px; }}
+    .card {{ background-color: #1a1a24; border-radius: 16px; padding: 36px; border: 1px solid #2a2a3a; }}
+    .logo {{ color: #a78bfa; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
+    .heading {{ color: #ffffff; font-size: 18px; font-weight: 600; margin-bottom: 6px; }}
+    .subheading {{ color: #888; font-size: 13px; margin-bottom: 24px; }}
+    .review-content {{ margin: 16px 0; }}
+    .btn {{ display: inline-block; background-color: #a78bfa; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 24px; }}
+    .footer {{ color: #666; font-size: 12px; margin-top: 28px; text-align: center; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">ChronAI</div>
+      <div class="heading">Your Weekly Review</div>
+      <div class="subheading">Here is how your week went.</div>
+      <div class="review-content">
+        {review_html}
+      </div>
+      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
+    </div>
+    <div class="footer">
+      <p>You received this weekly review from ChronAI.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+
+        await asyncio.to_thread(
+            _send_email, service, user_email,
+            "ChronAI: Your Weekly Review", plain_text, html_body,
+        )
+        logger.info(f"Weekly review email sent to {user_email}")
+        return True
+    except Exception as e:
+        logger.error(
+            "Failed to send weekly review email to %s: [%s] %s",
             user_email,
             type(e).__name__,
             e,
