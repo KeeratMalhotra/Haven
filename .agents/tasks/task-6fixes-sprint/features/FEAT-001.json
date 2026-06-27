@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix 6 bugs: dashboard blank page, Pomodoro light mode timer text, PATCH /api/calendar/events/{id} endpoint, Day View alignment, persistent AI chat FAB, and toast error handling.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Fix dashboard blank page - ensure page always renders content even when API data is empty",
     "Fix Pomodoro light mode timer text - use text-[var(--text-primary)] for visibility",
@@ -23,5 +23,6 @@
     "cd /projects/sandbox/ChronAI/frontend && npm run build",
     "cd /projects/sandbox/ChronAI/backend && python3 -m py_compile app/main.py"
   ],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "findings": "All 6 fixes implemented in a single commit. Frontend build and lint pass. Backend py_compile passes. Key decisions: (1) Onboarding check gets .catch() to prevent infinite loading state. (2) Timer text uses CSS variable for theme-aware color. (3) PATCH endpoint tries update_event MCP tool first, falls back to delete+recreate. (4) Time label alignment uses -translate-y-[7px] instead of -mt-2 which caused cumulative offset. (5) Chat FAB placed at bottom-24 right-6 in layout to avoid overlap with dashboard Quick Actions FAB. (6) AIContextProvider adds null-check on result before accessing .suggestion property."
 }
