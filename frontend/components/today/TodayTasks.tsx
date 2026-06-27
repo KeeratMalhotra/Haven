@@ -14,11 +14,11 @@ function isDueToday(due: string | null | undefined): boolean {
   return dueDate.toDateString() === today.toDateString();
 }
 
-function isOverdue(due: string | null | undefined): boolean {
-  if (!due) return false;
+function isOverdue(task: TaskItem): boolean {
+  if (!task.due || task.completed) return false;
   const now = new Date();
-  const dueDate = new Date(due);
-  return dueDate < now && !isDueToday(due);
+  const dueDate = new Date(task.due);
+  return dueDate < now && !isDueToday(task.due);
 }
 
 function formatDueTime(due: string): string {
@@ -39,8 +39,7 @@ export default function TodayTasks() {
   useEffect(() => {
     async function load() {
       try {
-        const token = (session as unknown as { accessToken?: string })
-          ?.accessToken;
+        const token = session?.accessToken;
         if (!token) {
           setLoading(false);
           return;
@@ -48,7 +47,7 @@ export default function TodayTasks() {
         const allTasks = await fetchTasks(token);
         const todayTasks = allTasks.filter(
           (t) =>
-            !t.completed && (isDueToday(t.due) || isOverdue(t.due))
+            !t.completed && (isDueToday(t.due) || isOverdue(t))
         );
         setTasks(todayTasks);
       } catch (err) {
@@ -96,7 +95,7 @@ export default function TodayTasks() {
                 </p>
                 {task.due && (
                   <p className="text-xs text-muted-foreground">
-                    {isOverdue(task.due) ? (
+                    {isOverdue(task) ? (
                       <span className="text-destructive">Overdue</span>
                     ) : (
                       formatDueTime(task.due)

@@ -9,8 +9,10 @@ import { fetchHabits, checkinHabit, HabitItem } from "@/lib/api";
 
 function isCompletedToday(lastCompleted: string | null): boolean {
   if (!lastCompleted) return false;
-  const today = new Date().toDateString();
-  return new Date(lastCompleted).toDateString() === today;
+  const now = new Date();
+  const todayUTC = now.toISOString().slice(0, 10);
+  const completedUTC = new Date(lastCompleted).toISOString().slice(0, 10);
+  return completedUTC === todayUTC;
 }
 
 export default function HabitCheckins() {
@@ -19,12 +21,12 @@ export default function HabitCheckins() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
+  const [checkinError, setCheckinError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const token = (session as unknown as { accessToken?: string })
-          ?.accessToken;
+        const token = session?.accessToken;
         if (!token) {
           setLoading(false);
           return;
@@ -43,16 +45,17 @@ export default function HabitCheckins() {
 
   async function handleCheckin(habitId: string) {
     try {
-      const token = (session as unknown as { accessToken?: string })
-        ?.accessToken;
+      const token = session?.accessToken;
       if (!token) return;
       setCheckingIn(habitId);
+      setCheckinError(null);
       const updated = await checkinHabit(token, habitId);
       setHabits((prev) =>
         prev.map((h) => (h.id === habitId ? updated : h))
       );
     } catch (err) {
       console.error("Check-in failed:", err);
+      setCheckinError("Check-in failed. Please try again.");
     } finally {
       setCheckingIn(null);
     }
@@ -69,6 +72,10 @@ export default function HabitCheckins() {
       )}
 
       {error && <p className="text-sm text-muted-foreground">{error}</p>}
+
+      {checkinError && (
+        <p className="mb-2 text-sm text-destructive">{checkinError}</p>
+      )}
 
       {!loading && !error && habits.length === 0 && (
         <div className="flex flex-col items-center py-4 text-center">

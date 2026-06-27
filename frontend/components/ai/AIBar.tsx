@@ -12,7 +12,7 @@ import ThinkingIndicator from "./ThinkingIndicator";
 
 export default function AIBar() {
   const { data: session } = useSession();
-  const accessToken = (session as any)?.accessToken ?? "";
+  const accessToken = session?.accessToken ?? "";
 
   const { messages, thinking, statusLabel, send } = useChatSocket({
     accessToken,

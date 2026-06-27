@@ -25,8 +25,7 @@ export default function UpcomingEvents() {
   useEffect(() => {
     async function load() {
       try {
-        const token = (session as unknown as { accessToken?: string })
-          ?.accessToken;
+        const token = session?.accessToken;
         if (!token) {
           setLoading(false);
           return;
