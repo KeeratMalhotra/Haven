@@ -92,7 +92,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* AI Chat Panel */}
         <AIChatPanel
           open={chatOpen}
-          onClose={() => setChatOpen(false)}
+          onClose={() => {
+            setChatOpen(false);
+            setDetached(false);
+          }}
           accessToken={accessToken}
           userName={userName}
           detached={detached}

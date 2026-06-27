@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Fix 5 review issues: calendar currentDate useEffect dep, chat panel detached state reset on close, chat panel drag constraints, Spotify drag-vs-click conflict, and Spotify button constraint staleness on resize.",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/app/dashboard/calendar/page.tsx: Add currentDate to the useEffect dependency array for fetching events so navigation triggers a re-fetch.",
+    "In frontend/app/dashboard/layout.tsx: When onClose is called, also reset detached to false so re-opening chat starts in attached mode.",
+    "In frontend/components/chat/AIChatPanel.tsx: Add dragConstraints to the detached floating window using a constraintsRef approach (a fixed inset-0 div).",
+    "In frontend/components/SpotifyMiniPlayer.tsx: Prevent click from firing after a drag by tracking drag state with a ref and skipping handleExpand if drag just occurred.",
+    "In frontend/components/SpotifyMiniPlayer.tsx: Add a window resize listener that updates the button Y constraints to handle viewport resize."
+  ],
+  "acceptance_criteria": [
+    "Navigating forward/backward in day/week/month view triggers a re-fetch of events",
+    "Closing the detached AI chat and reopening shows attached panel mode",
+    "Detached AI chat window cannot be dragged offscreen",
+    "Spotify button click does not fire after a drag gesture",
+    "Spotify button constraints update when viewport is resized",
+    "npm run build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}

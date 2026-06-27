@@ -33,6 +33,7 @@ export default function AIChatPanel({
 }: AIChatPanelProps) {
   const { setConnection } = useConnectionState();
   const sendRef = useRef<((content: string) => void) | null>(null);
+  const dragConstraintsRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape
   const handleKeyDown = useCallback(
@@ -64,22 +65,29 @@ export default function AIChatPanel({
     return (
       <AnimatePresence>
         {open && (
-          <motion.div
-            key="detached-panel"
-            drag
-            dragMomentum={false}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed z-[90] flex flex-col rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl"
-            style={{
-              width: 400,
-              height: 550,
-              top: "calc(50% - 275px)",
-              left: "calc(50% - 200px)",
-            }}
-          >
+          <>
+            {/* Invisible constraint boundary for drag */}
+            <div
+              ref={dragConstraintsRef}
+              className="fixed inset-0 pointer-events-none z-[89]"
+            />
+            <motion.div
+              key="detached-panel"
+              drag
+              dragMomentum={false}
+              dragConstraints={dragConstraintsRef}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed z-[90] flex flex-col rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl"
+              style={{
+                width: 400,
+                height: 550,
+                top: "calc(50% - 275px)",
+                left: "calc(50% - 200px)",
+              }}
+            >
             {/* Drag handle / Title bar */}
             <div
               className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3 cursor-grab active:cursor-grabbing rounded-t-xl"
@@ -135,6 +143,7 @@ export default function AIChatPanel({
               </div>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     );

@@ -470,7 +470,7 @@ export default function CalendarPage() {
       setLoading(false);
     }
     load();
-  }, [accessToken, view]);
+  }, [accessToken, view, currentDate]);
 
   // Navigation
   const navigatePrev = () => {

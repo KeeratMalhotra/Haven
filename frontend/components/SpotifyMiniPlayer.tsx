@@ -29,11 +29,13 @@ export default function SpotifyMiniPlayer() {
   const [playerState, setPlayerState] = useState<PlayerState>(DEFAULT_STATE);
   const [mounted, setMounted] = useState(false);
   const [buttonY, setButtonY] = useState<number | null>(null);
+  const [viewportHeight, setViewportHeight] = useState<number>(typeof window !== "undefined" ? window.innerHeight : 800);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const controls = useAnimationControls();
   const motionX = useMotionValue(0);
   const motionY = useMotionValue(0);
   const buttonMotionY = useMotionValue(0);
+  const isDraggingRef = useRef(false);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -73,6 +75,15 @@ export default function SpotifyMiniPlayer() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Update viewport height on resize to keep drag constraints fresh
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportHeight(window.innerHeight);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Persist state to localStorage
   const saveState = (newState: PlayerState) => {
     setPlayerState(newState);
@@ -108,6 +119,9 @@ export default function SpotifyMiniPlayer() {
   };
 
   const handleExpand = () => {
+    // Skip if a drag just occurred
+    if (isDraggingRef.current) return;
+
     const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
     const expandX = viewportWidth - CARD_WIDTH - 24;
     const currentButtonY = buttonY ?? (typeof window !== "undefined" ? window.innerHeight / 2 : 300);
@@ -128,6 +142,10 @@ export default function SpotifyMiniPlayer() {
   };
 
   const handleButtonDragEnd = () => {
+    // Mark that a drag just occurred to prevent click from firing
+    isDraggingRef.current = true;
+    setTimeout(() => { isDraggingRef.current = false; }, 200);
+
     const currentY = buttonMotionY.get();
     const baseY = buttonY ?? (typeof window !== "undefined" ? window.innerHeight / 2 - SNAPPED_BUTTON_SIZE / 2 : 300);
     const newY = baseY + currentY;
@@ -144,7 +162,7 @@ export default function SpotifyMiniPlayer() {
   if (playerState.snapped) {
     const topPosition = buttonY ?? (typeof window !== "undefined" ? window.innerHeight / 2 - SNAPPED_BUTTON_SIZE / 2 : 300);
     const maxDragUp = -topPosition;
-    const maxDragDown = (typeof window !== "undefined" ? window.innerHeight : 800) - SNAPPED_BUTTON_SIZE - topPosition;
+    const maxDragDown = viewportHeight - SNAPPED_BUTTON_SIZE - topPosition;
 
     return (
       <motion.div
