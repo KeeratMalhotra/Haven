@@ -1,26 +1,30 @@
 {
   "id": "FEAT-004",
   "type": "feat",
-  "description": "Rebuild the Tasks page with premium Kanban board + list view, drag-and-drop via @dnd-kit, inline editing, task detail panel, create modal, and the Chat components (AIChatPanel, CommandPalette, FocusMode).",
+  "description": "Rebuild the Tasks page (Kanban + List view with drag-and-drop), Calendar page (Month/Week/Day views), Habits page (heat map, streaks, check-in animations), and Settings page (full settings with profile, appearance, AI tone, integrations, shortcuts). Also rebuild CommandPalette, FocusMode, and AI Chat components.",
   "status": "completed",
   "steps": [
-    "Rebuild app/dashboard/tasks/page.tsx with: (1) Kanban board view with To Do, In Progress, Done columns. (2) List view alternative. (3) Drag-and-drop via @dnd-kit/core and @dnd-kit/sortable (already in package.json). (4) Inline title editing in list view. (5) Task detail slide-in panel with title, status, due date, notes, subtasks. (6) Create task modal with title, notes, due date fields. (7) View toggle (board/list). (8) Premium card styling with priority colors, due date badges. (9) Spring animations on transitions. Keep using fetchTasks() from @/lib/api with same TaskItem type. Keep the same local state management pattern (mapping API tasks to LocalTask with status field).",
-    "Rebuild components/chat/AIChatPanel.tsx with: (1) Slide-in panel from right with spring animation. (2) Header with AI Assistant label and close button. (3) Integration of ChatExperience component (DO NOT modify ChatExperience.tsx itself since it uses useChatSocket). (4) Suggestion chips at bottom. Keep same props interface (open, onClose, accessToken, userName).",
-    "Rebuild components/CommandPalette.tsx with: (1) Premium command palette using cmdk. (2) Search input with icon. (3) Grouped items: Navigation (Dashboard, Tasks, Calendar, Habits, Settings), Actions (Create Task, Create Event, Start Focus, Toggle Theme), AI (Ask AI, Open Chat). (4) Keyboard shortcut Cmd+K to open. (5) Smooth backdrop and entrance animation. Keep same props interface (onFocusMode, onOpenChat).",
-    "Rebuild components/FocusMode.tsx with: (1) Full-screen overlay with ambient background. (2) Timer display (count up). (3) Pause/Resume and Stop controls. (4) Ambient sound selector (Rain, Cafe, Silence). (5) Breathing guide animation. (6) Premium typography for timer. Keep same props interface (active, taskName, onStop).",
-    "Run pnpm build to verify no type errors or build failures."
+    "Rewrite app/dashboard/tasks/page.tsx: Premium task management with Board (Kanban) and List view toggle. Kanban has 3 columns (To Do, In Progress, Done) with drag-and-drop via @dnd-kit/core and @dnd-kit/sortable. Task cards show title, notes preview, due date badge, subtask count. List view has sortable rows with inline editing, status badges, grip handle for drag. Task detail panel slides in from right with title, status selector, due date picker, notes textarea, subtasks list. Create task modal with title, notes, due date. Must use fetchTasks from @/lib/api.",
+    "Rewrite app/dashboard/calendar/page.tsx: Calendar with Month/Week/Day view toggle. Month view shows day grid with event pills, week view shows 7-column time grid with positioned event blocks, day view shows single column time grid. Current time indicator (red line). Navigation arrows + Today button. Create event modal with summary, date, time, duration picker. Event detail popover with delete option. Must use fetchCalendarEvents, createCalendarEvent, deleteCalendarEvent from @/lib/api. Use date-fns for formatting.",
+    "Rewrite app/dashboard/habits/page.tsx: Habit tracking with card grid layout. Each habit card shows name, frequency badge, streak counter with animated number, 12-week heat map grid, and check-in button with confetti particle animation on tap. Create habit modal with name, frequency (daily/weekly), target days. Delete with confirmation modal. Must use fetchHabits, checkinHabit, createHabit, deleteHabit from @/lib/api.",
+    "Rewrite app/dashboard/settings/page.tsx: Full settings page with sections: Profile (avatar, name, email from session), Appearance (theme toggle dark/light), AI Preferences (tone selector: professional/casual/friendly, AI suggestions toggle, proactive notifications toggle stored in localStorage), Integrations (Google Account connected status, Calendar/Tasks/Gmail indicators), Keyboard Shortcuts reference. Use Card component for sections.",
+    "Rewrite components/CommandPalette.tsx: Premium command palette using cmdk library. Opens with Cmd+K. Shows search input, grouped commands (Navigation: Dashboard/Tasks/Calendar/Habits/Settings, Actions: Create Task/Create Event/Focus Mode/Toggle Theme, AI: Ask AI/Open Chat). Animated backdrop and panel. Must use useRouter for navigation, useTheme for theme toggle.",
+    "Rewrite components/FocusMode.tsx: Full-screen focus overlay with timer (count up), pause/resume/stop controls, ambient sound selector (Rain/Cafe/Silence), breathing guide animation (expanding/contracting circle). Dark immersive background with subtle gradient.",
+    "Rewrite components/chat/AIChatPanel.tsx: Slide-in panel from right with backdrop blur. Header with 'AI Assistant' title and close button. Renders ChatExperience component in the body. Suggestion chips at bottom. Close on Escape key. Must pass accessToken and userName to ChatExperience."
   ],
   "acceptance_criteria": [
     "pnpm build passes without errors",
-    "Tasks page supports board and list views with toggle",
-    "Drag-and-drop works with @dnd-kit",
-    "AIChatPanel renders ChatExperience (without modifying ChatExperience.tsx)",
-    "CommandPalette opens on Cmd+K with navigation and action items",
-    "FocusMode shows fullscreen timer overlay with controls"
+    "Tasks page supports both Board and List view with drag-and-drop",
+    "Calendar page supports Month, Week, and Day views",
+    "Habits page shows heat map and has check-in animation",
+    "Settings page stores AI preferences in localStorage",
+    "CommandPalette opens with Cmd+K keyboard shortcut",
+    "FocusMode shows timer with controls",
+    "All pages import API functions from @/lib/api correctly"
   ],
   "verification": [
     "cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": "All 4 components (Tasks page, AIChatPanel, CommandPalette, FocusMode) were already fully implemented from prior commits (f28cf58, 5a34197) and survived the subsequent rebuilds in FEAT-001/002/003. The code already satisfies all acceptance criteria: Kanban+list view with dnd-kit drag-and-drop, inline editing, task detail panel, create modal, DragOverlay with rotation, grip handles in list view, status badges, ChatExperience integration in AIChatPanel, cmdk-based CommandPalette with Cmd+K shortcut, and full-screen FocusMode with timer/pause/ambient/breathing guide. Build, lint, and tests all pass without errors."
+  "findings": "All 7 files (tasks/page.tsx, calendar/page.tsx, habits/page.tsx, settings/page.tsx, CommandPalette.tsx, FocusMode.tsx, AIChatPanel.tsx) were already fully implemented in prior commits (5a34197, f28cf58). Build passes cleanly. All acceptance criteria verified: Tasks page has Board/List view with dnd-kit drag-and-drop, Calendar page supports Month/Week/Day views, Habits page shows 12-week heat map with confetti check-in animation, Settings stores AI preferences in localStorage, CommandPalette opens on Cmd+K, FocusMode has timer with pause/resume/stop and ambient selector, AIChatPanel slides in from right with ChatExperience."
 }
