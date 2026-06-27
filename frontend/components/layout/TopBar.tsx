@@ -1,53 +1,107 @@
 "use client";
 
 import { motion } from "framer-motion";
-import SettingsMenu from "@/components/settings/SettingsMenu";
+import { Search, Menu } from "lucide-react";
+import Image from "next/image";
 
 interface TopBarProps {
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
+  title?: string;
   connected?: boolean;
-  accessToken?: string;
+  userImage?: string | null;
+  onMenuClick?: () => void;
 }
 
 /**
  * TopBar
- * A whisper-quiet top bar: the ChronAI wordmark on the left, a subtle live
- * connection indicator, and the account/settings avatar on the right.
+ * Minimal Notion-style top bar spanning the content area.
+ * Shows page title, search trigger, connection status, and user avatar.
  */
-export default function TopBar({ name, email, image, connected, accessToken }: TopBarProps) {
+export default function TopBar({
+  title = "Dashboard",
+  connected,
+  userImage,
+  onMenuClick,
+}: TopBarProps) {
+  const connectionColor =
+    connected === true
+      ? "bg-emerald-400"
+      : connected === false
+        ? "bg-red-400"
+        : "bg-amber-400 animate-pulse";
+
+  const connectionLabel =
+    connected === true
+      ? "Connected"
+      : connected === false
+        ? "Disconnected"
+        : "Connecting";
+
   return (
     <motion.header
-      initial={{ opacity: 0, y: -12 }}
+      initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-4"
+      transition={{ duration: 0.3 }}
+      className="flex h-14 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg)]/80 px-4 backdrop-blur-sm md:px-6"
     >
-      <div className="pointer-events-auto flex items-center gap-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-accent-gradient shadow-glow" />
-        <span className="text-base font-semibold tracking-tight text-white">
-          Chron<span className="gradient-text">AI</span>
-        </span>
-        <span
-          className={`ml-2 hidden items-center gap-1.5 sm:flex`}
-          title={connected ? "Connected" : "Reconnecting"}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full transition-colors ${
-              connected
-                ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]"
-                : "animate-pulse bg-amber-400"
-            }`}
-          />
-          <span className="font-mono text-[10px] uppercase tracking-wider text-white/30">
-            {connected ? "Live" : "Linking"}
-          </span>
-        </span>
+      {/* Left: mobile menu + page title */}
+      <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] md:hidden"
+            aria-label="Open menu"
+          >
+            <Menu size={20} />
+          </button>
+        )}
+        <h1 className="text-base font-semibold text-[var(--text-primary)]">
+          {title}
+        </h1>
       </div>
 
-      <div className="pointer-events-auto">
-        <SettingsMenu name={name} email={email} image={image} accessToken={accessToken} />
+      {/* Right: search trigger, connection, avatar */}
+      <div className="flex items-center gap-3">
+        {/* Search / Command Palette trigger */}
+        <button
+          onClick={() => {
+            // Dispatch Cmd+K to open command palette
+            const event = new KeyboardEvent("keydown", {
+              key: "k",
+              metaKey: true,
+              bubbles: true,
+            });
+            document.dispatchEvent(event);
+          }}
+          className="hidden items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] sm:flex"
+        >
+          <Search size={14} />
+          <span>Search</span>
+          <kbd className="ml-2 rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-tertiary)]">
+            ⌘K
+          </kbd>
+        </button>
+
+        {/* Connection status */}
+        <div className="flex items-center gap-1.5" title={connectionLabel}>
+          <span
+            className={`h-2 w-2 rounded-full ${connectionColor}`}
+          />
+        </div>
+
+        {/* User avatar */}
+        {userImage ? (
+          <Image
+            src={userImage}
+            alt="User avatar"
+            width={28}
+            height={28}
+            className="rounded-full ring-1 ring-[var(--border)]"
+          />
+        ) : (
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-500/20 text-xs font-medium text-accent-400 ring-1 ring-[var(--border)]">
+            U
+          </div>
+        )}
       </div>
     </motion.header>
   );

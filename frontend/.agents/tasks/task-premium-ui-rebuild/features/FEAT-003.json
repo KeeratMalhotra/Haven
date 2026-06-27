@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Build the main application shell: Sidebar navigation, TopBar, and Dashboard layout with resizable panels. This is the structural frame that all feature pages (Tasks, Calendar, Habits, Settings) will live inside. Includes the sidebar with navigation items, user avatar, theme toggle, and the responsive layout system.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Create components/layout/Sidebar.tsx: A collapsible sidebar (expanded ~260px, collapsed ~68px) with: 1) Logo/brand at top. 2) Navigation items: Dashboard (home icon), Tasks (check-square), Calendar (calendar), Habits (flame/target), Chat (message-circle), Focus (zap). 3) Each nav item has an active state indicator (subtle indigo left border or bg highlight), hover animation, and icon + label. 4) Bottom section: user avatar with online indicator, theme toggle (sun/moon with rotation animation), settings gear icon. 5) Collapse/expand toggle button. 6) Smooth width transition with framer-motion layout animation. Use lucide-react icons.",
     "Create components/layout/TopBar.tsx (replace existing): A minimal top bar that shows: 1) Breadcrumb or current page title. 2) Search trigger button (opens command palette). 3) Connection status dot (green/yellow/red). 4) Quick actions: notifications bell, AI chat toggle. Clean, Notion-style minimal header with subtle bottom border.",
