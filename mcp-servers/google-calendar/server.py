@@ -3,6 +3,7 @@
 Provides tools for interacting with Google Calendar API:
 - list_events: List calendar events in a date range
 - create_event: Create a new calendar event
+- update_event: Update an existing calendar event in place
 - find_free_slots: Find available time slots
 - delete_event: Delete a calendar event by ID
 """
@@ -120,6 +121,49 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="update_event",
+            description="Update an existing calendar event in place (preserves the event ID)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "auth_token": {
+                        "type": "string",
+                        "description": "Google OAuth access token",
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "The ID of the event to update",
+                    },
+                    "summary": {
+                        "type": "string",
+                        "description": "Updated event title/summary",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Updated event description",
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "Updated start time in ISO format (e.g., 2024-01-15T09:00:00)",
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "Updated end time in ISO format (e.g., 2024-01-15T10:00:00)",
+                    },
+                    "duration_minutes": {
+                        "type": "integer",
+                        "description": "Duration in minutes (used to compute end_time when start_time is given but end_time is not)",
+                        "default": 60,
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Updated event location",
+                    },
+                },
+                "required": ["auth_token", "event_id"],
+            },
+        ),
+        Tool(
             name="find_free_slots",
             description="Find available time slots in the calendar",
             inputSchema={
@@ -195,6 +239,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         )
     elif name == "create_event":
         result = await _create_event(auth_token, arguments)
+    elif name == "update_event":
+        result = await _update_event(auth_token, arguments)
     elif name == "find_free_slots":
         result = await _find_free_slots(
             auth_token,
@@ -312,6 +358,76 @@ async def _create_event(auth_token: str, arguments: dict) -> dict:
             event_body["attendees"] = [{"email": email} for email in attendees]
 
         event = service.events().insert(calendarId="primary", body=event_body).execute()
+
+        return {
+            "id": event.get("id", ""),
+            "summary": event.get("summary", ""),
+            "start": event.get("start", {}).get("dateTime", ""),
+            "end": event.get("end", {}).get("dateTime", ""),
+            "link": event.get("htmlLink", ""),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def _update_event(auth_token: str, arguments: dict) -> dict:
+    """Update an existing calendar event in place.
+
+    Uses the Calendar API's patch() so the event ID is preserved (no
+    delete + recreate). Only the provided fields are changed.
+
+    Args:
+        auth_token: Google OAuth access token.
+        arguments: Event details (event_id, optional summary, start_time,
+            end_time, duration_minutes, description, location).
+
+    Returns:
+        Updated event data or error.
+    """
+    event_id = arguments.get("event_id", "")
+    if not event_id:
+        return {"error": "event_id is required"}
+
+    try:
+        service = get_calendar_service(auth_token)
+
+        # Build a partial body containing only the fields being updated.
+        event_body: dict = {}
+
+        if arguments.get("summary") is not None:
+            event_body["summary"] = arguments.get("summary")
+        if arguments.get("description") is not None:
+            event_body["description"] = arguments.get("description")
+        if arguments.get("location") is not None:
+            event_body["location"] = arguments.get("location")
+
+        # Handle start/end times (mirror create_event's logic).
+        start_time = arguments.get("start_time")
+        end_time = arguments.get("end_time")
+        duration_minutes = arguments.get("duration_minutes", 60)
+
+        if start_time:
+            start_dt = datetime.fromisoformat(start_time)
+            # Ensure the start is timezone-aware (assume IST when naive).
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=IST)
+                start_time = start_dt.isoformat()
+
+            if not end_time:
+                end_dt = start_dt + timedelta(minutes=duration_minutes)
+                end_time = end_dt.isoformat()
+
+            event_body["start"] = {"dateTime": start_time, "timeZone": TIMEZONE_NAME}
+            event_body["end"] = {"dateTime": end_time, "timeZone": TIMEZONE_NAME}
+        elif end_time:
+            # end_time provided on its own.
+            event_body["end"] = {"dateTime": end_time, "timeZone": TIMEZONE_NAME}
+
+        event = (
+            service.events()
+            .patch(calendarId="primary", eventId=event_id, body=event_body)
+            .execute()
+        )
 
         return {
             "id": event.get("id", ""),

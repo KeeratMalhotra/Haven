@@ -697,15 +697,27 @@ async def update_calendar_event(event_id: str, body: UpdateEventRequest):
         update_params["duration_minutes"] = body.duration_minutes
 
     try:
-        # Try the update_event tool first
+        # Primary path: update the event in place via the update_event MCP tool.
+        # This preserves the event ID and avoids the duplicate/empty-field
+        # problems caused by delete + recreate.
         result = await mcp_client.call_tool(
             "google-calendar",
             "update_event",
             update_params,
         )
-        return result
+
+        # The MCP tool returns {"error": ...} rather than raising on failure,
+        # and may also return an empty/malformed shape. Treat any of these as
+        # a signal to fall back to delete + recreate.
+        if isinstance(result, dict) and not result.get("error") and result.get("id"):
+            return result
+
+        raise RuntimeError(
+            f"update_event did not return a valid event: {result}"
+        )
     except Exception as update_err:
-        # If update_event tool is not available, fall back to delete + recreate
+        # Last-resort fallback: delete the old event and recreate it with the
+        # updated fields. Only used when update_event is unavailable or failed.
         logger.info(f"update_event failed ({update_err}), trying delete+recreate fallback")
 
         try:
