@@ -26,7 +26,7 @@ export default function MessageList({
   }, [messages, thinking, statusLabel]);
 
   return (
-    <div className="scroll-thin mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-40 pt-10">
+    <div className="scroll-thin mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pb-6 pt-10">
       <AnimatePresence initial={false}>
         {messages.map((m) => (
           <MessageBubble

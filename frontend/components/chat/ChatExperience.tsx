@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useChatSocket, type ConnectionState } from "@/hooks/useChatSocket";
 import GreetingHero from "./GreetingHero";
 import MessageList from "./MessageList";
@@ -50,24 +50,15 @@ export default function ChatExperience({
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col">
-      {/* Conversation / Greeting region */}
-      <div className="relative flex-1 overflow-hidden">
-        <AnimatePresence mode="wait">
-          {!hasMessages ? (
-            <motion.div
-              key="greeting"
-              className="absolute inset-0 flex items-center justify-center"
-              exit={{ opacity: 0 }}
-            >
-              <GreetingHero name={userName} />
-            </motion.div>
-          ) : (
+      {hasMessages ? (
+        /* Conversation mode: flex column with scrollable messages + pinned composer */
+        <>
+          <div className="flex-1 overflow-y-auto scroll-thin">
             <motion.div
               key="conversation"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="scroll-thin h-full overflow-y-auto"
             >
               <MessageList
                 messages={messages}
@@ -76,28 +67,43 @@ export default function ChatExperience({
                 onStreamComplete={finishStreaming}
               />
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Composer: centered when empty, docked to bottom in conversation */}
-      <motion.div
-        layout
-        className={`pointer-events-none absolute inset-x-0 z-20 flex justify-center px-4 ${
-          hasMessages
-            ? "bottom-6"
-            : "top-1/2 translate-y-[calc(-50%+7rem)]"
-        }`}
-      >
-        <div className="pointer-events-auto w-full flex justify-center">
-          <ChatComposer
-            onSend={(v) => send(v, "chat")}
-            onVoice={() => setVoiceActive(true)}
-            centered={!hasMessages}
-            disabled={connection === "disconnected"}
-          />
-        </div>
-      </motion.div>
+          </div>
+          <div className="z-20 flex justify-center px-4 pb-6 pt-2">
+            <ChatComposer
+              onSend={(v) => send(v, "chat")}
+              onVoice={() => setVoiceActive(true)}
+              centered={false}
+              disabled={connection === "disconnected"}
+            />
+          </div>
+        </>
+      ) : (
+        /* Greeting mode: centered greeting + composer */
+        <>
+          <div className="relative flex-1 overflow-hidden">
+            <motion.div
+              key="greeting"
+              className="absolute inset-0 flex items-center justify-center"
+              exit={{ opacity: 0 }}
+            >
+              <GreetingHero name={userName} />
+            </motion.div>
+          </div>
+          <motion.div
+            layout
+            className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex translate-y-[calc(-50%+7rem)] justify-center px-4"
+          >
+            <div className="pointer-events-auto w-full flex justify-center">
+              <ChatComposer
+                onSend={(v) => send(v, "chat")}
+                onVoice={() => setVoiceActive(true)}
+                centered={true}
+                disabled={connection === "disconnected"}
+              />
+            </div>
+          </motion.div>
+        </>
+      )}
 
       <VoiceMode
         active={voiceActive}

@@ -61,7 +61,7 @@ export default function VoiceMode({
       }
     } catch {
       setPhase("idle");
-      setHint("Voice isn't available in this browser");
+      setHint("Requires HTTPS and Chrome/Edge");
     } finally {
       listeningRef.current = false;
     }

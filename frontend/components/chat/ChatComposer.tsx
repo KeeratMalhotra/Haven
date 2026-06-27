@@ -26,6 +26,10 @@ export default function ChatComposer({
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const speechAvailable =
+    typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
   const submit = () => {
     if (!value.trim()) return;
     onSend(value);
@@ -75,14 +79,16 @@ export default function ChatComposer({
         />
 
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onVoice}
-            aria-label="Start voice conversation"
-            className="grid h-10 w-10 place-items-center rounded-xl text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-accent-500"
-          >
-            <AudioLines size={19} strokeWidth={1.8} />
-          </button>
+          {speechAvailable && (
+            <button
+              type="button"
+              onClick={onVoice}
+              aria-label="Start voice conversation"
+              className="grid h-10 w-10 place-items-center rounded-xl text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-accent-500"
+            >
+              <AudioLines size={19} strokeWidth={1.8} />
+            </button>
+          )}
           <button
             type="button"
             onClick={submit}

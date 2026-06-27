@@ -62,6 +62,59 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
 
   const reportAction = useCallback(
     (actionType: string, actionData: Record<string, any>) => {
+      // ---- Local heuristic suggestions (fire immediately, no backend needed) ----
+      const fireLocal = (text: string, type: "info" | "action" | "warning") => {
+        const localSuggestion: AISuggestion = {
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          text,
+          type,
+          actions: [],
+          timestamp: Date.now(),
+          dismissed: false,
+        };
+        addNotification(localSuggestion);
+      };
+
+      // Task without deadline
+      if (
+        (actionType === "task_created" || actionType === "task_viewed") &&
+        !actionData.due &&
+        !actionData.deadline
+      ) {
+        fireLocal(
+          "This task has no deadline. Consider setting one for better planning.",
+          "info"
+        );
+      }
+
+      // Task dragged/moved
+      if (actionType === "task_dragged" || actionType === "task_moved") {
+        fireLocal(
+          "Task moved! Need help rescheduling related events?",
+          "action"
+        );
+      }
+
+      // Event created with overlap
+      if (actionType === "event_created" && actionData.overlap) {
+        fireLocal(
+          "Heads up: this event may overlap with another on your calendar.",
+          "warning"
+        );
+      }
+
+      // Multiple overdue tasks
+      if (
+        Array.isArray(actionData.overdueTasks) &&
+        actionData.overdueTasks.length >= 3
+      ) {
+        fireLocal(
+          "You have several overdue tasks. Want help catching up?",
+          "warning"
+        );
+      }
+
+      // ---- Backend call (debounced, non-blocking) ----
       // Queue the action instead of overwriting (batch approach)
       actionQueueRef.current.push({ actionType, actionData });
 
@@ -120,7 +173,7 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
         }
       }, 500);
     },
-    [session]
+    [session, addNotification]
   );
 
   return (

@@ -16,13 +16,14 @@ import {
   CheckSquare as CheckSquareFilled,
   Bell,
   BookOpen,
+  Plus,
+  Timer,
 } from "lucide-react";
 import { format } from "date-fns";
 
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import AIChatPanel from "@/components/chat/AIChatPanel";
-import CommandPalette from "@/components/CommandPalette";
 import FocusMode from "@/components/FocusMode";
 import {
   fetchOnboardingStatus,
@@ -140,20 +141,14 @@ export default function DashboardPage() {
   const [focusActive, setFocusActive] = useState(false);
   const [focusTask, setFocusTask] = useState<string | undefined>(undefined);
 
+  // Quick Actions FAB
+  const [fabOpen, setFabOpen] = useState(false);
+
   // Onboarding checklist
   const [checklistDismissed, setChecklistDismissed] = useState(false);
 
   // Focus mode usage tracking (hydration-safe)
   const [focusUsed, setFocusUsed] = useState(false);
-
-  const handleFocusMode = useCallback(() => {
-    setFocusTask(undefined);
-    setFocusActive(true);
-  }, []);
-
-  const handleOpenChat = useCallback(() => {
-    setChatOpen(true);
-  }, []);
 
   // Onboarding gate
   useEffect(() => {
@@ -175,16 +170,29 @@ export default function DashboardPage() {
       fetchTasks(accessToken),
       fetchCalendarEvents(accessToken, 1),
       fetchHabits(accessToken),
-    ]).then(([t, e, h]) => {
-      setTasks(t);
-      setEvents(e);
-      setHabits(h);
-      setDataLoading(false);
-    });
+    ])
+      .then(([t, e, h]) => {
+        setTasks(t);
+        setEvents(e);
+        setHabits(h);
+      })
+      .catch(() => {
+        // On failure, set empty arrays so the page still renders
+        setTasks([]);
+        setEvents([]);
+        setHabits([]);
+      })
+      .finally(() => {
+        setDataLoading(false);
+      });
     // Fetch suggestions in parallel (non-blocking)
-    fetchSuggestions(accessToken).then((data) => {
-      setSuggestions(data.suggestions || []);
-    });
+    fetchSuggestions(accessToken)
+      .then((data) => {
+        setSuggestions(data.suggestions || []);
+      })
+      .catch(() => {
+        // Silently fail - suggestions are non-critical
+      });
   }, [onboardingChecked, accessToken]);
 
   // Read checklist dismissal from localStorage
@@ -722,27 +730,77 @@ export default function DashboardPage() {
         )}
       </motion.div>
 
-      {/* AI Chat toggle button */}
-      <AnimatePresence mode="wait">
+      {/* Quick Actions FAB */}
+      <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2">
+        <AnimatePresence>
+          {fabOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="mb-2 flex flex-col gap-2"
+            >
+              {[
+                {
+                  label: "Add Task",
+                  icon: CheckSquare,
+                  action: () => { router.push("/dashboard/tasks"); setFabOpen(false); },
+                },
+                {
+                  label: "Add Event",
+                  icon: Calendar,
+                  action: () => { router.push("/dashboard/calendar"); setFabOpen(false); },
+                },
+                {
+                  label: "Start Focus",
+                  icon: Timer,
+                  action: () => { setFocusActive(true); setFabOpen(false); },
+                },
+                {
+                  label: "Ask AI",
+                  icon: MessageCircle,
+                  action: () => { setChatOpen(true); setFabOpen(false); },
+                },
+              ].map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <motion.button
+                    key={item.label}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ delay: i * 0.04, duration: 0.2 }}
+                    onClick={item.action}
+                    className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-lg transition-colors hover:bg-[var(--surface-hover)]"
+                  >
+                    <Icon size={16} strokeWidth={1.5} className="text-accent-500" />
+                    <span className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
+                      {item.label}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.button
-          key={chatOpen ? "close" : "open"}
-          onClick={() => setChatOpen((o) => !o)}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
+          onClick={() => setFabOpen((o) => !o)}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-gradient shadow-lg shadow-accent-500/25 transition-shadow hover:shadow-xl hover:shadow-accent-500/30"
-          aria-label="Toggle AI chat"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-gradient shadow-lg shadow-accent-500/25 transition-shadow hover:shadow-xl hover:shadow-accent-500/30"
+          aria-label="Quick actions"
         >
-          {chatOpen ? (
-            <X size={22} className="text-white" />
-          ) : (
-            <MessageCircle size={22} className="text-white" />
-          )}
+          <motion.div
+            animate={{ rotate: fabOpen ? 45 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Plus size={22} className="text-white" />
+          </motion.div>
         </motion.button>
-      </AnimatePresence>
+      </div>
 
       {/* AI Chat side panel */}
       <AIChatPanel
@@ -750,12 +808,6 @@ export default function DashboardPage() {
         onClose={() => setChatOpen(false)}
         accessToken={accessToken}
         userName={user?.name ?? undefined}
-      />
-
-      {/* Command Palette */}
-      <CommandPalette
-        onFocusMode={handleFocusMode}
-        onOpenChat={handleOpenChat}
       />
 
       {/* Focus Mode overlay */}
