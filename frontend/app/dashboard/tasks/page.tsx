@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Tag,
   Flag,
+  BookTemplate,
 } from "lucide-react";
 import {
   DndContext,
@@ -66,6 +67,8 @@ import {
   type ContextMenuPosition,
   type ContextMenuActions,
 } from "@/components/tasks/TaskContextMenu";
+import { TemplateLibrary } from "@/components/templates/TemplateLibrary";
+import { type TemplateTask } from "@/lib/templates";
 
 // Recurrence config
 export interface RecurrenceConfig {
@@ -924,6 +927,9 @@ export default function TasksPage() {
   const [newPriority, setNewPriority] = useState<LocalTask["priority"]>("none");
   const [newRecurrence, setNewRecurrence] = useState<RecurrenceConfig | null>(null);
 
+  // Template Library state
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -1327,6 +1333,41 @@ export default function TasksPage() {
     setIsSelectMode(false);
   }, [selectedTasks]);
 
+  const handleUseTemplate = useCallback(
+    async (templateTasks: TemplateTask[]) => {
+      const newTasks: LocalTask[] = templateTasks.map((t) => {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + t.due_days_from_now);
+        return {
+          id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          title: t.title,
+          notes: t.notes || undefined,
+          due: dueDate.toISOString().split("T")[0],
+          completed: false,
+          status: "todo" as const,
+          priority: t.priority,
+          labels: [],
+        };
+      });
+
+      setTasks((prev) => [...newTasks, ...prev]);
+
+      // Fire-and-forget API calls to create tasks remotely
+      for (const t of templateTasks) {
+        try {
+          await apiCreateTask(accessToken, {
+            title: t.title,
+            notes: t.notes || "",
+            due_days_from_now: t.due_days_from_now,
+          });
+        } catch {
+          // API failed - tasks remain in local state
+        }
+      }
+    },
+    [accessToken]
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -1398,6 +1439,14 @@ export default function TasksPage() {
           >
             <Plus size={14} />
             Add Task
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowTemplateLibrary(true)}
+          >
+            <BookTemplate size={14} strokeWidth={1.5} />
+            Templates
           </Button>
         </div>
       </div>
@@ -1746,6 +1795,15 @@ export default function TasksPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Template Library Modal */}
+      <Modal open={showTemplateLibrary} onClose={() => setShowTemplateLibrary(false)}>
+        <TemplateLibrary
+          accessToken={accessToken}
+          onUseTemplate={handleUseTemplate}
+          onClose={() => setShowTemplateLibrary(false)}
+        />
+      </Modal>
     </motion.div>
   );
 }

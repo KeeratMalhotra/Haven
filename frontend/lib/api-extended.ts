@@ -187,6 +187,40 @@ export async function fetchAutopilotPlan(
 }
 
 /**
+ * Generate a custom template from a goal description using AI.
+ */
+export async function generateTemplate(
+  authToken: string,
+  goalDescription: string
+): Promise<{
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  tasks: {
+    title: string;
+    notes: string;
+    due_days_from_now: number;
+    priority: "high" | "medium" | "low" | "none";
+  }[];
+}> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(`${getApiBase()}/api/templates/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      goal_description: goalDescription,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to generate template (${res.status})`);
+  }
+  return await res.json();
+}
+
+/**
  * Execute an autopilot day plan (create events, schedule tasks, etc).
  */
 export async function executeAutopilotPlan(
