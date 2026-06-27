@@ -14,6 +14,7 @@ import {
   Settings,
   Check,
   RotateCcw,
+  Headphones,
 } from "lucide-react";
 
 interface FocusModeProps {
@@ -204,6 +205,24 @@ function stopAmbientAudio(nodes: AmbientNodes | null): void {
 
 const STATS_KEY = "chronai-pomodoro-stats";
 
+const FOCUS_PLAYLISTS = [
+  {
+    label: "Lo-fi Beats",
+    description: "Chill lo-fi hip hop for deep work",
+    url: "https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn",
+  },
+  {
+    label: "Deep Focus",
+    description: "Ambient and electronic focus music",
+    url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ",
+  },
+  {
+    label: "Classical Focus",
+    description: "Classical music for concentration",
+    url: "https://open.spotify.com/playlist/37i9dQZF1DWV7EzJMK2FUI",
+  },
+];
+
 function getTodayKey(): string {
   return new Date().toISOString().split("T")[0];
 }
@@ -365,9 +384,16 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
   const [volume, setVolume] = useState(0.5);
   const ambientNodesRef = useRef<AmbientNodes | null>(null);
 
+  // Spotify connected state
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+
   // Load stats on mount
   useEffect(() => {
     setCompletedToday(getTodayPomodoros());
+    setSpotifyConnected(
+      typeof window !== "undefined" &&
+        localStorage.getItem("chronai-spotify-connected") === "true"
+    );
   }, []);
 
   // Reset on activation
@@ -806,6 +832,32 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
                 </div>
               )}
             </div>
+            )}
+
+            {/* Focus Playlist Suggestions */}
+            {!isSelecting && spotifyConnected && (
+              <div className="flex flex-col items-center gap-2 w-full max-w-xs">
+                <div className="flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
+                  <Headphones size={12} strokeWidth={1.5} />
+                  <span>Focus Playlists</span>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {FOCUS_PLAYLISTS.map((playlist) => (
+                    <button
+                      key={playlist.label}
+                      onClick={() => {
+                        localStorage.setItem("chronai-spotify-playlist-url", playlist.url);
+                        window.dispatchEvent(new Event("chronai-playlist-changed"));
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-green-400 hover:border-green-600/40 hover:bg-green-600/10 transition-all"
+                      title={playlist.description}
+                    >
+                      <Music size={11} strokeWidth={1.5} />
+                      <span>{playlist.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </motion.div>
         </motion.div>

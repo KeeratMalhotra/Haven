@@ -7,6 +7,41 @@ import { Music, X } from "lucide-react";
 const STORAGE_KEY = "chronai-spotify-player";
 const CONNECTED_KEY = "chronai-spotify-connected";
 const BUTTON_Y_STORAGE_KEY = "chronai-spotify-button-y";
+const PLAYLIST_URL_KEY = "chronai-spotify-playlist-url";
+
+/**
+ * Convert a Spotify URL to an embed URL.
+ * Supports playlist, track, album, episode, and show URLs.
+ * Returns embed URL or null if not a valid Spotify link.
+ */
+function toSpotifyEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  try {
+    // Already an embed URL
+    if (url.includes("open.spotify.com/embed/")) {
+      return url;
+    }
+    // Regular Spotify URL: https://open.spotify.com/{type}/{id}?...
+    const match = url.match(
+      /open\.spotify\.com\/(playlist|track|album|episode|show)\/([a-zA-Z0-9]+)/
+    );
+    if (match) {
+      const [, type, id] = match;
+      return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+    }
+    // Spotify URI: spotify:{type}:{id}
+    const uriMatch = url.match(/spotify:(playlist|track|album|episode|show):([a-zA-Z0-9]+)/);
+    if (uriMatch) {
+      const [, type, id] = uriMatch;
+      return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const DEFAULT_EMBED_URL = "https://open.spotify.com/embed/playlist/37i9dQZF1DX3rxVfibe1L0?utm_source=generator&theme=0";
 
 interface PlayerState {
   visible: boolean;
@@ -30,6 +65,7 @@ export default function SpotifyMiniPlayer() {
   const [mounted, setMounted] = useState(false);
   const [buttonY, setButtonY] = useState<number | null>(null);
   const [viewportHeight, setViewportHeight] = useState<number>(typeof window !== "undefined" ? window.innerHeight : 800);
+  const [embedUrl, setEmbedUrl] = useState<string>(DEFAULT_EMBED_URL);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const controls = useAnimationControls();
   const motionX = useMotionValue(0);
@@ -61,18 +97,56 @@ export default function SpotifyMiniPlayer() {
       }
     }
 
+    // Load custom playlist URL
+    const customUrl = localStorage.getItem(PLAYLIST_URL_KEY);
+    if (customUrl) {
+      const converted = toSpotifyEmbedUrl(customUrl);
+      if (converted) {
+        setEmbedUrl(converted);
+      }
+    }
+
     setMounted(true);
   }, []);
 
-  // Listen for storage changes (from settings page)
+  // Listen for storage changes (from settings page or FocusMode)
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === CONNECTED_KEY) {
         setConnected(e.newValue === "true");
       }
+      if (e.key === PLAYLIST_URL_KEY) {
+        const newUrl = e.newValue;
+        if (newUrl) {
+          const converted = toSpotifyEmbedUrl(newUrl);
+          if (converted) {
+            setEmbedUrl(converted);
+          }
+        } else {
+          setEmbedUrl(DEFAULT_EMBED_URL);
+        }
+      }
     };
+
+    // Also listen for custom dispatched storage events (same-tab)
+    const handleCustomStorage = () => {
+      const customUrl = localStorage.getItem(PLAYLIST_URL_KEY);
+      if (customUrl) {
+        const converted = toSpotifyEmbedUrl(customUrl);
+        if (converted) {
+          setEmbedUrl(converted);
+        }
+      } else {
+        setEmbedUrl(DEFAULT_EMBED_URL);
+      }
+    };
+
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("chronai-playlist-changed", handleCustomStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("chronai-playlist-changed", handleCustomStorage);
+    };
   }, []);
 
   // Update viewport height on resize to keep drag constraints fresh
@@ -231,7 +305,7 @@ export default function SpotifyMiniPlayer() {
           {/* Spotify embed */}
           <div className="px-3 pb-3">
             <iframe
-              src="https://open.spotify.com/embed/playlist/37i9dQZF1DX3rxVfibe1L0?utm_source=generator&theme=0"
+              src={embedUrl}
               width="100%"
               height="152"
               frameBorder="0"

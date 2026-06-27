@@ -22,6 +22,7 @@ import {
   BookTemplate,
   Mail,
   Presentation,
+  Search,
 } from "lucide-react";
 import {
   DndContext,
@@ -73,7 +74,8 @@ import { TemplateLibrary } from "@/components/templates/TemplateLibrary";
 import { type TemplateTask } from "@/lib/templates";
 import { GmailScanModal } from "@/components/gmail/GmailScanModal";
 import { SlidesGeneratorModal } from "@/components/slides/SlidesGeneratorModal";
-import { type GmailActionItem } from "@/lib/api-extended";
+import { type GmailActionItem, researchTask } from "@/lib/api-extended";
+import TaskResearchPanel, { type ResearchResult } from "@/components/tasks/TaskResearchPanel";
 
 // Recurrence config
 export interface RecurrenceConfig {
@@ -665,6 +667,7 @@ function TaskDetailPanel({
   onDelete,
   allLabels,
   onCreatePresentation,
+  accessToken,
 }: {
   task: LocalTask;
   onClose: () => void;
@@ -672,6 +675,7 @@ function TaskDetailPanel({
   onDelete: () => void;
   allLabels: TaskLabel[];
   onCreatePresentation?: () => void;
+  accessToken?: string;
 }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes || "");
@@ -681,6 +685,30 @@ function TaskDetailPanel({
   const [recurrence, setRecurrence] = useState<RecurrenceConfig | null>(task.recurrence || null);
   const [taskLabels, setTaskLabels] = useState<TaskLabel[]>(task.labels || []);
   const [newSubtask, setNewSubtask] = useState("");
+
+  // Research state
+  const [researchResults, setResearchResults] = useState<ResearchResult[]>([]);
+  const [researchLoading, setResearchLoading] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
+  const [showResearch, setShowResearch] = useState(false);
+
+  const handleResearch = async () => {
+    if (!accessToken) return;
+    setShowResearch(true);
+    setResearchLoading(true);
+    setResearchError(null);
+    try {
+      const data = await researchTask(accessToken, {
+        title: task.title,
+        notes: task.notes || undefined,
+      });
+      setResearchResults(data.results || []);
+    } catch (err: any) {
+      setResearchError(err?.message || "Failed to research task");
+    } finally {
+      setResearchLoading(false);
+    }
+  };
 
   const handleSave = () => {
     onUpdate({ ...task, title, notes, due: due || null, status, priority, recurrence, labels: taskLabels });
@@ -908,6 +936,26 @@ function TaskDetailPanel({
               )}
             </div>
           </div>
+        </div>
+        {/* Research action */}
+        <div className="pt-3 border-t border-[var(--border)]">
+          <button
+            onClick={handleResearch}
+            disabled={researchLoading}
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-accent-500 hover:bg-accent-500/5 border border-[var(--border)] hover:border-accent-500/30 transition-colors disabled:opacity-50"
+          >
+            <Search size={15} strokeWidth={1.5} />
+            Research
+          </button>
+          {showResearch && (
+            <div className="mt-3">
+              <TaskResearchPanel
+                results={researchResults}
+                loading={researchLoading}
+                error={researchError}
+              />
+            </div>
+          )}
         </div>
         {/* Create Presentation action */}
         {onCreatePresentation && (
@@ -1719,6 +1767,7 @@ export default function TasksPage() {
               onDelete={() => setDeleteTarget(selectedTask)}
               allLabels={allLabels}
               onCreatePresentation={() => setShowSlidesGenerator(true)}
+              accessToken={accessToken}
             />
           </>
         )}

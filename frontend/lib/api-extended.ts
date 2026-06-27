@@ -349,3 +349,37 @@ export async function createPresentation(
   }
   return (await res.json()) as { presentation_id: string; presentation_url: string };
 }
+
+// --- Web Research Integration ---
+
+export interface ResearchResult {
+  title: string;
+  summary: string;
+  source_url: string;
+  relevance_snippet: string;
+}
+
+/**
+ * Research the web for context relevant to a task using AI.
+ */
+export async function researchTask(
+  authToken: string,
+  taskContext: { title: string; notes?: string }
+): Promise<{ results: ResearchResult[] }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(`${getApiBase()}/api/research`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      auth_token: authToken,
+      task_context: {
+        title: taskContext.title,
+        notes: taskContext.notes || "",
+      },
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to research task (${res.status})`);
+  }
+  return (await res.json()) as { results: ResearchResult[] };
+}
