@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "chore",
   "description": "Final bug sweep: remove console.logs and dead code, fix hydration warnings, verify dark/light mode on all pages, check all error handling paths. Also verify favicon exists in public/.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Search for and remove all console.log, console.warn, console.error statements in source files (excluding node_modules). Replace any necessary error logging with proper error boundaries or silent catch blocks.",
     "Search for and remove dead/commented-out code blocks across all pages and components.",

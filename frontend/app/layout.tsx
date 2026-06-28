@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "ChronAI - Your Intelligent Time Companion",
   description:
     "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     title: "ChronAI - Your Intelligent Time Companion",
     description:

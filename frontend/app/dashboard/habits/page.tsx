@@ -82,10 +82,11 @@ function HeatMap({ history }: { history: { completed_at: string }[] }) {
 function ConfettiParticles({ show }: { show: boolean }) {
   if (!show) return null;
 
+  // Use deterministic positions based on index to avoid hydration mismatch
   const particles = Array.from({ length: 12 }, (_, i) => ({
     id: i,
     angle: (i / 12) * 360,
-    distance: 40 + Math.random() * 30,
+    distance: 40 + ((i * 7 + 3) % 30),
     color: ["#10b981", "#34d399", "#6ee7b7", "#a7f3d0"][i % 4],
   }));
 

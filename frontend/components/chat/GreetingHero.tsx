@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 const GREETINGS = [
@@ -25,12 +25,14 @@ function getTimeOfDayGreeting(): string {
  * (handled by the parent via AnimatePresence) the moment a conversation starts.
  */
 export default function GreetingHero({ name }: { name?: string }) {
-  const greeting = useMemo(
-    () => GREETINGS[Math.floor(Math.random() * GREETINGS.length)],
-    []
-  );
+  // Hydration-safe: compute random/time values only on the client
+  const [greeting, setGreeting] = useState(GREETINGS[0]);
+  const [timeGreeting, setTimeGreeting] = useState("Hello");
 
-  const timeGreeting = useMemo(() => getTimeOfDayGreeting(), []);
+  useEffect(() => {
+    setGreeting(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
+    setTimeGreeting(getTimeOfDayGreeting());
+  }, []);
   const firstName = name?.split(" ")[0];
 
   return (

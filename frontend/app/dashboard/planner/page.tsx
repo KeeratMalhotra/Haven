@@ -223,13 +223,22 @@ function EventBlock({ event, dayStart }: { event: CalendarEvent; dayStart: Date 
   );
 }
 
-// ---------- Current Time Indicator ----------
+// ---------- Current Time Indicator (hydration-safe) ----------
 function CurrentTimeIndicator() {
-  const now = new Date();
-  const minutesSince6AM = (now.getHours() - 6) * 60 + now.getMinutes();
-  const top = (minutesSince6AM / 60) * ROW_HEIGHT;
+  const [top, setTop] = useState<number | null>(null);
 
-  if (minutesSince6AM < 0 || minutesSince6AM > 18 * 60) return null;
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const mins = (now.getHours() - 6) * 60 + now.getMinutes();
+      setTop(mins >= 0 && mins <= 18 * 60 ? (mins / 60) * ROW_HEIGHT : null);
+    };
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (top === null) return null;
 
   return (
     <div
