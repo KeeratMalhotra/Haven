@@ -3,6 +3,8 @@
 import { useEffect, useId, useState } from "react";
 import { signIn } from "next-auth/react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/ui/theme-provider";
 
 /* ------------------------------------------------------------------ */
 /* Motion helpers                                                      */
@@ -818,6 +820,7 @@ function Faq() {
 
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -858,6 +861,13 @@ function Nav() {
         </nav>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={toggleTheme}
+            className="pixel-corners grid h-9 w-9 place-items-center border-2 border-warm-400/40 bg-warm-400/10 text-warm-500 transition-colors hover:bg-warm-400/20 hover:text-warm-400 dark:text-warm-300"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <button
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             className="hidden font-terminal text-xl text-[var(--text-secondary)] transition-colors hover:text-warm-400 sm:block"

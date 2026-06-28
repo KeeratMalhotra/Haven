@@ -332,7 +332,7 @@ export default function SpotifyMiniPlayer() {
       {/* Draggable music button */}
       {!expanded && (
         <div
-          className="fixed z-[110] flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] shadow-sm hover:bg-[var(--surface-hover)] transition-colors cursor-grab active:cursor-grabbing select-none touch-none"
+          className="fixed z-[110] flex h-14 w-14 items-center justify-center rounded-full border-2 border-emerald-500/30 bg-emerald-500/15 shadow-[0_0_12px_2px_rgba(16,185,129,0.2)] hover:bg-emerald-500/25 hover:shadow-[0_0_16px_4px_rgba(16,185,129,0.3)] transition-all cursor-grab active:cursor-grabbing select-none touch-none"
           style={{
             left: buttonPos.x,
             top: buttonPos.y,
@@ -348,11 +348,11 @@ export default function SpotifyMiniPlayer() {
           tabIndex={0}
         >
           <Music
-            size={20}
+            size={24}
             strokeWidth={1.5}
-            className="text-[var(--text-secondary)] pointer-events-none"
+            className="text-emerald-500 pointer-events-none"
           />
-          <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-emerald-400 pointer-events-none" />
+          <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse pointer-events-none" />
         </div>
       )}
     </>

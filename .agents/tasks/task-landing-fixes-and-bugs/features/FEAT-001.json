@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Add dark/light mode toggle to the landing page navigation, fix card text visibility in dark mode, make the Spotify music button more prominent",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/app/page.tsx, import useTheme from '@/components/ui/theme-provider' and add the Sun/Moon icons from lucide-react",
+    "In the Nav() component in page.tsx, add a theme toggle button in the nav bar (between the nav links and the sign in button). Use a pixel-styled button that matches the landing page aesthetic (pixel-corners or similar). Toggle between Sun and Moon icons based on current theme.",
+    "Fix the card text visibility issue: The cards in the landing page (Pillars section cards, HowItWorks section cards, FAQ section cards) use bg-[var(--surface)] which works, but some inner text classes may have hardcoded text colors. Audit all card sections. Currently card titles use text-[var(--text-primary)] and bodies use text-[var(--text-secondary)] which should work. But look at the integration chips and any other elements that might use hardcoded colors. NOTE: The cards already use CSS variable text colors, so if text is black in dark mode, the issue is likely that the dark class isn't applying on the landing page or that certain text elements use hardcoded colors like text-[#3a2418] (which is a dark brown/black from the pixel art theme). Find and fix any hardcoded dark text colors that aren't wrapped in dark: variants.",
+    "Make the Spotify music button (SpotifyMiniPlayer.tsx) more visible: increase the button size from h-12 w-12 to h-14 w-14, add a colored background (emerald or accent gradient), add a subtle pulse/glow animation, make the icon bigger (24px), and add a text label that says 'Music' on larger screens using a tooltip or adjacent label. The button should have a colored bg like bg-emerald-500/10 with ring-emerald-500/30, and the icon should be emerald-500 colored instead of text-secondary."
+  ],
+  "acceptance_criteria": [
+    "Landing page has a visible theme toggle button in the nav bar that switches between dark and light mode",
+    "All card text on the landing page is readable in both dark and light modes (no black text on dark background)",
+    "The Spotify music button is more prominent with a colored background and larger size",
+    "pnpm lint passes without errors",
+    "pnpm build passes without errors"
+  ],
+  "verification": [
+    "Run cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "Run cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
