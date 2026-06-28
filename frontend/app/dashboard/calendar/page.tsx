@@ -56,6 +56,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { safeParseDate, safeFormat, isDateOnly } from "@/lib/date-utils";
+import Link from "next/link";
 
 type CalendarView = "month" | "week" | "day";
 
@@ -350,6 +351,7 @@ export default function CalendarPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [navDirection, setNavDirection] = useState(0);
+  const [calendarDisconnected, setCalendarDisconnected] = useState(false);
 
   // Detect mobile viewport for responsive view override
   useEffect(() => {
@@ -359,6 +361,21 @@ export default function CalendarPage() {
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
+
+  // Check if Google Calendar is connected via cached integration status
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("chronai-integration-status-cache");
+      if (cached) {
+        const status = JSON.parse(cached);
+        setCalendarDisconnected(!status?.calendar?.connected);
+      } else {
+        setCalendarDisconnected(true);
+      }
+    } catch {
+      setCalendarDisconnected(true);
+    }
   }, []);
 
   // Effective view: override week to day on mobile
@@ -809,6 +826,21 @@ export default function CalendarPage() {
           </div>
         );
       })()}
+
+      {/* Connect Google Calendar Banner */}
+      {calendarDisconnected && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Connect your Google Calendar to see your events
+          </p>
+          <Link
+            href="/dashboard/settings"
+            className="flex-shrink-0 rounded-lg bg-accent-500/10 px-3 py-1.5 text-xs font-medium text-accent-500 hover:bg-accent-500/20 transition-colors"
+          >
+            Connect
+          </Link>
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (

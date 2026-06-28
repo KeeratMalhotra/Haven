@@ -132,8 +132,17 @@ function SettingsContent() {
   const [proactiveNotifs, setProactiveNotifs] = useState(true);
   const [autopilotMode, setAutopilotMode] = useState<"ask_permission" | "full_auto">("ask_permission");
 
-  // Integration status (from backend)
-  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({});
+  // Integration status (from backend) - initialized from cache to prevent flash
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const cached = localStorage.getItem("chronai-integration-status-cache");
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // Ignore invalid JSON
+    }
+    return {};
+  });
   const [connectingService, setConnectingService] = useState<string | null>(null);
   const [connectionToast, setConnectionToast] = useState<string | null>(null);
 
@@ -200,17 +209,6 @@ function SettingsContent() {
     // Load custom profile picture from localStorage
     const profilePic = localStorage.getItem("chronai-profile-picture");
     if (profilePic) setCustomProfilePicture(profilePic);
-
-    // Load cached integration status from localStorage to prevent flash
-    const cachedStatus = localStorage.getItem("chronai-integration-status-cache");
-    if (cachedStatus) {
-      try {
-        const parsed = JSON.parse(cachedStatus);
-        setIntegrationStatus(parsed);
-      } catch {
-        // Ignore invalid JSON
-      }
-    }
   }, []);
 
   // Check for ?connected= query param (OAuth redirect callback)
@@ -263,9 +261,15 @@ function SettingsContent() {
       }
     });
 
-    // Fetch integration status from backend
+    // Fetch integration status from backend (background refresh)
     fetchIntegrationStatus(authToken).then((status) => {
-      setIntegrationStatus(status);
+      // Only update state if the status actually changed to avoid re-renders
+      setIntegrationStatus((prev) => {
+        const prevJson = JSON.stringify(prev);
+        const newJson = JSON.stringify(status);
+        if (prevJson === newJson) return prev;
+        return status;
+      });
       // Cache integration status in localStorage
       localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
       // Sync Spotify status with localStorage for the mini player

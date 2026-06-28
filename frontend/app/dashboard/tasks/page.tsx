@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckSquare,
@@ -1028,6 +1029,7 @@ function TasksPageContent() {
   const [showGmailScan, setShowGmailScan] = useState(false);
   const [showSlidesGenerator, setShowSlidesGenerator] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
+  const [tasksDisconnected, setTasksDisconnected] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -1038,40 +1040,82 @@ function TasksPageContent() {
     document.title = "Tasks | ChronAI";
   }, []);
 
-  // Load tasks
+  // Check if Google Tasks is connected via cached integration status
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("chronai-integration-status-cache");
+      if (cached) {
+        const status = JSON.parse(cached);
+        setTasksDisconnected(!status?.tasks?.connected);
+      } else {
+        setTasksDisconnected(true);
+      }
+    } catch {
+      setTasksDisconnected(true);
+    }
+  }, []);
+
+  // Load tasks: localStorage is the source of truth for task status.
+  // API fetch merges new tasks in without overwriting existing local statuses.
   useEffect(() => {
     async function load() {
       setLoading(true);
+      let localTasks: LocalTask[] = [];
 
-      // Try localStorage first
+      // Load from localStorage first (source of truth for status)
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const parsed = JSON.parse(stored) as LocalTask[];
           if (Array.isArray(parsed) && parsed.length > 0) {
+            localTasks = parsed;
             setTasks(parsed);
             isHydrated.current = true;
-            setLoading(false);
-            return;
           }
         }
       } catch {
         // Ignore localStorage errors
       }
 
-      // Fallback to API
+      // Always attempt API fetch to merge in new tasks
       try {
         const fetched = await fetchTasks(accessToken);
-        const mapped: LocalTask[] = fetched.map((t, i) => ({
-          ...t,
-          id: t.id || `task-${i}-${Date.now()}`,
-          status: t.completed ? "done" : ("todo" as const),
-          priority: "none" as const,
-        }));
-        setTasks(mapped);
+        const localTaskMap = new Map<string, LocalTask>();
+        localTasks.forEach((t) => {
+          if (t.id) localTaskMap.set(t.id, t);
+        });
+
+        // Merge: keep local task data for existing tasks, add truly new ones
+        const newTasksFromApi: LocalTask[] = [];
+        for (const apiTask of fetched) {
+          const id = apiTask.id || `task-api-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          if (!localTaskMap.has(id)) {
+            newTasksFromApi.push({
+              ...apiTask,
+              id,
+              status: apiTask.completed ? "done" : ("todo" as const),
+              priority: "none" as const,
+            });
+          }
+        }
+
+        if (newTasksFromApi.length > 0) {
+          setTasks((prev) => [...newTasksFromApi, ...prev]);
+        } else if (localTasks.length === 0) {
+          // No local tasks and no new API tasks - use full API response
+          const mapped: LocalTask[] = fetched.map((t, i) => ({
+            ...t,
+            id: t.id || `task-${i}-${Date.now()}`,
+            status: t.completed ? "done" : ("todo" as const),
+            priority: "none" as const,
+          }));
+          setTasks(mapped);
+        }
         isHydrated.current = true;
       } catch {
-        setTasks([]);
+        if (localTasks.length === 0) {
+          setTasks([]);
+        }
         isHydrated.current = true;
       }
       setLoading(false);
@@ -1638,6 +1682,21 @@ function TasksPageContent() {
           </div>
         );
       })()}
+
+      {/* Connect Google Tasks Banner */}
+      {tasksDisconnected && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Connect your Google Tasks to sync and manage your tasks
+          </p>
+          <Link
+            href="/dashboard/settings"
+            className="flex-shrink-0 rounded-lg bg-accent-500/10 px-3 py-1.5 text-xs font-medium text-accent-500 hover:bg-accent-500/20 transition-colors"
+          >
+            Connect
+          </Link>
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (

@@ -73,6 +73,7 @@ export default function SpotifyMiniPlayer() {
   const controls = useAnimationControls();
   const motionX = useMotionValue(0);
   const motionY = useMotionValue(0);
+  const buttonMotionX = useMotionValue(0);
   const buttonMotionY = useMotionValue(0);
   const isDraggingRef = useRef(false);
 
@@ -223,7 +224,17 @@ export default function SpotifyMiniPlayer() {
     isDraggingRef.current = true;
     setTimeout(() => { isDraggingRef.current = false; }, 200);
 
+    const currentX = buttonMotionX.get();
     const currentY = buttonMotionY.get();
+
+    // If dragged far enough LEFT (away from edge), expand the player
+    if (currentX < -40) {
+      buttonMotionX.set(0);
+      buttonMotionY.set(0);
+      handleExpand();
+      return;
+    }
+
     const baseY = buttonY ?? (typeof window !== "undefined" ? window.innerHeight / 2 - SNAPPED_HEIGHT / 2 : 300);
     const newY = baseY + currentY;
     // Clamp to viewport
@@ -231,7 +242,8 @@ export default function SpotifyMiniPlayer() {
     const clampedY = Math.max(0, Math.min(newY, maxY));
     setButtonY(clampedY);
     localStorage.setItem(BUTTON_Y_STORAGE_KEY, String(clampedY));
-    // Reset motion value since we update the top position directly
+    // Reset motion values since we update the top position directly
+    buttonMotionX.set(0);
     buttonMotionY.set(0);
   };
 
@@ -286,11 +298,12 @@ export default function SpotifyMiniPlayer() {
       {/* Snapped state: semi-circle on right edge */}
       {playerState.snapped && (
         <motion.div
-          drag="y"
+          drag
           dragMomentum={false}
-          dragConstraints={{ top: maxDragUp, bottom: maxDragDown }}
+          dragConstraints={{ top: maxDragUp, bottom: maxDragDown, left: -200, right: 0 }}
           onDragEnd={handleButtonDragEnd}
           style={{
+            x: buttonMotionX,
             y: buttonMotionY,
             width: SNAPPED_WIDTH,
             height: SNAPPED_HEIGHT,
@@ -305,7 +318,6 @@ export default function SpotifyMiniPlayer() {
           whileHover={{ width: SNAPPED_WIDTH + 4 }}
           whileTap={{ scale: 0.96 }}
           onClick={handlePlayPauseToggle}
-          onDoubleClick={handleExpand}
           className="fixed z-[60] flex items-center justify-center border border-r-0 border-gray-700/50 bg-gray-900/90 backdrop-blur-sm hover:bg-gray-800/90 transition-all duration-200 cursor-grab active:cursor-grabbing"
           role="button"
           tabIndex={0}
