@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -78,6 +78,53 @@ const slideVariants = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Extracted stable components                                         */
+/* ------------------------------------------------------------------ */
+
+function Assistant({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-8 flex items-start gap-3">
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-500 shadow-sm">
+        <Sparkles className="h-4.5 w-4.5 text-white" />
+      </div>
+      <div className="rounded-2xl rounded-tl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-left">
+        <p className="text-sm leading-relaxed text-[var(--text-primary)] sm:text-base">
+          {children}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ProgressBar({ step, totalSteps: total }: { step: number; totalSteps: number }) {
+  return (
+    <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 px-6 py-6">
+      <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/80 px-4 py-2.5 backdrop-blur-xl">
+        {Array.from({ length: total }, (_, i) => (
+          <div key={i} className="relative flex items-center">
+            <motion.div
+              className="relative h-1.5 overflow-hidden rounded-full bg-[var(--border-subtle)]"
+              animate={{ width: i === step ? "2.5rem" : "1rem" }}
+              transition={spring}
+            >
+              <motion.div
+                className="absolute inset-y-0 left-0 rounded-full bg-accent-500"
+                initial={{ width: "0%" }}
+                animate={{ width: i <= step ? "100%" : "0%" }}
+                transition={spring}
+              />
+            </motion.div>
+          </div>
+        ))}
+        <span className="ml-3 font-mono text-xs text-[var(--text-tertiary)]">
+          {step + 1}/{total}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -110,6 +157,14 @@ export default function OnboardingPage() {
   const [braindump, setBraindump] = useState("");
 
   const displayName = (name || sessionFirstName || "there").trim();
+
+  // Override body overflow:hidden for onboarding page scrollability
+  useEffect(() => {
+    document.body.style.overflow = "auto";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   const next = useCallback(() => {
     setDirection(1);
@@ -193,58 +248,6 @@ export default function OnboardingPage() {
   }, [saveProfile, router]);
 
   /* ---------------------------------------------------------------- */
-  /* Conversational header bubble                                      */
-  /* ---------------------------------------------------------------- */
-
-  const Assistant = ({ children }: { children: React.ReactNode }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={spring}
-      className="mb-8 flex items-start gap-3"
-    >
-      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-gradient shadow-glow-sm">
-        <Sparkles className="h-4.5 w-4.5 text-white" />
-      </div>
-      <div className="rounded-2xl rounded-tl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-left">
-        <p className="text-sm leading-relaxed text-[var(--text-primary)] sm:text-base">
-          {children}
-        </p>
-      </div>
-    </motion.div>
-  );
-
-  /* ---------------------------------------------------------------- */
-  /* Progress Bar                                                      */
-  /* ---------------------------------------------------------------- */
-
-  const ProgressBar = () => (
-    <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 px-6 py-6">
-      <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/80 px-4 py-2.5 backdrop-blur-xl">
-        {Array.from({ length: totalSteps }, (_, i) => (
-          <div key={i} className="relative flex items-center">
-            <motion.div
-              className="relative h-1.5 overflow-hidden rounded-full bg-[var(--border-subtle)]"
-              animate={{ width: i === step ? "2.5rem" : "1rem" }}
-              transition={spring}
-            >
-              <motion.div
-                className="absolute inset-y-0 left-0 rounded-full bg-accent-500"
-                initial={{ width: "0%" }}
-                animate={{ width: i <= step ? "100%" : "0%" }}
-                transition={spring}
-              />
-            </motion.div>
-          </div>
-        ))}
-        <span className="ml-3 font-mono text-xs text-[var(--text-tertiary)]">
-          {step + 1}/{totalSteps}
-        </span>
-      </div>
-    </div>
-  );
-
-  /* ---------------------------------------------------------------- */
   /* Step 0: Welcome + name                                            */
   /* ---------------------------------------------------------------- */
 
@@ -303,7 +306,7 @@ export default function OnboardingPage() {
               onClick={() => setRole(r.id)}
               className={`relative flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-200 ${
                 active
-                  ? "border-accent-500/60 bg-accent-500/10 text-[var(--text-primary)] shadow-glow-sm"
+                  ? "border-accent-500/60 bg-accent-500/10 text-[var(--text-primary)] shadow-sm"
                   : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
               }`}
             >
@@ -315,7 +318,7 @@ export default function OnboardingPage() {
                   className="absolute -top-1.5 -right-1.5"
                   transition={spring}
                 >
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 shadow-glow-sm">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 shadow-sm">
                     <Check className="h-3 w-3 text-white" />
                   </div>
                 </motion.div>
@@ -400,7 +403,7 @@ export default function OnboardingPage() {
               onClick={() => togglePriority(p)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 active
-                  ? "border-accent-500/60 bg-accent-500/15 text-accent-300 shadow-glow-sm"
+                  ? "border-accent-500/60 bg-accent-500/15 text-accent-300 shadow-sm"
                   : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
               }`}
             >
@@ -474,17 +477,14 @@ export default function OnboardingPage() {
         <button
           onClick={handlePlanWeek}
           disabled={submitting || !braindump.trim()}
-          className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-accent-gradient px-6 py-4 text-base font-semibold text-white shadow-glow transition-all duration-300 hover:shadow-glow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+          className="group relative flex w-full items-center justify-center gap-2.5 rounded-2xl bg-accent-500 px-6 py-4 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-accent-600 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
         >
-          <span className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-          </span>
           {submitting ? (
-            <Loader2 className="relative h-4.5 w-4.5 animate-spin" />
+            <Loader2 className="h-4.5 w-4.5 animate-spin" />
           ) : (
-            <Wand2 className="relative h-4.5 w-4.5" />
+            <Wand2 className="h-4.5 w-4.5" />
           )}
-          <span className="relative">
+          <span>
             {submitting ? "Planning your week..." : "Plan my week"}
           </span>
         </button>
@@ -532,14 +532,14 @@ export default function OnboardingPage() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[var(--bg)]">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-y-auto bg-[var(--bg)]">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-[25%] left-[30%] h-[500px] w-[500px] rounded-full bg-accent-500/[0.06] blur-[100px] animate-breathe" />
         <div className="absolute -bottom-[15%] right-[20%] h-[400px] w-[400px] rounded-full bg-accent-700/[0.04] blur-[80px] animate-float" />
         <div className="absolute top-[50%] -left-[10%] h-[300px] w-[300px] rounded-full bg-violet-500/[0.03] blur-[60px] animate-float" />
       </div>
 
-      <ProgressBar />
+      <ProgressBar step={step} totalSteps={totalSteps} />
 
       <div className="relative z-10 flex w-full max-w-2xl flex-1 items-center justify-center px-6 py-24">
         <AnimatePresence mode="wait" custom={direction}>
@@ -661,7 +661,7 @@ function RevealView({
             initial={{ scale: 0, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.15 }}
-            className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-gradient shadow-glow"
+            className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500 shadow-sm"
           >
             <Sparkles className="h-7 w-7 text-white" />
           </motion.div>
@@ -768,13 +768,10 @@ function RevealView({
         >
           <button
             onClick={onContinue}
-            className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-accent-gradient px-6 py-4 text-base font-semibold text-white shadow-glow transition-all duration-300 hover:shadow-glow-lg hover:scale-[1.01] active:scale-[0.99]"
+            className="group relative flex w-full items-center justify-center gap-2.5 rounded-2xl bg-accent-500 px-6 py-4 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-accent-600 hover:scale-[1.01] active:scale-[0.99]"
           >
-            <span className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-            </span>
-            <span className="relative">Take me to my dashboard</span>
-            <ArrowRight className="relative h-4.5 w-4.5 transition-transform group-hover:translate-x-0.5" />
+            <span>Take me to my dashboard</span>
+            <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-0.5" />
           </button>
         </motion.div>
       </div>

@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix onboarding page issues: re-render bug on step 2/5, scrollability, and button styling",
+  "status": "in_progress",
+  "steps": [
+    "1. Fix the onboarding re-render bug in frontend/app/onboarding/page.tsx. The issue is that the AnimatePresence with mode='wait' re-animates the entire step on every state change because the key={step} forces re-mount. The inputs (role buttons, occupation field, selects, braindump textarea) cause the parent to re-render, and because the step functions are re-created each render, the motion.div with key={step} remounts. Fix by: (a) memoizing the step render functions or extracting each step into its own stable component that does not re-mount when form state changes, (b) ensuring inputs use controlled state properly without triggering parent re-mount.",
+    "2. Fix scrollability on the onboarding page. The main element has 'overflow-hidden' class AND the global body has 'overflow: hidden' in globals.css. For the onboarding page specifically, the main wrapper should allow scrolling (overflow-y-auto). The RevealView already uses overflow-y-auto but the form view does not. Change the main element class from 'overflow-hidden' to 'overflow-y-auto' for the form render section. Also ensure the onboarding page overrides body overflow via a useEffect that temporarily sets body overflow to 'auto' on mount and restores on unmount.",
+    "3. Fix button styling to match warm/minimalistic theme. The 'Plan my week' button uses 'bg-accent-gradient shadow-glow' classes which give it a glowing pixel-art feel. Replace with a warm, solid button style: bg-accent-500 hover:bg-accent-600 with subtle shadow (shadow-sm), rounded-xl, no glow effect. Similarly update the 'Take me to my dashboard' button in RevealView. Remove any shadow-glow, shadow-glow-lg references in the onboarding page buttons. The navigation buttons (Back, Continue) already use the Button component with proper styling so those should be fine."
+  ],
+  "acceptance_criteria": [
+    "Typing in the name field on step 1 does not cause the page/step to re-render/re-animate",
+    "Selecting a role or typing occupation on step 2 does not cause the step to re-animate",
+    "Interacting with dropdowns on step 3 does not cause the step to re-animate",
+    "The onboarding page is scrollable when content overflows (especially the RevealView with many tasks)",
+    "Buttons follow the warm/minimalistic theme without glow effects",
+    "pnpm lint and pnpm build both pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
