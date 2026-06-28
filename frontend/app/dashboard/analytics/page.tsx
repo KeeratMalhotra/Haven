@@ -47,7 +47,7 @@ interface TaskData {
   updatedAt?: string;
 }
 
-// PomodoroTimer stores stats as Record<string, number>: { "YYYY-MM-DD": completedCount }
+// PomodoroTimer stores stats as Record<string, number>: { "YYYY-MM-DD": totalMinutes }
 type PomodoroStatsRecord = Record<string, number>;
 
 interface HabitData {
@@ -492,11 +492,10 @@ export default function AnalyticsPage() {
     dateKeys.forEach((key) => (hours[key] = 0));
 
     if (pomodoroStats) {
-      // pomodoroStats is Record<string, number> where value = number of completed pomodoros
-      // Each pomodoro is 25 minutes by default
-      for (const [dateKey, count] of Object.entries(pomodoroStats)) {
-        if (typeof count === "number" && hours[dateKey] !== undefined) {
-          hours[dateKey] += (count * 25) / 60;
+      // pomodoroStats is Record<string, number> where value = total focus minutes for the day
+      for (const [dateKey, minutes] of Object.entries(pomodoroStats)) {
+        if (typeof minutes === "number" && hours[dateKey] !== undefined) {
+          hours[dateKey] += minutes / 60;
         }
       }
     }

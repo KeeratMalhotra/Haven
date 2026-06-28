@@ -26,7 +26,7 @@ function getTodayKey(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-function getTodayPomodoros(): number {
+function getTodayMinutes(): number {
   if (typeof window === "undefined") return 0;
   try {
     const data = JSON.parse(localStorage.getItem(STATS_KEY) || "{}");
@@ -36,12 +36,12 @@ function getTodayPomodoros(): number {
   }
 }
 
-function incrementTodayPomodoros(): void {
+function incrementTodayPomodoros(focusMinutes: number): void {
   if (typeof window === "undefined") return;
   try {
     const data = JSON.parse(localStorage.getItem(STATS_KEY) || "{}");
     const key = getTodayKey();
-    data[key] = (data[key] || 0) + 1;
+    data[key] = (data[key] || 0) + focusMinutes;
     localStorage.setItem(STATS_KEY, JSON.stringify(data));
   } catch {
     // silently fail
@@ -52,13 +52,6 @@ function incrementTodayPomodoros(): void {
 function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPhase }) {
   // Determine growth stage based on progress
   const p = phase === "break" || phase === "selecting" ? 0 : Math.min(1, Math.max(0, progress));
-
-  // Colors
-  const potColor = "#8B5E3C";
-  const soilColor = "#5D3A1A";
-  const stemColor = "#4CAF50";
-  const leafColor = "#66BB6A";
-  const flowerColor = "#F59E0B";
 
   return (
     <svg
@@ -73,15 +66,16 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
+        className="text-amber-800 dark:text-amber-700"
       >
         {/* Pot rim */}
-        <rect x="65" y="175" width="70" height="10" rx="3" fill={potColor} />
+        <rect x="65" y="175" width="70" height="10" rx="3" fill="currentColor" />
         {/* Pot body - trapezoid */}
-        <path d="M70 185 L75 225 L125 225 L130 185 Z" fill={potColor} />
+        <path d="M70 185 L75 225 L125 225 L130 185 Z" fill="currentColor" />
         {/* Pot base */}
-        <rect x="80" y="225" width="40" height="6" rx="3" fill={potColor} />
+        <rect x="80" y="225" width="40" height="6" rx="3" fill="currentColor" />
         {/* Soil */}
-        <ellipse cx="100" cy="178" rx="30" ry="6" fill={soilColor} />
+        <ellipse cx="100" cy="178" rx="30" ry="6" className="text-amber-950 dark:text-amber-900" fill="currentColor" />
       </motion.g>
 
       {/* Stage 1: Sprout (10-25%) */}
@@ -93,11 +87,12 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         }}
         transition={{ duration: 1, ease: "easeOut" }}
         style={{ originX: "100px", originY: "175px", transformOrigin: "100px 175px" }}
+        className="text-green-600 dark:text-green-500"
       >
         {/* Small sprout */}
         <motion.path
           d="M100 175 Q100 165 100 160"
-          stroke={stemColor}
+          stroke="currentColor"
           strokeWidth="3"
           fill="none"
           strokeLinecap="round"
@@ -110,7 +105,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
           cy="162"
           rx="5"
           ry="3"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.15 ? 1 : 0,
             scale: p >= 0.15 ? 1 : 0,
@@ -125,11 +121,12 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
           opacity: p >= 0.25 ? 1 : 0,
         }}
         transition={{ duration: 0.8, ease: "easeOut" }}
+        className="text-green-600 dark:text-green-500"
       >
         {/* Taller stem */}
         <motion.path
           d="M100 160 Q100 145 100 135"
-          stroke={stemColor}
+          stroke="currentColor"
           strokeWidth="3"
           fill="none"
           strokeLinecap="round"
@@ -139,7 +136,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         {/* Left leaf */}
         <motion.path
           d="M100 150 Q90 145 85 148 Q88 155 100 150"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.3 ? 1 : 0,
             scale: p >= 0.3 ? 1 : 0.3,
@@ -149,7 +147,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         {/* Right leaf */}
         <motion.path
           d="M100 142 Q110 137 115 140 Q112 147 100 142"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.35 ? 1 : 0,
             scale: p >= 0.35 ? 1 : 0.3,
@@ -164,11 +163,12 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
           opacity: p >= 0.5 ? 1 : 0,
         }}
         transition={{ duration: 0.8, ease: "easeOut" }}
+        className="text-green-600 dark:text-green-500"
       >
         {/* Even taller stem */}
         <motion.path
           d="M100 135 Q99 120 100 105"
-          stroke={stemColor}
+          stroke="currentColor"
           strokeWidth="3"
           fill="none"
           strokeLinecap="round"
@@ -178,7 +178,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         {/* Left larger leaf */}
         <motion.path
           d="M100 125 Q85 118 80 122 Q83 132 100 125"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.55 ? 1 : 0,
             scale: p >= 0.55 ? 1 : 0.3,
@@ -188,7 +189,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         {/* Right larger leaf */}
         <motion.path
           d="M100 115 Q115 108 120 112 Q117 122 100 115"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.6 ? 1 : 0,
             scale: p >= 0.6 ? 1 : 0.3,
@@ -201,7 +203,7 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
           cy="100"
           rx="6"
           ry="8"
-          fill={stemColor}
+          fill="currentColor"
           animate={{
             opacity: p >= 0.65 ? 1 : 0,
             scale: p >= 0.65 ? 1 : 0,
@@ -216,11 +218,12 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
           opacity: p >= 0.75 ? 1 : 0,
         }}
         transition={{ duration: 1, ease: "easeOut" }}
+        className="text-green-600 dark:text-green-500"
       >
         {/* Top stem */}
         <motion.path
           d="M100 105 Q100 95 100 85"
-          stroke={stemColor}
+          stroke="currentColor"
           strokeWidth="3"
           fill="none"
           strokeLinecap="round"
@@ -230,7 +233,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         {/* Additional leaves */}
         <motion.path
           d="M100 95 Q88 88 83 92 Q86 100 100 95"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.78 ? 1 : 0,
             scale: p >= 0.78 ? 1 : 0.3,
@@ -239,7 +243,8 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
         />
         <motion.path
           d="M100 90 Q112 83 117 87 Q114 95 100 90"
-          fill={leafColor}
+          className="text-green-500 dark:text-green-400"
+          fill="currentColor"
           animate={{
             opacity: p >= 0.8 ? 1 : 0,
             scale: p >= 0.8 ? 1 : 0.3,
@@ -254,17 +259,18 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
           }}
           transition={{ duration: 1, delay: 0.4, type: "spring", stiffness: 200 }}
           style={{ transformOrigin: "100px 70px" }}
+          className="text-amber-500 dark:text-amber-400"
         >
           {/* Petals arranged around center */}
-          <ellipse cx="100" cy="60" rx="7" ry="12" fill={flowerColor} opacity="0.9" />
-          <ellipse cx="110" cy="66" rx="7" ry="12" fill={flowerColor} opacity="0.8" transform="rotate(60, 110, 66)" />
-          <ellipse cx="110" cy="78" rx="7" ry="12" fill={flowerColor} opacity="0.85" transform="rotate(120, 110, 78)" />
-          <ellipse cx="100" cy="84" rx="7" ry="12" fill={flowerColor} opacity="0.9" transform="rotate(180, 100, 84)" />
-          <ellipse cx="90" cy="78" rx="7" ry="12" fill={flowerColor} opacity="0.85" transform="rotate(240, 90, 78)" />
-          <ellipse cx="90" cy="66" rx="7" ry="12" fill={flowerColor} opacity="0.8" transform="rotate(300, 90, 66)" />
+          <ellipse cx="100" cy="60" rx="7" ry="12" fill="currentColor" opacity="0.9" />
+          <ellipse cx="110" cy="66" rx="7" ry="12" fill="currentColor" opacity="0.8" transform="rotate(60, 110, 66)" />
+          <ellipse cx="110" cy="78" rx="7" ry="12" fill="currentColor" opacity="0.85" transform="rotate(120, 110, 78)" />
+          <ellipse cx="100" cy="84" rx="7" ry="12" fill="currentColor" opacity="0.9" transform="rotate(180, 100, 84)" />
+          <ellipse cx="90" cy="78" rx="7" ry="12" fill="currentColor" opacity="0.85" transform="rotate(240, 90, 78)" />
+          <ellipse cx="90" cy="66" rx="7" ry="12" fill="currentColor" opacity="0.8" transform="rotate(300, 90, 66)" />
           {/* Center */}
-          <circle cx="100" cy="72" r="8" fill="#D97706" />
-          <circle cx="100" cy="72" r="5" fill="#B45309" />
+          <circle cx="100" cy="72" r="8" className="text-amber-600 dark:text-amber-500" fill="currentColor" />
+          <circle cx="100" cy="72" r="5" className="text-amber-700 dark:text-amber-600" fill="currentColor" />
         </motion.g>
       </motion.g>
     </svg>
@@ -291,7 +297,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
 
   // Load stats on mount
   useEffect(() => {
-    setCompletedToday(getTodayPomodoros());
+    setCompletedToday(getTodayMinutes());
   }, []);
 
   // Reset on activation
@@ -299,7 +305,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     if (active) {
       setPhase("selecting");
       setPaused(false);
-      setCompletedToday(getTodayPomodoros());
+      setCompletedToday(getTodayMinutes());
     }
   }, [active]);
 
@@ -325,8 +331,8 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
       setSecondsRemaining((prev) => {
         if (prev <= 1) {
           if (phase === "focus") {
-            incrementTodayPomodoros();
-            setCompletedToday(getTodayPomodoros());
+            incrementTodayPomodoros(focusMinutes);
+            setCompletedToday(getTodayMinutes());
             const breakTotal = breakMinutes * 60;
             setTotalSeconds(breakTotal);
             setPhase("break");
@@ -343,7 +349,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [active, paused, phase, breakMinutes]);
+  }, [active, paused, phase, breakMinutes, focusMinutes]);
 
   const togglePause = useCallback(() => {
     setPaused((p) => !p);
@@ -553,11 +559,10 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                     transition={{ delay: 0.6 }}
                     className="text-sm text-[var(--text-tertiary)]"
                   >
-                    You completed{" "}
                     <span className="font-medium text-amber-500 dark:text-amber-400">
                       {completedToday}
                     </span>{" "}
-                    {completedToday === 1 ? "pomodoro" : "pomodoros"} today
+                    {completedToday === 1 ? "minute" : "minutes"} focused today
                   </motion.p>
 
                   {/* Controls */}
