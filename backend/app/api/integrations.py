@@ -43,6 +43,33 @@ SERVICE_SCOPES: dict[str, list[str]] = {
     ],
 }
 
+# Broader scopes that satisfy a service's requirements. For example,
+# gmail.modify is a superset of gmail.readonly + gmail.send.
+_SCOPE_EQUIVALENTS: dict[str, list[str]] = {
+    "https://www.googleapis.com/auth/gmail.readonly": [
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/mail.google.com",
+    ],
+    "https://www.googleapis.com/auth/gmail.send": [
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/mail.google.com",
+    ],
+}
+
+
+def _scope_satisfied(required: str, granted: set[str]) -> bool:
+    """Check if a required scope is satisfied by the granted scopes.
+
+    A scope is satisfied if it's directly present OR if a broader equivalent
+    scope is granted (e.g. gmail.modify covers gmail.readonly).
+    """
+    if required in granted:
+        return True
+    for equivalent in _SCOPE_EQUIVALENTS.get(required, []):
+        if equivalent in granted:
+            return True
+    return False
+
 
 def _generate_state(user_id: str, service: str) -> str:
     """Generate a signed OAuth state parameter with a random nonce for CSRF protection.
@@ -323,7 +350,7 @@ async def get_integration_status(auth_token: str = Query(...)):
     status_map = {}
     for service_name, scopes in SERVICE_SCOPES.items():
         # Check if the current session token already has these scopes
-        session_has_scopes = all(s in session_scopes for s in scopes)
+        session_has_scopes = all(_scope_satisfied(s, session_scopes) for s in scopes)
         # Check if Firestore has a stored incremental token
         firestore_connected = connected_services.get(service_name, {}).get("connected", False)
 
