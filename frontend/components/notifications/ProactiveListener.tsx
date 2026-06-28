@@ -16,7 +16,7 @@ const CHECK_INTERVAL_MS = 3 * 60_000;
  *   - keeps the realtime notification socket alive (gentle toasts + inbox sync);
  *   - periodically asks the proactive engine what to surface, showing Tier 2+
  *     nudges as calm toasts (they're already persisted to the inbox server-side);
- *   - tracks focus-session state so nudges are suppressed mid-flow.
+ *   - tracks Pomodoro session state so nudges are suppressed mid-flow.
  * Renders nothing.
  */
 export default function ProactiveListener() {
@@ -28,12 +28,12 @@ export default function ProactiveListener() {
   const accessToken =
     ((session as Record<string, unknown> | null)?.accessToken as string) || "";
 
-  // Live focus-session flag (set by FocusMode via window events).
+  // Live Pomodoro session flag (set by PomodoroTimer via window events).
   const focusActiveRef = useRef(false);
   // Interventions we've already surfaced this session (avoid re-toasting).
   const shownRef = useRef<Set<string>>(new Set());
 
-  // Track focus sessions and mirror the state to the backend so the engine
+  // Track Pomodoro sessions and mirror the state to the backend so the engine
   // suppresses nudges while the user is in flow.
   useEffect(() => {
     const onStart = () => {
@@ -57,7 +57,7 @@ export default function ProactiveListener() {
     let cancelled = false;
 
     const runCheck = async () => {
-      // Respect focus mode on the client too — don't even ask while in flow.
+      // Respect Pomodoro mode on the client too — don't even ask while in flow.
       if (focusActiveRef.current) return;
       const { interventions } = await fetchProactiveCheck(
         accessToken,

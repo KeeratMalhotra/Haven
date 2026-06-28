@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Menu, MessageCircle, Plus, CheckSquare, Calendar, Timer, Zap, Sparkles } from "lucide-react";
+import { Search, Menu, MessageCircle, Plus, CheckSquare, Calendar, Timer, Sparkles } from "lucide-react";
 import Image from "next/image";
 import NotificationBell from "./NotificationBell";
 
@@ -30,11 +30,6 @@ const quickActions = [
   {
     label: "Start Pomodoro",
     icon: Timer,
-    href: null,
-  },
-  {
-    label: "Start Focus",
-    icon: Zap,
     href: null,
   },
 ];
@@ -91,8 +86,8 @@ export default function TopBar({
     setActionsOpen(false);
     if (action.href) {
       router.push(action.href);
-    } else if (action.label === "Start Pomodoro" || action.label === "Start Focus") {
-      // Dispatch a custom event that FocusMode can listen for
+    } else if (action.label === "Start Pomodoro") {
+      // Dispatch a custom event that PomodoroTimer can listen for
       window.dispatchEvent(new CustomEvent("chronai-start-focus"));
     }
   };

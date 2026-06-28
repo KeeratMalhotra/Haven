@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-003",
+  "type": "refactor",
+  "description": "Remove Focus Mode (keep only Pomodoro), rebuild Pomodoro timer UI to match warm minimalistic theme",
+  "status": "in_progress",
+  "steps": [
+    "1. Remove the 'Start Focus' quick action from the TopBar (frontend/components/layout/TopBar.tsx). Keep only 'Start Pomodoro'. The quickActions array has both 'Start Pomodoro' and 'Start Focus' - remove the 'Start Focus' entry.",
+    "2. Update the CommandPalette (frontend/components/CommandPalette.tsx): rename 'Start Focus Mode' to 'Start Pomodoro' and update the prop name from onFocusMode to onStartPomodoro (or keep the internal prop name but change the label). Change the label to 'Start Pomodoro' and keep the keywords including 'pomodoro timer concentrate'.",
+    "3. Update the checklist in frontend/app/dashboard/page.tsx: change 'Try focus mode' to 'Try Pomodoro'. Keep the same done logic (checking localStorage for pomodoro stats).",
+    "4. Rename frontend/components/FocusMode.tsx to frontend/components/PomodoroTimer.tsx. Update the component name from FocusMode to PomodoroTimer. Update all imports: in dashboard/page.tsx (dynamic import), and anywhere else that imports it.",
+    "5. Rebuild the Pomodoro timer UI inside the renamed PomodoroTimer component to match the warm, minimalistic theme. Key changes: (a) Remove pixel-art plant SVG growing animation (too playful/pixel-art). (b) Replace with a clean, minimal circular progress ring or a simple countdown display. (c) Use the warm color palette: amber/warm tones for the timer, var(--surface) for cards, var(--border) for borders. (d) Keep the ambient sound options but style the buttons with rounded-full, border, warm hover states instead of the current green-focused style. (e) Keep the duration selection screen but simplify it. (f) Remove the FOCUS_PLAYLISTS section since music is now handled by the SpotifyMiniPlayer. (g) Use a calmer phase indicator - amber for focus, teal for break. (h) Overall feel: clean white/cream surfaces, subtle borders, warm amber accents, no glow.",
+    "6. Update the analytics page text (frontend/app/dashboard/analytics/page.tsx): change 'Time in focus mode' to 'Time in Pomodoro'.",
+    "7. Update the ProactiveListener comment (frontend/components/notifications/ProactiveListener.tsx) from 'focus mode' to 'Pomodoro' in comments - this is cosmetic but keeps naming consistent."
+  ],
+  "acceptance_criteria": [
+    "There is no 'Start Focus' or 'Focus Mode' label visible anywhere in the app UI (only 'Pomodoro')",
+    "The Pomodoro timer UI follows the warm/minimalistic theme with no pixel art, no glow",
+    "The timer still functions correctly: selecting duration, countdown, break phase, done state",
+    "Ambient sounds still work during Pomodoro",
+    "The component is now named PomodoroTimer and all imports are updated",
+    "pnpm lint and pnpm build both pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

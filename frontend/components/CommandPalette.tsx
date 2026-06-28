@@ -128,14 +128,14 @@ export default function CommandPalette({
     },
     {
       id: "start-focus",
-      label: "Start Focus Mode",
+      label: "Start Pomodoro",
       icon: <Timer size={16} />,
       group: "Actions",
       action: () => {
         onFocusMode?.();
         setOpen(false);
       },
-      keywords: "pomodoro timer concentrate",
+      keywords: "pomodoro timer concentrate focus",
     },
     {
       id: "toggle-theme",

@@ -709,7 +709,7 @@ export default function AnalyticsPage() {
                   Focus Hours
                 </p>
                 <p className="text-xs text-[var(--text-tertiary)]">
-                  Time in focus mode
+                  Time in Pomodoro
                 </p>
               </div>
             </div>

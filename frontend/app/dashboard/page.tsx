@@ -46,7 +46,7 @@ import MorningBriefing from "@/components/dashboard/MorningBriefing";
 import StreakBadge from "@/components/dashboard/StreakBadge";
 import EveningReflection from "@/components/dashboard/EveningReflection";
 
-const FocusMode = dynamic(() => import("@/components/FocusMode"), { ssr: false, loading: () => <div /> });
+const PomodoroTimer = dynamic(() => import("@/components/PomodoroTimer"), { ssr: false, loading: () => <div /> });
 const AutoPilotPanel = dynamic(() => import("@/components/autopilot/AutoPilotPanel"), { ssr: false, loading: () => <div /> });
 
 function getGreeting(): string {
@@ -390,7 +390,7 @@ export default function DashboardPage() {
     { label: "Create a task", done: tasks.length > 0 },
     { label: "Add a calendar event", done: events.length > 0 },
     { label: "Start a habit", done: habits.length > 0 },
-    { label: "Try focus mode", done: focusUsed },
+    { label: "Try Pomodoro", done: focusUsed },
   ];
 
   const checklistProgress = checklistItems.filter((item) => item.done).length;
@@ -918,8 +918,8 @@ export default function DashboardPage() {
         onClose={() => setAutopilotOpen(false)}
       />
 
-      {/* Focus Mode overlay */}
-      <FocusMode
+      {/* Pomodoro Timer overlay */}
+      <PomodoroTimer
         active={focusActive}
         taskName={focusTask}
         onStop={() => setFocusActive(false)}
