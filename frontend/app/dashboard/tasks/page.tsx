@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckSquare,
@@ -361,7 +362,7 @@ const SortableTaskCard = memo(function SortableTaskCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} data-task-id={task.id} {...attributes} {...listeners}>
       <Card
         hover
         className={`cursor-grab active:cursor-grabbing ${isSelected ? "ring-2 ring-accent-500/50" : ""}`}
@@ -531,6 +532,7 @@ const ListRow = memo(function ListRow({
     <div
       ref={setNodeRef}
       style={style}
+      data-task-id={task.id}
       onContextMenu={onContextMenu}
       className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors duration-150 ${
         isSelected
@@ -979,10 +981,11 @@ function TaskDetailPanel({
   );
 }
 
-export default function TasksPage() {
+function TasksPageContent() {
   const { data: session } = useSession();
   const accessToken = (session as { accessToken?: string })?.accessToken || "";
   const { reportAction, suggestions, dismissSuggestion } = useAI();
+  const searchParams = useSearchParams();
 
   const [tasks, setTasks] = useState<LocalTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1086,6 +1089,24 @@ export default function TasksPage() {
       }
     }
   }, [tasks]);
+
+  // Open a specific task's detail panel when navigated here with ?taskId=...
+  // (e.g. from the dashboard "Recent Tasks" list). Runs once after tasks load.
+  const openedFromQuery = useRef(false);
+  useEffect(() => {
+    if (loading || openedFromQuery.current) return;
+    const taskId = searchParams.get("taskId");
+    if (!taskId) return;
+    const match = tasks.find((t) => t.id === taskId);
+    if (!match) return;
+    openedFromQuery.current = true;
+    setSelectedTask(match);
+    // Scroll the matching task card/row into view if it is rendered.
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-task-id="${taskId}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [loading, tasks, searchParams]);
 
   // Task helpers - apply label filter and text search
   const filteredTasks = useMemo(() => {
@@ -1996,5 +2017,15 @@ export default function TasksPage() {
         )}
       </Modal>
     </motion.div>
+  );
+}
+
+
+export default function TasksPage() {
+  // useSearchParams requires a Suspense boundary in Next.js 15.
+  return (
+    <Suspense fallback={null}>
+      <TasksPageContent />
+    </Suspense>
   );
 }

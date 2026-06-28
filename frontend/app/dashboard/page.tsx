@@ -249,6 +249,41 @@ export default function DashboardPage() {
       });
   }, [onboardingChecked, accessToken]);
 
+  // Re-fetch the core dashboard data (tasks/events/habits) without toggling the
+  // loading skeleton. Used to refresh stats when the user returns to the page.
+  const refetchCoreData = useCallback(() => {
+    if (!onboardingChecked || !accessToken) return;
+    Promise.all([
+      fetchTasks(accessToken),
+      fetchCalendarEvents(accessToken, 1),
+      fetchHabits(accessToken),
+    ])
+      .then(([t, e, h]) => {
+        setTasks(t);
+        setEvents(e);
+        setHabits(h);
+      })
+      .catch(() => {
+        // Keep the existing data if a background refresh fails.
+      });
+  }, [onboardingChecked, accessToken]);
+
+  // Keep dashboard stats (e.g. the pending task count) in sync with changes made
+  // on other pages by re-fetching when the page regains focus/visibility.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refetchCoreData();
+      }
+    };
+    window.addEventListener("focus", refetchCoreData);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", refetchCoreData);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [refetchCoreData]);
+
   // Read checklist dismissal from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -832,22 +867,15 @@ export default function DashboardPage() {
                     >
                       <Card
                         hover={false}
-                        className="flex items-center gap-3 px-4 py-3 transition-all hover:border-accent-500/20"
+                        onClick={() =>
+                          router.push(
+                            task.id
+                              ? `/dashboard/tasks?taskId=${encodeURIComponent(task.id)}`
+                              : "/dashboard/tasks"
+                          )
+                        }
+                        className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-all duration-200 hover:border-accent-500/20 hover:bg-[var(--surface-hover)]"
                       >
-                        <div
-                          className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors ${
-                            task.completed
-                              ? "border-success-500 bg-success-500/20"
-                              : "border-[var(--border)] hover:border-[var(--text-tertiary)]"
-                          }`}
-                        >
-                          {task.completed && (
-                            <CheckSquare
-                              size={12}
-                              className="text-success-500"
-                            />
-                          )}
-                        </div>
                         <div className="flex-1 min-w-0">
                           <p
                             className={`truncate text-sm ${
