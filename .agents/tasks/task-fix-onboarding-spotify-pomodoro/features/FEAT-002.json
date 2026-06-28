@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Rebuild SpotifyMiniPlayer to be draggable with an expandable draggable player window, available during Pomodoro sessions",
+  "status": "completed",
+  "steps": [
+    "1. Rebuild frontend/components/SpotifyMiniPlayer.tsx. The music button should be draggable to anywhere on the right panel of the screen (use @dnd-kit or manual pointer/mouse event-based drag since we need free-form positioning, not snap-to-grid). The button starts at bottom-right but the user can drag it anywhere within the right portion of the viewport.",
+    "2. On clicking the music button, open the Spotify player in a draggable/holdable floating window. This window should be movable to any part of the screen (not just the right panel). Implement drag-to-move using pointer events on the window header. The window should have: a drag handle (header bar), close button, and the Spotify embed iframe. Keep the iframe always mounted so music does not stop.",
+    "3. Ensure the SpotifyMiniPlayer is rendered in frontend/app/dashboard/layout.tsx (it already is) and confirm it will be visible even when the FocusMode/Pomodoro overlay is active. The FocusMode component uses z-[100] for its overlay. The SpotifyMiniPlayer should have z-[110] or higher so it stays on top during Pomodoro sessions. Update the z-index of both the floating button and the expanded window.",
+    "4. Style the music button and player window to match the warm/minimalistic theme. No pixel styling, no glow. Use var(--surface), var(--border), var(--text-secondary) etc. The button should be a clean circle/rounded-xl with a subtle border. The player window should have rounded-2xl, border, surface background, subtle shadow."
+  ],
+  "acceptance_criteria": [
+    "The music button is draggable to any position on the right side of the screen",
+    "Clicking the button opens a Spotify player window",
+    "The player window is draggable to any position on the entire screen",
+    "The player window can be closed back to just the button",
+    "Music continues playing when navigating between pages (iframe stays mounted)",
+    "The music button and player window are visible and usable during Pomodoro sessions (z-index above FocusMode)",
+    "No pixel/glow styling on the button or player",
+    "pnpm lint and pnpm build both pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "Removed framer-motion dependency from SpotifyMiniPlayer (not needed for pointer-event based drag). Used pointer events directly instead of @dnd-kit since we need free-form absolute positioning rather than list reordering. The button uses position:fixed with left/top calculated from pointer deltas. Removed hasPlaylist state as it was unused for rendering logic. Removed AnimatePresence - simple conditional rendering is sufficient and avoids complexity with pointer events."
+}
