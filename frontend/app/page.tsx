@@ -212,71 +212,64 @@ function Glow({
   );
 }
 
-function HeroIllustration() {
+function HeroBackdrop() {
   return (
-    <div className="relative w-full">
+    <div className="absolute inset-0 overflow-hidden">
+      {/* the artwork as full-bleed background */}
       <div
-        className="relative w-full bg-[#173242] bg-cover bg-center bg-no-repeat"
-        style={{ aspectRatio: "1024 / 559", backgroundImage: "url('/hero-cabin.svg')" }}
-        role="img"
-        aria-label="A cozy log cabin glowing in a jungle clearing at night, with a campfire, a steaming coffee on the porch, and a dog asleep on a rug under a crescent moon."
-      >
-        {/* glowing windows */}
-        <Glow x="24%" y="44%" size="6vw" color="#ffce6b" opacity={0.45} className="animate-pixel-flicker" />
-        <Glow x="33%" y="43%" size="5vw" color="#ffd27a" opacity={0.4} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
-        <Glow x="46%" y="42%" size="5vw" color="#ffce6b" opacity={0.4} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/hero-cabin.jpg')" }}
+      />
 
-        {/* crescent moon shimmer */}
-        <Glow x="74%" y="9%" size="5vw" color="#ffeccb" opacity={0.35} className="animate-pixel-glow" />
+      {/* readability scrims (kept gentle so the art still shows) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#08111a]/75 via-[#08111a]/25 to-[#08111a]/70" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_42%,rgba(8,17,26,0.55),transparent_75%)]" />
 
-        {/* campfire glow */}
-        <Glow x="66%" y="68%" size="12vw" color="#ff7a2e" opacity={0.5} className="animate-pixel-fire" />
-        <Glow x="66%" y="66%" size="6vw" color="#ffc23a" opacity={0.55} className="animate-pixel-flicker" />
+      {/* ---- animated firelight & life over the art ---- */}
+      {/* warm window glows (left-of-centre cabin) */}
+      <Glow x="25%" y="44%" size="7vw" color="#ffce6b" opacity={0.4} className="animate-pixel-flicker" />
+      <Glow x="34%" y="43%" size="6vw" color="#ffd27a" opacity={0.35} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
+      <Glow x="47%" y="42%" size="6vw" color="#ffce6b" opacity={0.35} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
 
-        {/* rising embers */}
-        {[
-          { l: "64%", t: "62%", d: "0s" },
-          { l: "67%", t: "60%", d: "1s" },
-          { l: "65.5%", t: "64%", d: "1.8s" },
-          { l: "68%", t: "63%", d: "2.6s" },
-        ].map((e, i) => (
-          <span
-            key={i}
-            className="pointer-events-none absolute animate-pixel-ember rounded-full bg-[#ffce6b]"
-            style={{ left: e.l, top: e.t, width: "0.4vw", height: "0.4vw", animationDelay: e.d }}
-          />
-        ))}
+      {/* crescent-moon shimmer */}
+      <Glow x="74%" y="11%" size="5vw" color="#ffeccb" opacity={0.3} className="animate-pixel-glow" />
 
-        {/* steam off the coffee */}
-        {[
-          { l: "36.5%", t: "58%", d: "0s" },
-          { l: "37.5%", t: "56%", d: "1.6s" },
-        ].map((s, i) => (
-          <span
-            key={i}
-            className="pointer-events-none absolute animate-pixel-smoke rounded-full bg-white/70 blur-[1px]"
-            style={{ left: s.l, top: s.t, width: "0.5vw", height: "0.9vw", animationDelay: s.d }}
-          />
-        ))}
+      {/* campfire glow (right-of-centre) */}
+      <Glow x="66%" y="69%" size="14vw" color="#ff7a2e" opacity={0.45} className="animate-pixel-fire" />
+      <Glow x="66%" y="67%" size="7vw" color="#ffc23a" opacity={0.5} className="animate-pixel-flicker" />
 
-        {/* fireflies */}
-        {[
-          { l: "12%", t: "60%", d: "0s" },
-          { l: "55%", t: "55%", d: "2.2s" },
-          { l: "82%", t: "62%", d: "4s" },
-          { l: "30%", t: "72%", d: "3s" },
-          { l: "90%", t: "48%", d: "1.4s" },
-        ].map((f, i) => (
-          <span
-            key={i}
-            className="pointer-events-none absolute animate-pixel-firefly rounded-full bg-[#ffe98a] shadow-[0_0_6px_2px_rgba(255,233,138,0.5)]"
-            style={{ left: f.l, top: f.t, width: "0.45vw", height: "0.45vw", animationDelay: f.d }}
-          />
-        ))}
-      </div>
+      {/* rising embers from the fire */}
+      {[
+        { l: "63%", t: "62%", d: "0s" },
+        { l: "67%", t: "60%", d: "1s" },
+        { l: "65%", t: "64%", d: "1.8s" },
+        { l: "69%", t: "63%", d: "2.6s" },
+      ].map((e, i) => (
+        <span
+          key={i}
+          className="pointer-events-none absolute animate-pixel-ember rounded-full bg-[#ffce6b] shadow-[0_0_5px_1px_rgba(255,138,58,0.7)]"
+          style={{ left: e.l, top: e.t, width: "0.4vw", height: "0.4vw", animationDelay: e.d }}
+        />
+      ))}
 
-      {/* fade the bottom of the art into the page */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[16%] bg-gradient-to-b from-transparent to-[var(--bg)]" />
+      {/* fireflies drifting through the clearing */}
+      {[
+        { l: "12%", t: "62%", d: "0s" },
+        { l: "54%", t: "56%", d: "2.2s" },
+        { l: "84%", t: "60%", d: "4s" },
+        { l: "30%", t: "74%", d: "3s" },
+        { l: "90%", t: "50%", d: "1.4s" },
+        { l: "44%", t: "70%", d: "5s" },
+      ].map((f, i) => (
+        <span
+          key={i}
+          className="pointer-events-none absolute animate-pixel-firefly rounded-full bg-[#ffe98a] shadow-[0_0_6px_2px_rgba(255,233,138,0.55)]"
+          style={{ left: f.l, top: f.t, width: "0.45vw", height: "0.45vw", animationDelay: f.d }}
+        />
+      ))}
+
+      {/* fade the bottom into the page */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-[var(--bg)]" />
     </div>
   );
 }
@@ -918,18 +911,6 @@ export default function LandingPage() {
     };
   }, []);
 
-  // a few twinkling stars in the sky above the artwork (visual continuity)
-  const skyStars = [
-    { l: "8%", t: "22%", d: "0s" },
-    { l: "18%", t: "40%", d: "1.1s" },
-    { l: "30%", t: "16%", d: "2s" },
-    { l: "44%", t: "30%", d: "0.6s" },
-    { l: "60%", t: "20%", d: "1.6s" },
-    { l: "72%", t: "38%", d: "2.4s" },
-    { l: "86%", t: "18%", d: "0.9s" },
-    { l: "92%", t: "44%", d: "1.9s" },
-  ];
-
   return (
     <div id="top" className="relative w-full bg-[var(--bg)]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -941,30 +922,20 @@ export default function LandingPage() {
       <Nav />
 
       {/* ===================== HERO ===================== */}
-      <section className="relative w-full overflow-hidden bg-[#173242]">
-        {/* twinkling sky above the artwork */}
-        <div className="pointer-events-none absolute inset-0">
-          {skyStars.map((s, i) => (
-            <span
-              key={i}
-              className="absolute h-[2px] w-[2px] animate-pixel-twinkle rounded-full bg-warm-50"
-              style={{ left: s.l, top: s.t, animationDelay: s.d }}
-            />
-          ))}
-          {/* soft moon glow up top, continuing the night sky */}
-          <div className="absolute right-[16%] top-[8%] h-40 w-40 rounded-full bg-warm-100/10 blur-3xl" />
-        </div>
+      <section className="relative flex min-h-[100svh] w-full flex-col items-center justify-center overflow-hidden bg-[#0e1c26]">
+        {/* full-bleed artwork + animated firelight */}
+        <HeroBackdrop />
 
-        {/* hero copy */}
+        {/* hero copy, overlaid on the art */}
         <motion.div
           initial={reduce ? undefined : "hidden"}
           animate={reduce ? undefined : "visible"}
           variants={reduce ? undefined : stagger}
-          className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 pb-12 pt-28 text-center"
+          className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 pb-20 pt-28 text-center"
         >
           <motion.div
             variants={reduce ? undefined : fadeUp}
-            className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-300/40 bg-[#0c1a24]/50 px-3 py-1.5 backdrop-blur-sm"
+            className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-300/40 bg-[#0c1a24]/55 px-3 py-1.5 backdrop-blur-sm"
           >
             <span className="h-2 w-2 bg-success-400 animate-pixel-twinkle" />
             <span className="font-terminal text-lg leading-none text-warm-100">
@@ -974,7 +945,7 @@ export default function LandingPage() {
 
           <motion.h1
             variants={reduce ? undefined : fadeUp}
-            className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-warm-50 drop-shadow-[3px_3px_0_rgba(6,16,22,0.85)] sm:text-5xl md:text-6xl"
+            className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-warm-50 [text-shadow:3px_3px_0_rgba(5,12,18,0.95),0_0_24px_rgba(5,12,18,0.7)] sm:text-5xl md:text-6xl"
           >
             Come home to a{" "}
             <span className="gradient-text-pixel">calmer way to work</span>
@@ -982,7 +953,7 @@ export default function LandingPage() {
 
           <motion.p
             variants={reduce ? undefined : fadeUp}
-            className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-warm-100/90 drop-shadow-[1px_1px_0_rgba(6,16,22,0.9)]"
+            className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-warm-50/95 [text-shadow:1px_1px_0_rgba(5,12,18,0.95),0_0_18px_rgba(5,12,18,0.8)]"
           >
             Haven is your cozy AI home. It plans your day, guards your time, and
             quietly handles every task and deadline — so you can put the noise
@@ -991,15 +962,15 @@ export default function LandingPage() {
 
           <motion.div variants={reduce ? undefined : fadeUp} className="mt-9 flex flex-col items-center gap-4">
             <GetStartedButton />
-            <p className="font-terminal text-lg tracking-wide text-warm-100/80">
+            <p className="font-terminal text-lg tracking-wide text-warm-100/90 [text-shadow:1px_1px_0_rgba(5,12,18,0.9)]">
               calm in the chaos &middot; no credit card needed
             </p>
           </motion.div>
         </motion.div>
 
-        {/* the artwork */}
-        <div className="relative z-[1] w-full">
-          <HeroIllustration />
+        {/* welcome-home placard */}
+        <div className="pixel-corners absolute bottom-10 left-1/2 z-10 -translate-x-1/2 border-2 border-[#5e3a26] bg-warm-100 px-4 py-1 shadow-pixel-sm">
+          <span className="font-pixel text-sm font-semibold text-[#5e3a26]">welcome home</span>
         </div>
       </section>
 
