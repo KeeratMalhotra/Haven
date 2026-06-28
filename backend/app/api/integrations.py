@@ -263,6 +263,10 @@ async def disconnect_service(service: str, auth_token: str = Query(...)):
 async def get_integration_status(auth_token: str = Query(...)):
     """Get the connection status of all integrable services.
 
+    Checks both Firestore (incremental OAuth tokens) AND the current
+    session token scopes (from original NextAuth login) to determine
+    if a service is actually connected.
+
     Args:
         auth_token: Google OAuth token for user identification.
 
@@ -272,6 +276,20 @@ async def get_integration_status(auth_token: str = Query(...)):
     user = await verify_google_token(auth_token)
     user_id = user.get("sub", "")
 
+    # Check what scopes the current session token already has
+    session_scopes = set()
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://oauth2.googleapis.com/tokeninfo?access_token={auth_token}"
+            )
+            if resp.status_code == 200:
+                scope_string = resp.json().get("scope", "")
+                session_scopes = set(scope_string.split())
+    except Exception:
+        pass
+
+    # Check Firestore for incrementally connected services
     db = get_db()
     user_ref = db.collection("users").document(user_id)
     doc = await user_ref.get()
@@ -284,13 +302,18 @@ async def get_integration_status(auth_token: str = Query(...)):
         spotify_tokens = data.get("spotify_tokens", {})
         spotify_connected = bool(spotify_tokens.get("access_token"))
 
-    # Build status for each Google service
+    # Build status for each Google service — connected if EITHER
+    # the session token has the scope OR Firestore has a stored token
     status_map = {}
     for service_name, scopes in SERVICE_SCOPES.items():
-        service_info = connected_services.get(service_name, {})
+        # Check if the current session token already has these scopes
+        session_has_scopes = all(s in session_scopes for s in scopes)
+        # Check if Firestore has a stored incremental token
+        firestore_connected = connected_services.get(service_name, {}).get("connected", False)
+
         status_map[service_name] = {
-            "connected": service_info.get("connected", False),
-            "scopes": service_info.get("scopes", []),
+            "connected": session_has_scopes or firestore_connected,
+            "scopes": scopes if (session_has_scopes or firestore_connected) else [],
         }
 
     # Add Spotify status

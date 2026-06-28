@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     NUDGE_INTERVAL_MINUTES: int = 30
 
     # Google OAuth redirect URI for incremental service connections
-    GOOGLE_REDIRECT_URI: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/integrations/callback"
 
     # Spotify OAuth credentials
     SPOTIFY_CLIENT_ID: str = ""
