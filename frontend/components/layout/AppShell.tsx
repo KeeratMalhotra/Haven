@@ -9,6 +9,8 @@ interface AppShellProps {
   children: React.ReactNode;
   connected?: boolean;
   userImage?: string | null;
+  chatOpen?: boolean;
+  onChatToggle?: () => void;
 }
 
 /**
@@ -33,6 +35,8 @@ export default function AppShell({
   children,
   connected,
   userImage,
+  chatOpen,
+  onChatToggle,
 }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -60,6 +64,8 @@ export default function AppShell({
           connected={connected}
           userImage={userImage}
           onMenuClick={handleMenuClick}
+          chatOpen={chatOpen}
+          onChatToggle={onChatToggle}
         />
 
         {/* Scrollable content */}

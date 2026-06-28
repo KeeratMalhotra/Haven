@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useChatSocket, type ConnectionState } from "@/hooks/useChatSocket";
 import GreetingHero from "./GreetingHero";
 import MessageList from "./MessageList";
@@ -50,7 +50,30 @@ export default function ChatExperience({
 
   return (
     <div className="relative z-10 flex h-full w-full flex-col">
-      {hasMessages ? (
+      {voiceActive ? (
+        /* Voice mode: replaces message area with inline voice UI */
+        <>
+          <div className="flex-1 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <VoiceMode
+                active={voiceActive}
+                onClose={() => setVoiceActive(false)}
+                onSpeak={(t) => send(t, "voice")}
+                statusLabel={statusLabel}
+                thinking={thinking}
+              />
+            </AnimatePresence>
+          </div>
+          <div className="z-20 flex justify-center px-4 pb-6 pt-2">
+            <ChatComposer
+              onSend={(v) => send(v, "chat")}
+              onVoice={() => setVoiceActive(false)}
+              centered={false}
+              disabled={connection === "disconnected"}
+            />
+          </div>
+        </>
+      ) : hasMessages ? (
         /* Conversation mode: flex column with scrollable messages + pinned composer */
         <>
           <div className="flex-1 overflow-y-auto scroll-thin">
@@ -104,14 +127,6 @@ export default function ChatExperience({
           </motion.div>
         </>
       )}
-
-      <VoiceMode
-        active={voiceActive}
-        onClose={() => setVoiceActive(false)}
-        onSpeak={(t) => send(t, "voice")}
-        statusLabel={statusLabel}
-        thinking={thinking}
-      />
     </div>
   );
 }

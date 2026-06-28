@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
 interface TopBarProps {
@@ -9,6 +9,8 @@ interface TopBarProps {
   connected?: boolean;
   userImage?: string | null;
   onMenuClick?: () => void;
+  chatOpen?: boolean;
+  onChatToggle?: () => void;
 }
 
 /**
@@ -21,6 +23,8 @@ export default function TopBar({
   connected,
   userImage,
   onMenuClick,
+  chatOpen,
+  onChatToggle,
 }: TopBarProps) {
   const connectionColor =
     connected === true
@@ -92,6 +96,23 @@ export default function TopBar({
             &#8984;K
           </kbd>
         </motion.button>
+
+        {/* AI Chat toggle */}
+        {onChatToggle && (
+          <motion.button
+            onClick={onChatToggle}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center justify-center rounded-lg p-2 border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-hover)] ${
+              chatOpen
+                ? "text-accent-500"
+                : "text-[var(--text-secondary)]"
+            }`}
+            aria-label={chatOpen ? "Close AI chat" : "Open AI chat"}
+          >
+            <MessageCircle size={16} strokeWidth={1.5} />
+          </motion.button>
+        )}
 
         {/* Connection status indicator */}
         <div

@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "AI Chat Button Redesign + Voice Mode Inside Chat Panel. (1) Replace the gradient FAB circle in dashboard/layout.tsx with a subtle matte button. Add a small chat icon in the TopBar right section (before the avatar) -- minimal, no gradients, no glow. Remove the fixed bottom-24 right-6 FAB entirely. (2) Modify VoiceMode to render INLINE inside the chat panel instead of a full-screen overlay. When mic is clicked in ChatExperience, replace the message area with the voice UI (mic button + listening indicator). When done, switch back to chat messages.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "In frontend/app/dashboard/layout.tsx: Remove the entire fixed bottom-24 right-6 FAB button div (the gradient circle with MessageCircle/X icons). Instead, pass chatOpen and setChatOpen as props or via context so TopBar can trigger it.",
     "In frontend/components/layout/AppShell.tsx: Accept new props onChatToggle and chatOpen, pass them to TopBar.",
