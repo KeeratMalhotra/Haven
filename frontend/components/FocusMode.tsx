@@ -411,6 +411,15 @@ export default function FocusMode({ active, taskName, onStop }: FocusModeProps) 
     }
   }, [active]);
 
+  // Broadcast focus-session start/stop so the proactive engine can suppress
+  // nudges while the user is in flow (and resume afterwards).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new Event(active ? "chronai-start-focus" : "chronai-stop-focus")
+    );
+  }, [active]);
+
   // Timer tick (countdown)
   useEffect(() => {
     if (!active || paused || phase === "done" || phase === "selecting") {

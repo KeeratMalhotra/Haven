@@ -897,3 +897,212 @@ export async function clearAllMemory(
   }
   return (await res.json()) as { status: string };
 }
+
+
+
+// --- Sprint 12: Proactive intelligence + notification inbox ---
+
+/**
+ * A one-tap action attached to a notification or intervention.
+ * `kind` tells the UI how to act: open the AI chat (optionally prefilled),
+ * trigger the day planner, navigate somewhere, or do nothing.
+ */
+export interface NotificationAction {
+  label: string;
+  kind: "open_chat" | "plan_day" | "navigate" | "none";
+  target?: string;
+  message?: string;
+  payload?: Record<string, unknown>;
+}
+
+/**
+ * A persisted notification from the inbox (Firestore-backed).
+ */
+export interface NotificationItem {
+  id: string;
+  user_id?: string;
+  title: string;
+  message: string;
+  type: string;
+  tier: number;
+  source?: string;
+  action?: NotificationAction | null;
+  read: boolean;
+  created_at: string;
+}
+
+/**
+ * Fetch the user's recent notifications and unread count.
+ * Degrades gracefully to an empty inbox on any failure.
+ */
+export async function fetchNotifications(
+  authToken: string,
+  limit = 50
+): Promise<{ notifications: NotificationItem[]; unread_count: number }> {
+  if (!authToken) return { notifications: [], unread_count: 0 };
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/notifications?auth_token=${encodeURIComponent(
+        authToken
+      )}&limit=${limit}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) return { notifications: [], unread_count: 0 };
+    return (await res.json()) as {
+      notifications: NotificationItem[];
+      unread_count: number;
+    };
+  } catch {
+    return { notifications: [], unread_count: 0 };
+  }
+}
+
+/**
+ * Mark a single notification as read.
+ */
+export async function markNotificationRead(
+  authToken: string,
+  notificationId: string
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(
+      `${getApiBase()}/api/notifications/${encodeURIComponent(
+        notificationId
+      )}/read`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auth_token: authToken }),
+      }
+    );
+  } catch {
+    // Non-critical; the badge will resync on next fetch.
+  }
+}
+
+/**
+ * Mark every notification as read.
+ */
+export async function markAllNotificationsRead(
+  authToken: string
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(`${getApiBase()}/api/notifications/read-all`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_token: authToken }),
+    });
+  } catch {
+    // Non-critical.
+  }
+}
+
+/**
+ * Delete a single notification.
+ */
+export async function deleteNotification(
+  authToken: string,
+  notificationId: string
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(
+      `${getApiBase()}/api/notifications/${encodeURIComponent(
+        notificationId
+      )}?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "DELETE" }
+    );
+  } catch {
+    // Non-critical.
+  }
+}
+
+/**
+ * Clear all notifications for the user.
+ */
+export async function clearAllNotifications(authToken: string): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(
+      `${getApiBase()}/api/notifications?auth_token=${encodeURIComponent(
+        authToken
+      )}`,
+      { method: "DELETE" }
+    );
+  } catch {
+    // Non-critical.
+  }
+}
+
+/**
+ * Compute the current proactive interventions to surface now. Any Tier 2+
+ * nudges that pass governance are persisted to the inbox server-side and
+ * returned here so they can also be shown as gentle toasts.
+ */
+export async function fetchProactiveCheck(
+  authToken: string,
+  focusActive?: boolean
+): Promise<{ interventions: NotificationItem[] }> {
+  if (!authToken) return { interventions: [] };
+  try {
+    const params = new URLSearchParams({ auth_token: authToken });
+    if (focusActive !== undefined) {
+      params.set("focus_active", String(focusActive));
+    }
+    const res = await fetch(
+      `${getApiBase()}/api/proactive/check?${params.toString()}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) return { interventions: [] };
+    return (await res.json()) as { interventions: NotificationItem[] };
+  } catch {
+    return { interventions: [] };
+  }
+}
+
+/**
+ * Tell the backend a focus session started or ended so proactive nudges are
+ * suppressed (or resumed) accordingly.
+ */
+export async function setProactiveFocus(
+  authToken: string,
+  active: boolean
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(`${getApiBase()}/api/proactive/focus`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_token: authToken, active }),
+    });
+  } catch {
+    // Non-critical.
+  }
+}
+
+/**
+ * Record that the user accepted or dismissed a proactive nudge. This calibrates
+ * how often ChronAI nudges in the future. Optionally marks the notification read.
+ */
+export async function sendProactiveFeedback(
+  authToken: string,
+  accepted: boolean,
+  notificationId?: string
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(`${getApiBase()}/api/proactive/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auth_token: authToken,
+        accepted,
+        notification_id: notificationId,
+      }),
+    });
+  } catch {
+    // Non-critical.
+  }
+}

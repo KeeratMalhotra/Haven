@@ -62,6 +62,15 @@ export function useNotificationSocket() {
               timestamp: Date.now(),
               dismissed: false,
             });
+            // A push was also persisted to the inbox server-side; tell the
+            // notification provider to re-sync so the bell badge updates.
+            try {
+              window.dispatchEvent(
+                new CustomEvent("chronai-notifications-changed")
+              );
+            } catch {
+              // Non-critical.
+            }
           }
         } catch {
           // Ignore malformed messages

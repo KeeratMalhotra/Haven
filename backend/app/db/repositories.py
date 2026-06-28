@@ -4,11 +4,20 @@ Each repository operates on a specific collection and uses async
 Firestore operations via the get_db() client.
 """
 
+import uuid
 from datetime import datetime
 from typing import Optional
 
 from app.db.firestore import get_db
-from app.db.models import User, Task, Habit, Conversation, UserMemory
+from app.db.models import (
+    User,
+    Task,
+    Habit,
+    Conversation,
+    UserMemory,
+    Notification,
+    ProactiveState,
+)
 
 
 class UserRepository:
@@ -619,3 +628,223 @@ class MemoryRepository:
             return
         db = get_db()
         await db.collection(cls.COLLECTION).document(user_id).delete()
+
+
+
+class NotificationRepository:
+    """Repository for Notification documents in the 'notifications' collection.
+
+    Backs the notification inbox. Notifications are persisted per user and
+    queried most-recent-first. The collection is capped per user (oldest are
+    pruned) so the inbox stays cheap to read and never grows unbounded.
+    """
+
+    COLLECTION = "notifications"
+    # Keep at most this many notifications per user; older ones are pruned.
+    MAX_PER_USER = 200
+
+    @classmethod
+    async def create(cls, notification: Notification) -> Notification:
+        """Create a notification document, assigning an ID when absent.
+
+        Args:
+            notification: The Notification to persist. ``user_id`` is required.
+
+        Returns:
+            The stored Notification with its ``id`` populated.
+        """
+        db = get_db()
+        if not notification.id:
+            notification.id = uuid.uuid4().hex
+        data = notification.model_dump(exclude={"id"})
+        await db.collection(cls.COLLECTION).document(notification.id).set(data)
+        return notification
+
+    @classmethod
+    async def list_by_user(
+        cls, user_id: str, limit: int = 50
+    ) -> list[Notification]:
+        """List a user's notifications, most recent first.
+
+        Sorting is done in memory to avoid requiring a composite Firestore
+        index (user_id + created_at), keeping deployment friction low.
+
+        Args:
+            user_id: The user's ID.
+            limit: Maximum number of notifications to return.
+
+        Returns:
+            A list of Notification instances ordered newest-first.
+        """
+        if not user_id:
+            return []
+        db = get_db()
+        query = db.collection(cls.COLLECTION).where("user_id", "==", user_id)
+        notifications: list[Notification] = []
+        async for doc in query.stream():
+            data = doc.to_dict()
+            data["id"] = doc.id
+            notifications.append(Notification(**data))
+        notifications.sort(key=lambda n: n.created_at, reverse=True)
+        return notifications[:limit]
+
+    @classmethod
+    async def unread_count(cls, user_id: str) -> int:
+        """Return how many of the user's notifications are unread."""
+        notifications = await cls.list_by_user(user_id, limit=cls.MAX_PER_USER)
+        return sum(1 for n in notifications if not n.read)
+
+    @classmethod
+    async def mark_read(cls, user_id: str, notification_id: str) -> bool:
+        """Mark a single notification read, scoped to its owner.
+
+        Args:
+            user_id: The requesting user's ID (ownership check).
+            notification_id: The notification document ID.
+
+        Returns:
+            True if the notification existed, belonged to the user and was
+            updated; False otherwise.
+        """
+        db = get_db()
+        ref = db.collection(cls.COLLECTION).document(notification_id)
+        doc = await ref.get()
+        if not doc.exists:
+            return False
+        data = doc.to_dict() or {}
+        if data.get("user_id") != user_id:
+            return False
+        await ref.update({"read": True})
+        return True
+
+    @classmethod
+    async def mark_all_read(cls, user_id: str) -> int:
+        """Mark every unread notification for a user as read.
+
+        Returns:
+            The number of notifications updated.
+        """
+        if not user_id:
+            return 0
+        db = get_db()
+        query = db.collection(cls.COLLECTION).where("user_id", "==", user_id)
+        updated = 0
+        async for doc in query.stream():
+            data = doc.to_dict() or {}
+            if not data.get("read"):
+                await doc.reference.update({"read": True})
+                updated += 1
+        return updated
+
+    @classmethod
+    async def delete(cls, user_id: str, notification_id: str) -> bool:
+        """Delete a single notification, scoped to its owner.
+
+        Returns:
+            True if a notification owned by the user was deleted.
+        """
+        db = get_db()
+        ref = db.collection(cls.COLLECTION).document(notification_id)
+        doc = await ref.get()
+        if not doc.exists:
+            return False
+        data = doc.to_dict() or {}
+        if data.get("user_id") != user_id:
+            return False
+        await ref.delete()
+        return True
+
+    @classmethod
+    async def clear_all(cls, user_id: str) -> int:
+        """Delete all notifications for a user ('clear all').
+
+        Returns:
+            The number of notifications deleted.
+        """
+        if not user_id:
+            return 0
+        db = get_db()
+        query = db.collection(cls.COLLECTION).where("user_id", "==", user_id)
+        deleted = 0
+        async for doc in query.stream():
+            await doc.reference.delete()
+            deleted += 1
+        return deleted
+
+    @classmethod
+    async def prune(cls, user_id: str) -> None:
+        """Trim a user's notifications down to ``MAX_PER_USER`` (newest kept)."""
+        if not user_id:
+            return
+        notifications = await cls.list_by_user(user_id, limit=10_000)
+        if len(notifications) <= cls.MAX_PER_USER:
+            return
+        db = get_db()
+        for stale in notifications[cls.MAX_PER_USER :]:
+            try:
+                await db.collection(cls.COLLECTION).document(stale.id).delete()
+            except Exception:
+                pass
+
+
+class ProactiveStateRepository:
+    """Repository for per-user ProactiveState in the 'proactive_state' collection.
+
+    The document ID is the user's ID. Reads degrade gracefully: a missing
+    document (or any error) yields a fresh ProactiveState so the proactive
+    engine never breaks the main flow.
+    """
+
+    COLLECTION = "proactive_state"
+
+    @classmethod
+    async def get(cls, user_id: str) -> ProactiveState:
+        """Get the user's proactive state, or a fresh one if absent."""
+        if not user_id:
+            return ProactiveState()
+        try:
+            db = get_db()
+            doc = await db.collection(cls.COLLECTION).document(user_id).get()
+            if doc.exists:
+                data = doc.to_dict() or {}
+                data["user_id"] = user_id
+                return ProactiveState(**data)
+        except Exception:
+            pass
+        return ProactiveState(user_id=user_id)
+
+    @classmethod
+    async def save(cls, state: ProactiveState) -> None:
+        """Persist the full ProactiveState document (overwrites existing)."""
+        if not state.user_id:
+            return
+        state.updated_at = datetime.utcnow()
+        db = get_db()
+        data = state.model_dump(exclude={"user_id"})
+        await db.collection(cls.COLLECTION).document(state.user_id).set(data)
+
+    @classmethod
+    async def set_focus_active(cls, user_id: str, active: bool) -> None:
+        """Record whether the user is currently in a focus session."""
+        state = await cls.get(user_id)
+        state.focus_active = active
+        await cls.save(state)
+
+    @classmethod
+    async def record_feedback(cls, user_id: str, accepted: bool) -> ProactiveState:
+        """Update calibration counters when a nudge is accepted or dismissed.
+
+        Args:
+            user_id: The user's ID.
+            accepted: True if the user acted on the nudge, False if dismissed.
+
+        Returns:
+            The updated ProactiveState.
+        """
+        state = await cls.get(user_id)
+        if accepted:
+            state.accepted += 1
+        else:
+            state.dismissed += 1
+        await cls.save(state)
+        return state

@@ -12,12 +12,12 @@ import {
 import { AIContextProvider } from "@/components/ai/AIContextProvider";
 import AIToast from "@/components/ai/AIToast";
 import AIChatPanel from "@/components/chat/AIChatPanel";
-import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+import { NotificationProvider } from "@/components/notifications/NotificationProvider";
+import ProactiveListener from "@/components/notifications/ProactiveListener";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 function NotificationSocketListener() {
-  useNotificationSocket();
-  return null;
+  return <ProactiveListener />;
 }
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -57,47 +57,49 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AppShell
-      connected={connected}
-      userImage={userImage}
-      chatOpen={chatOpen}
-      onChatToggle={() => setChatOpen((o) => !o)}
-    >
-      <AIContextProvider>
-        <NotificationSocketListener />
-        {prefersReducedMotion ? (
-          <div key={pathname}>{children}</div>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        )}
-        <AIToast />
+    <NotificationProvider>
+      <AppShell
+        connected={connected}
+        userImage={userImage}
+        chatOpen={chatOpen}
+        onChatToggle={() => setChatOpen((o) => !o)}
+      >
+        <AIContextProvider>
+          <NotificationSocketListener />
+          {prefersReducedMotion ? (
+            <div key={pathname}>{children}</div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          )}
+          <AIToast />
 
-        {/* AI Chat Panel */}
-        <AIChatPanel
-          open={chatOpen}
-          onClose={() => {
-            setChatOpen(false);
-            setDetached(false);
-          }}
-          accessToken={accessToken}
-          userName={userName}
-          detached={detached}
-          onDetach={handleDetach}
-          onAttach={handleAttach}
-        />
-      </AIContextProvider>
-      <SpotifyMiniPlayer />
-    </AppShell>
+          {/* AI Chat Panel */}
+          <AIChatPanel
+            open={chatOpen}
+            onClose={() => {
+              setChatOpen(false);
+              setDetached(false);
+            }}
+            accessToken={accessToken}
+            userName={userName}
+            detached={detached}
+            onDetach={handleDetach}
+            onAttach={handleAttach}
+          />
+        </AIContextProvider>
+        <SpotifyMiniPlayer />
+      </AppShell>
+    </NotificationProvider>
   );
 }
 

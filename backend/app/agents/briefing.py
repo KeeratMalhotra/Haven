@@ -319,6 +319,19 @@ async def generate_today_briefing(
     except Exception as e:
         logger.warning(f"[briefing] Failed to load memory: {e}")
 
+    # --- Proactive intelligence: bundle Tier 1 ambient observations here ---
+    # The morning briefing is ChronAI's no-interruption channel, so the
+    # proactive engine's gentle observations belong here rather than as toasts.
+    observations: list[str] = []
+    try:
+        from app.agents.proactive_intelligence import gather_briefing_observations
+
+        observations = await gather_briefing_observations(
+            user_id, auth_token, mcp_client
+        )
+    except Exception as e:
+        logger.warning(f"[briefing] Failed to gather proactive observations: {e}")
+
     # --- AI narration -----------------------------------------------------
     narrative = await _narrate_briefing(
         user_name=user_name,
@@ -331,6 +344,7 @@ async def generate_today_briefing(
         work_end=work_end,
         productive_hours=productive_hours,
         memory_insights=memory_insights,
+        observations=observations,
     )
 
     greeting = f"Good {time_of_day}"
@@ -352,6 +366,7 @@ async def generate_today_briefing(
         "top_priority": top_priority,
         "warnings": warnings,
         "stats": stats,
+        "observations": observations,
         "suggested_actions": ["Looks good", "Plan my day", "Adjust"],
     }
 
@@ -367,16 +382,20 @@ async def _narrate_briefing(
     work_end: int,
     productive_hours: list[int] | None = None,
     memory_insights: list[str] | None = None,
+    observations: list[str] | None = None,
 ) -> str:
     """Compose a short, warm natural-language narration via Gemini.
 
     The user's data (titles etc.) is passed inside a JSON block that the model
     is told to treat as opaque data, keeping instructions separate from content.
     Learned memory (productive hours, insights) is included so the narration can
-    suggest protecting the user's real deep-work window.
+    suggest protecting the user's real deep-work window. Tier 1 proactive
+    ``observations`` are folded in here so ambient nudges reach the user calmly
+    through the briefing rather than as interruptions.
     """
     productive_hours = productive_hours or []
     memory_insights = memory_insights or []
+    observations = observations or []
 
     def _hour_label(hour: int) -> str:
         h12 = hour % 12 or 12
@@ -404,6 +423,7 @@ async def _narrate_briefing(
         "warnings": warnings,
         "productive_window": productive_window,
         "learned_insights": memory_insights,
+        "observations": observations,
     }
 
     system_instruction = (
@@ -416,7 +436,9 @@ async def _narrate_briefing(
         "a 'productive_window' is given, suggest protecting it for deep work "
         "(e.g. 'want me to guard your 9-11 AM focus window?'). If there are "
         "warnings about tight gaps or conflicts, gently mention one and offer to "
-        "help. Keep it encouraging and concise."
+        "help. If 'observations' are present, you may weave in at most one as a "
+        "calm, caring aside (never as a warning). Keep it encouraging and "
+        "concise, like a respectful chief of staff."
     )
     user_message = f"FACTS:\n{json.dumps(facts, default=str)}"
 

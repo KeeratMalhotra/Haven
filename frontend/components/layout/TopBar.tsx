@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Menu, MessageCircle, Plus, CheckSquare, Calendar, Timer, Zap } from "lucide-react";
 import Image from "next/image";
+import NotificationBell from "./NotificationBell";
 
 interface TopBarProps {
   title?: string;
@@ -209,6 +210,9 @@ export default function TopBar({
             <MessageCircle size={16} strokeWidth={1.5} />
           </motion.button>
         )}
+
+        {/* Notification bell + inbox */}
+        <NotificationBell />
 
         {/* Connection status indicator */}
         <div

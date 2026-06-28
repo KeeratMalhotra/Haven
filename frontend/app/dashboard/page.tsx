@@ -174,6 +174,14 @@ export default function DashboardPage() {
   // Auto-Pilot panel
   const [autopilotOpen, setAutopilotOpen] = useState(false);
 
+  // Open the Auto-Pilot day planner when a proactive nudge's "plan_day" action
+  // is triggered (e.g. from the notification inbox).
+  useEffect(() => {
+    const handlePlanDay = () => setAutopilotOpen(true);
+    window.addEventListener("chronai-plan-day", handlePlanDay);
+    return () => window.removeEventListener("chronai-plan-day", handlePlanDay);
+  }, []);
+
   // Onboarding checklist
   const [checklistDismissed, setChecklistDismissed] = useState(false);
 

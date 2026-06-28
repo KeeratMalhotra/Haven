@@ -322,6 +322,68 @@ async def run_nudge_check(manager: ConnectionManager, user_id: Optional[str] = N
     return all_nudges
 
 
+async def _run_proactive_pass(manager: ConnectionManager) -> None:
+    """Run the Sprint 12 proactive intelligence pass for all users.
+
+    For each user, the intelligence engine computes interventions and the
+    governance layer decides what (if anything) to surface. Anything delivered
+    is persisted to the notification inbox and pushed over WebSocket. Genuinely
+    time-sensitive Tier 3 nudges fall back to email when the user is offline.
+
+    The engine relies on real tasks/calendar via MCP, which needs the user's
+    OAuth token; for background runs we use the stored access token.
+    """
+    from app.scheduler.proactive_delivery import deliver_interventions
+
+    # Late import keeps the global mcp_client lookup out of module import time.
+    try:
+        from app.main import mcp_client
+    except Exception:
+        mcp_client = None
+
+    try:
+        users = await UserRepository.list_all()
+    except Exception:
+        logger.error("Failed to fetch users for proactive pass")
+        return
+
+    for user in users:
+        if not user.id:
+            continue
+        auth_token = (user.google_tokens or {}).get("access_token", "")
+        if not auth_token:
+            # Without a valid token we can't read the user's real schedule.
+            continue
+        try:
+            delivered = await deliver_interventions(
+                user.id,
+                auth_token,
+                mcp_client,
+                manager=manager,
+                push=True,
+            )
+        except Exception as e:
+            logger.warning(f"Proactive pass failed for user {user.id}: {e}")
+            continue
+
+        # Tier 3 (active, rare) interventions reach an offline user via email.
+        if delivered and not manager.is_connected(user.id):
+            if user.email and user.google_tokens:
+                for iv in delivered:
+                    if iv.get("tier", 2) >= 3:
+                        try:
+                            await _send_nudge_email(
+                                user.email,
+                                iv.get("message", ""),
+                                iv.get("title", "ChronAI"),
+                                user.google_tokens,
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to email Tier 3 nudge to {user.email}: {e}"
+                            )
+
+
 async def _run_daily_digest() -> None:
     """Run the daily digest email job.
 
@@ -436,6 +498,12 @@ async def _scheduler_loop(manager: ConnectionManager) -> None:
             await run_nudge_check(manager)
         except Exception:
             logger.exception("Error during proactive nudge check")
+
+        # Sprint 12: run the proactive intelligence pass (the "perfect nudge").
+        try:
+            await _run_proactive_pass(manager)
+        except Exception:
+            logger.exception("Error during proactive intelligence pass")
 
         # Run daily digest and weekly review jobs
         try:

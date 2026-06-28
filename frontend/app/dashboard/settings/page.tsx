@@ -254,6 +254,12 @@ function SettingsContent() {
       if (data.preferences) {
         if (data.preferences.display_name) setDisplayName(data.preferences.display_name);
         if (data.preferences.timezone) setTimezone(data.preferences.timezone);
+        // Quiet mode (proactive_quiet) is the inverse of proactive notifications.
+        if (data.preferences.proactive_quiet !== undefined) {
+          const enabled = !data.preferences.proactive_quiet;
+          setProactiveNotifs(enabled);
+          localStorage.setItem("chronai-proactive-notifs", String(enabled));
+        }
       }
     });
 
@@ -333,6 +339,15 @@ function SettingsContent() {
     setProactiveNotifs(val);
     localStorage.setItem("chronai-proactive-notifs", String(val));
     dispatchStorageChange("chronai-proactive-notifs", String(val));
+    // Mirror to the backend so the proactive engine respects quiet mode.
+    // proactive_quiet is the inverse of "proactive notifications enabled".
+    if (authToken) {
+      updatePreferences(authToken, {
+        preferences: { proactive_quiet: !val },
+      }).catch(() => {
+        // Non-critical; local preference still applies in the UI.
+      });
+    }
   };
 
   const updateAutopilotMode = (fullAuto: boolean) => {

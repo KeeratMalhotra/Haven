@@ -85,6 +85,56 @@ class Conversation(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class Notification(BaseModel):
+    """A persisted notification in the user's inbox.
+
+    Every proactive nudge, suggestion, reminder, autopilot summary and
+    milestone is written here so nothing the chief-of-staff says is ever lost.
+    The inbox is the durable record; toasts are the ephemeral surface.
+    """
+
+    id: str = ""
+    user_id: str = ""
+    title: str = ""
+    message: str = ""
+    # nudge | suggestion | reminder | autopilot_summary | milestone | proactive
+    type: str = "nudge"
+    # Proactivity tier this notification came from (1 ambient, 2 nudge, 3 active).
+    tier: int = 2
+    # The intervention family (e.g. "overcommitment") when sourced from the
+    # proactive intelligence engine; empty for generic notifications.
+    source: str = ""
+    # A single one-tap action: {"label", "kind", "target"?, "message"?, "payload"?}.
+    # kind is one of: open_chat | plan_day | navigate | none.
+    action: Optional[dict] = None
+    read: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ProactiveState(BaseModel):
+    """Per-user governance state for the proactive intelligence engine.
+
+    Tracks the daily nudge budget, learned calibration (accept vs dismiss),
+    a per-intervention cooldown so the same observation never fires twice in a
+    day, and whether a focus session is currently active (nudges are suppressed
+    while it is). Stored as a single document keyed by ``user_id``.
+    """
+
+    user_id: str = ""
+    # ISO date (YYYY-MM-DD, IST) the daily counters below apply to.
+    date: str = ""
+    # Number of Tier 2+ nudges already delivered today.
+    nudge_count: int = 0
+    # Rolling lifetime calibration counters.
+    accepted: int = 0
+    dismissed: int = 0
+    # Whether the user is in a focus session right now (suppress nudges).
+    focus_active: bool = False
+    # Map of intervention type -> ISO date it last fired (daily dedup).
+    last_fired: dict = Field(default_factory=dict)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class BehavioralStats(BaseModel):
     """Aggregated behavioral statistics distilled from raw observations.
 
