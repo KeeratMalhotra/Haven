@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Rebuild Pomodoro Timer UI with growing plant SVG animation, transition effects, AI chat access, and remove music/lofi options",
+  "status": "in_progress",
+  "steps": [
+    "REMOVE MUSIC/LOFI/AMBIENT OPTIONS (frontend/components/PomodoroTimer.tsx): Remove the entire ambient audio system. This includes: the AmbientOption type, all Web Audio API functions (createWhiteNoiseBuffer, createBrownNoiseBuffer, createPinkNoiseBuffer, createRainAmbient, createCafeAmbient, createLofiAmbient, startAmbientAudio, stopAmbientAudio), the AmbientNodes interface, the ambient state and refs (ambient, volume, ambientNodesRef), the ambient selector UI section, and the volume slider. Remove all related useEffect hooks for audio management. Keep only the timer logic and UI. Remove unused imports (Cloud, Coffee, Music, VolumeX, Volume2).",
+    "ADD GROWING PLANT SVG (frontend/components/PomodoroTimer.tsx): Replace the ProgressRing component with a growing plant SVG visualization. Create a PlantGrowth component that takes progress (0 to 1) and renders an SVG showing: at 0% a small pot with soil, at ~25% a small sprout emerging, at ~50% a stem with small leaves, at ~75% a taller plant with more leaves and a bud, at 100% a full flower/small tree. Use smooth SVG path transitions. The SVG should be approximately 200x200px. Use CSS transitions or framer-motion for smooth growth animation between stages. The plant should use warm colors (greens, amber) that match the app theme and work in both dark and light modes. Below the plant, still show the countdown timer text.",
+    "ADD TRANSITION EFFECT WHEN STARTING POMODORO (frontend/components/PomodoroTimer.tsx): When the user selects a duration and the timer starts (transitioning from 'selecting' phase to 'focus' phase), add a visually satisfying transition animation. Use framer-motion to create a scale + fade + spring animation. The duration selection grid should animate out and the plant + timer should animate in with a staggered spring effect. Add a brief 'pulse' or 'glow' effect on the plant pot when the timer first starts.",
+    "ADD AI CHAT ACCESS WITHIN POMODORO (frontend/components/PomodoroTimer.tsx and frontend/app/dashboard/layout.tsx): Add a small floating button within the Pomodoro full-screen overlay that allows the student to open the AI chat. This button should show a MessageCircle or Sparkles icon. When clicked, it should dispatch the 'chronai-open-chat' window event (which is already listened to in dashboard/layout.tsx to open the chat panel). Position this button at the bottom-right of the Pomodoro screen. Style it subtly so it does not distract from the focus session but is accessible when needed.",
+    "ENSURE DARK AND LIGHT MODE COMPATIBILITY: The plant SVG should use CSS variables or conditional classes that adapt to both themes. The pot should be a warm brown that works on both dark and light backgrounds. Leaves should be green. The flower should be amber/warm colored. Test both modes visually by using theme-aware colors like var(--text-primary) for outlines."
+  ],
+  "acceptance_criteria": [
+    "The Pomodoro timer no longer shows any ambient sound options (Rain, Cafe, Lo-fi, Silence buttons and volume slider are gone)",
+    "A growing plant SVG is displayed that visually grows from a pot to a full flower/tree as the timer progresses from 0% to 100%",
+    "There is a visible animated transition when switching from the duration selection screen to the active timer (not just an instant swap)",
+    "There is a small AI chat access button visible during the Pomodoro session that opens the AI chat when clicked",
+    "The plant SVG looks appropriate in both dark and light mode (no invisible elements, good contrast)",
+    "pnpm lint passes with no errors",
+    "pnpm build passes with no errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -6,12 +6,8 @@ import {
   PlayCircle,
   PauseCircle,
   StopCircle,
-  Cloud,
-  Coffee,
-  Music,
-  VolumeX,
-  Volume2,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 
 interface PomodoroTimerProps {
@@ -20,159 +16,9 @@ interface PomodoroTimerProps {
   onStop: () => void;
 }
 
-type AmbientOption = "rain" | "cafe" | "lofi" | "silence";
 type PomodoroPhase = "selecting" | "focus" | "break" | "done";
 
 const DURATION_OPTIONS = [25, 45, 60, 90] as const;
-
-/* ---------- Web Audio API Ambient Sound Generators ---------- */
-
-interface AmbientNodes {
-  context: AudioContext;
-  gainNode: GainNode;
-  sources: AudioNode[];
-}
-
-function createWhiteNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
-  const sampleRate = ctx.sampleRate;
-  const bufferSize = sampleRate * seconds;
-  const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-  return buffer;
-}
-
-function createBrownNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
-  const sampleRate = ctx.sampleRate;
-  const bufferSize = sampleRate * seconds;
-  const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
-  const data = buffer.getChannelData(0);
-  let lastOut = 0.0;
-  for (let i = 0; i < bufferSize; i++) {
-    const white = Math.random() * 2 - 1;
-    lastOut = (lastOut + 0.02 * white) / 1.02;
-    data[i] = lastOut * 3.5;
-  }
-  return buffer;
-}
-
-function createPinkNoiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {
-  const sampleRate = ctx.sampleRate;
-  const bufferSize = sampleRate * seconds;
-  const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
-  const data = buffer.getChannelData(0);
-  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-  for (let i = 0; i < bufferSize; i++) {
-    const white = Math.random() * 2 - 1;
-    b0 = 0.99886 * b0 + white * 0.0555179;
-    b1 = 0.99332 * b1 + white * 0.0750759;
-    b2 = 0.96900 * b2 + white * 0.1538520;
-    b3 = 0.86650 * b3 + white * 0.3104856;
-    b4 = 0.55000 * b4 + white * 0.5329522;
-    b5 = -0.7616 * b5 - white * 0.0168980;
-    data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-    data[i] *= 0.11;
-    b6 = white * 0.115926;
-  }
-  return buffer;
-}
-
-function createRainAmbient(ctx: AudioContext, gainNode: GainNode): AudioNode[] {
-  const buffer = createWhiteNoiseBuffer(ctx, 4);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.loop = true;
-  const bandpass = ctx.createBiquadFilter();
-  bandpass.type = "bandpass";
-  bandpass.frequency.value = 800;
-  bandpass.Q.value = 0.5;
-  const highpass = ctx.createBiquadFilter();
-  highpass.type = "highpass";
-  highpass.frequency.value = 200;
-  source.connect(bandpass);
-  bandpass.connect(highpass);
-  highpass.connect(gainNode);
-  source.start();
-  return [source];
-}
-
-function createCafeAmbient(ctx: AudioContext, gainNode: GainNode): AudioNode[] {
-  const buffer = createBrownNoiseBuffer(ctx, 4);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.loop = true;
-  const lowpass = ctx.createBiquadFilter();
-  lowpass.type = "lowpass";
-  lowpass.frequency.value = 500;
-  source.connect(lowpass);
-  lowpass.connect(gainNode);
-  source.start();
-  return [source];
-}
-
-function createLofiAmbient(ctx: AudioContext, gainNode: GainNode): AudioNode[] {
-  const buffer = createPinkNoiseBuffer(ctx, 4);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.loop = true;
-  const bandpass = ctx.createBiquadFilter();
-  bandpass.type = "bandpass";
-  bandpass.frequency.value = 600;
-  bandpass.Q.value = 1.0;
-  const lfo = ctx.createOscillator();
-  lfo.type = "sine";
-  lfo.frequency.value = 0.3;
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 150;
-  lfo.connect(lfoGain);
-  lfoGain.connect(bandpass.frequency);
-  lfo.start();
-  source.connect(bandpass);
-  bandpass.connect(gainNode);
-  source.start();
-  return [source, lfo];
-}
-
-function startAmbientAudio(type: AmbientOption, volume: number): AmbientNodes | null {
-  if (type === "silence") return null;
-  const context = new AudioContext();
-  const gainNode = context.createGain();
-  gainNode.gain.value = volume;
-  gainNode.connect(context.destination);
-  let sources: AudioNode[];
-  switch (type) {
-    case "rain":
-      sources = createRainAmbient(context, gainNode);
-      break;
-    case "cafe":
-      sources = createCafeAmbient(context, gainNode);
-      break;
-    case "lofi":
-      sources = createLofiAmbient(context, gainNode);
-      break;
-    default:
-      sources = [];
-  }
-  return { context, gainNode, sources };
-}
-
-function stopAmbientAudio(nodes: AmbientNodes | null): void {
-  if (!nodes) return;
-  try {
-    nodes.sources.forEach((source) => {
-      if (source instanceof AudioBufferSourceNode) {
-        source.stop();
-      } else if (source instanceof OscillatorNode) {
-        source.stop();
-      }
-    });
-    nodes.context.close();
-  } catch {
-    // Silently handle already-closed context
-  }
-}
 
 const STATS_KEY = "chronai-pomodoro-stats";
 
@@ -202,43 +48,225 @@ function incrementTodayPomodoros(): void {
   }
 }
 
-/* ---------- Circular Progress Ring ---------- */
-function ProgressRing({ progress, phase }: { progress: number; phase: PomodoroPhase }) {
-  const size = 200;
-  const strokeWidth = 6;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const p = phase === "break" || phase === "selecting" ? 1 : Math.min(1, Math.max(0, progress));
-  const offset = circumference - p * circumference;
+/* ---------- Growing Plant SVG Component ---------- */
+function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPhase }) {
+  // Determine growth stage based on progress
+  const p = phase === "break" || phase === "selecting" ? 0 : Math.min(1, Math.max(0, progress));
 
-  const strokeColor =
-    phase === "break" ? "stroke-teal-400" : "stroke-amber-500";
+  // Colors
+  const potColor = "#8B5E3C";
+  const soilColor = "#5D3A1A";
+  const stemColor = "#4CAF50";
+  const leafColor = "#66BB6A";
+  const flowerColor = "#F59E0B";
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="select-none">
-      {/* Background ring */}
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        strokeWidth={strokeWidth}
-        className="stroke-[var(--border-subtle)]"
-      />
-      {/* Progress ring */}
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        className={strokeColor}
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: "stroke-dashoffset 1s linear" }}
-      />
+    <svg
+      width={200}
+      height={240}
+      viewBox="0 0 200 240"
+      className="select-none"
+      aria-label="Growing plant progress indicator"
+    >
+      {/* Pot */}
+      <motion.g
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        {/* Pot rim */}
+        <rect x="65" y="175" width="70" height="10" rx="3" fill={potColor} />
+        {/* Pot body - trapezoid */}
+        <path d="M70 185 L75 225 L125 225 L130 185 Z" fill={potColor} />
+        {/* Pot base */}
+        <rect x="80" y="225" width="40" height="6" rx="3" fill={potColor} />
+        {/* Soil */}
+        <ellipse cx="100" cy="178" rx="30" ry="6" fill={soilColor} />
+      </motion.g>
+
+      {/* Stage 1: Sprout (10-25%) */}
+      <motion.g
+        initial={{ opacity: 0, scaleY: 0 }}
+        animate={{
+          opacity: p >= 0.1 ? 1 : 0,
+          scaleY: p >= 0.1 ? 1 : 0,
+        }}
+        transition={{ duration: 1, ease: "easeOut" }}
+        style={{ originX: "100px", originY: "175px", transformOrigin: "100px 175px" }}
+      >
+        {/* Small sprout */}
+        <motion.path
+          d="M100 175 Q100 165 100 160"
+          stroke={stemColor}
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          animate={{ pathLength: p >= 0.1 ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        />
+        {/* Tiny leaf on sprout */}
+        <motion.ellipse
+          cx="104"
+          cy="162"
+          rx="5"
+          ry="3"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.15 ? 1 : 0,
+            scale: p >= 0.15 ? 1 : 0,
+          }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        />
+      </motion.g>
+
+      {/* Stage 2: Stem with 2 leaves (25-50%) */}
+      <motion.g
+        animate={{
+          opacity: p >= 0.25 ? 1 : 0,
+        }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        {/* Taller stem */}
+        <motion.path
+          d="M100 160 Q100 145 100 135"
+          stroke={stemColor}
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          animate={{ pathLength: p >= 0.25 ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        />
+        {/* Left leaf */}
+        <motion.path
+          d="M100 150 Q90 145 85 148 Q88 155 100 150"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.3 ? 1 : 0,
+            scale: p >= 0.3 ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        />
+        {/* Right leaf */}
+        <motion.path
+          d="M100 142 Q110 137 115 140 Q112 147 100 142"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.35 ? 1 : 0,
+            scale: p >= 0.35 ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        />
+      </motion.g>
+
+      {/* Stage 3: More growth with bud (50-75%) */}
+      <motion.g
+        animate={{
+          opacity: p >= 0.5 ? 1 : 0,
+        }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        {/* Even taller stem */}
+        <motion.path
+          d="M100 135 Q99 120 100 105"
+          stroke={stemColor}
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          animate={{ pathLength: p >= 0.5 ? 1 : 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+        />
+        {/* Left larger leaf */}
+        <motion.path
+          d="M100 125 Q85 118 80 122 Q83 132 100 125"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.55 ? 1 : 0,
+            scale: p >= 0.55 ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        />
+        {/* Right larger leaf */}
+        <motion.path
+          d="M100 115 Q115 108 120 112 Q117 122 100 115"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.6 ? 1 : 0,
+            scale: p >= 0.6 ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        />
+        {/* Bud */}
+        <motion.ellipse
+          cx="100"
+          cy="100"
+          rx="6"
+          ry="8"
+          fill={stemColor}
+          animate={{
+            opacity: p >= 0.65 ? 1 : 0,
+            scale: p >= 0.65 ? 1 : 0,
+          }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+        />
+      </motion.g>
+
+      {/* Stage 4: Full bloom (75-100%) */}
+      <motion.g
+        animate={{
+          opacity: p >= 0.75 ? 1 : 0,
+        }}
+        transition={{ duration: 1, ease: "easeOut" }}
+      >
+        {/* Top stem */}
+        <motion.path
+          d="M100 105 Q100 95 100 85"
+          stroke={stemColor}
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          animate={{ pathLength: p >= 0.75 ? 1 : 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        />
+        {/* Additional leaves */}
+        <motion.path
+          d="M100 95 Q88 88 83 92 Q86 100 100 95"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.78 ? 1 : 0,
+            scale: p >= 0.78 ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        />
+        <motion.path
+          d="M100 90 Q112 83 117 87 Q114 95 100 90"
+          fill={leafColor}
+          animate={{
+            opacity: p >= 0.8 ? 1 : 0,
+            scale: p >= 0.8 ? 1 : 0.3,
+          }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        />
+        {/* Flower petals */}
+        <motion.g
+          animate={{
+            opacity: p >= 0.85 ? 1 : 0,
+            scale: p >= 0.85 ? 1 : 0,
+          }}
+          transition={{ duration: 1, delay: 0.4, type: "spring", stiffness: 200 }}
+          style={{ transformOrigin: "100px 70px" }}
+        >
+          {/* Petals arranged around center */}
+          <ellipse cx="100" cy="60" rx="7" ry="12" fill={flowerColor} opacity="0.9" />
+          <ellipse cx="110" cy="66" rx="7" ry="12" fill={flowerColor} opacity="0.8" transform="rotate(60, 110, 66)" />
+          <ellipse cx="110" cy="78" rx="7" ry="12" fill={flowerColor} opacity="0.85" transform="rotate(120, 110, 78)" />
+          <ellipse cx="100" cy="84" rx="7" ry="12" fill={flowerColor} opacity="0.9" transform="rotate(180, 100, 84)" />
+          <ellipse cx="90" cy="78" rx="7" ry="12" fill={flowerColor} opacity="0.85" transform="rotate(240, 90, 78)" />
+          <ellipse cx="90" cy="66" rx="7" ry="12" fill={flowerColor} opacity="0.8" transform="rotate(300, 90, 66)" />
+          {/* Center */}
+          <circle cx="100" cy="72" r="8" fill="#D97706" />
+          <circle cx="100" cy="72" r="5" fill="#B45309" />
+        </motion.g>
+      </motion.g>
     </svg>
   );
 }
@@ -258,10 +286,8 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
   // Session stats
   const [completedToday, setCompletedToday] = useState(0);
 
-  // Ambient audio (Web Audio API)
-  const [ambient, setAmbient] = useState<AmbientOption>("silence");
-  const [volume, setVolume] = useState(0.5);
-  const ambientNodesRef = useRef<AmbientNodes | null>(null);
+  // Track if timer just started (for glow effect)
+  const [justStarted, setJustStarted] = useState(false);
 
   // Load stats on mount
   useEffect(() => {
@@ -274,9 +300,6 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
       setPhase("selecting");
       setPaused(false);
       setCompletedToday(getTodayPomodoros());
-    } else {
-      stopAmbientAudio(ambientNodesRef.current);
-      ambientNodesRef.current = null;
     }
   }, [active]);
 
@@ -322,36 +345,6 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     };
   }, [active, paused, phase, breakMinutes]);
 
-  // Audio management (Web Audio API)
-  useEffect(() => {
-    if (!active) return;
-
-    if (ambient === "silence" || paused || phase === "done" || phase === "selecting") {
-      stopAmbientAudio(ambientNodesRef.current);
-      ambientNodesRef.current = null;
-      return;
-    }
-
-    stopAmbientAudio(ambientNodesRef.current);
-    ambientNodesRef.current = null;
-
-    const nodes = startAmbientAudio(ambient, volume);
-    ambientNodesRef.current = nodes;
-
-    return () => {
-      stopAmbientAudio(nodes);
-      ambientNodesRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, ambient, paused, phase]);
-
-  // Update volume when slider changes
-  useEffect(() => {
-    if (ambientNodesRef.current) {
-      ambientNodesRef.current.gainNode.gain.value = volume;
-    }
-  }, [volume]);
-
   const togglePause = useCallback(() => {
     setPaused((p) => !p);
   }, []);
@@ -362,6 +355,8 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     setTotalSeconds(total);
     setPaused(false);
     setPhase("focus");
+    setJustStarted(true);
+    setTimeout(() => setJustStarted(false), 1500);
   }, [focusMinutes]);
 
   const selectDuration = useCallback((minutes: number) => {
@@ -371,6 +366,12 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     setTotalSeconds(total);
     setPaused(false);
     setPhase("focus");
+    setJustStarted(true);
+    setTimeout(() => setJustStarted(false), 1500);
+  }, []);
+
+  const openAIChat = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("chronai-open-chat"));
   }, []);
 
   // Format time
@@ -380,13 +381,6 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
 
   // Progress (0 to 1)
   const progress = totalSeconds > 0 ? 1 - secondsRemaining / totalSeconds : 0;
-
-  const ambientOptions: { key: AmbientOption; icon: React.ReactNode; label: string }[] = [
-    { key: "rain", icon: <Cloud size={18} strokeWidth={1.5} />, label: "Rain" },
-    { key: "cafe", icon: <Coffee size={18} strokeWidth={1.5} />, label: "Cafe" },
-    { key: "lofi", icon: <Music size={18} strokeWidth={1.5} />, label: "Lo-fi" },
-    { key: "silence", icon: <VolumeX size={18} strokeWidth={1.5} />, label: "Silence" },
-  ];
 
   const isFocus = phase === "focus";
   const isBreak = phase === "break";
@@ -407,201 +401,237 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
           <div className="absolute inset-0 bg-[var(--bg)] before:absolute before:inset-0 before:bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.04),rgba(251,191,36,0.02),transparent_70%)]" />
 
           {/* Content */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 25 }}
-            className="relative z-10 flex flex-col items-center gap-6 px-4 py-8"
-          >
-            {/* Task name */}
-            {taskName && !isSelecting && (
-              <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
-            )}
-
-            {/* Duration selection screen */}
-            {isSelecting && (
-              <div className="flex flex-col items-center gap-6 mt-4">
-                {taskName && (
-                  <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
-                )}
-                <div className="text-center space-y-2">
-                  <p className="text-2xl font-medium text-[var(--text-primary)]">
-                    Choose Focus Duration
-                  </p>
-                  <p className="text-sm text-[var(--text-tertiary)]">
-                    Select how long you want to focus
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-                  {DURATION_OPTIONS.map((mins) => (
-                    <button
-                      key={mins}
-                      onClick={() => selectDuration(mins)}
-                      className="flex flex-col items-center justify-center gap-1 px-6 py-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] hover:border-amber-500/40 transition-all duration-200 group"
-                    >
-                      <span className="text-2xl font-semibold group-hover:text-amber-500 transition-colors">
-                        {mins}
-                      </span>
-                      <span className="text-xs text-[var(--text-tertiary)] group-hover:text-amber-500/70 transition-colors">
-                        minutes
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={onStop}
-                  className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition"
+          <div className="relative z-10 flex flex-col items-center gap-6 px-4 py-8 w-full max-w-md">
+            <AnimatePresence mode="wait">
+              {/* Duration selection screen */}
+              {isSelecting && (
+                <motion.div
+                  key="selecting"
+                  initial={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.3, ease: "easeIn" }}
+                  className="flex flex-col items-center gap-6 mt-4"
                 >
-                  <StopCircle size={16} strokeWidth={1.5} />
-                  Cancel
-                </button>
-              </div>
-            )}
-
-            {/* Phase indicator */}
-            {!isSelecting && (
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-block h-2 w-2 rounded-full ${
-                    isFocus
-                      ? "bg-amber-500"
-                      : isBreak
-                        ? "bg-teal-400"
-                        : "bg-amber-400"
-                  }`}
-                />
-                <span className="text-sm font-medium text-[var(--text-secondary)]">
-                  {isFocus ? "Focus" : isBreak ? "Break" : "Session Complete"}
-                </span>
-              </div>
-            )}
-
-            {/* Timer display with progress ring */}
-            {!isDone && !isSelecting && (
-              <div className="relative flex items-center justify-center">
-                <ProgressRing progress={progress} phase={phase} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-7xl font-light tabular-nums tracking-wider text-[var(--text-primary)]">
-                    {timeDisplay}
-                  </p>
-                  <p className="mt-2 text-sm text-[var(--text-tertiary)]">
-                    {paused
-                      ? "Paused"
-                      : isFocus
-                        ? "Stay focused"
-                        : "Time for a break!"}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Done state */}
-            {isDone && !isSelecting && (
-              <div className="text-center space-y-2">
-                <p className="text-2xl font-medium text-[var(--text-primary)]">
-                  Break complete!
-                </p>
-                <p className="text-sm text-[var(--text-tertiary)]">
-                  Ready for another session?
-                </p>
-              </div>
-            )}
-
-            {/* Session stats */}
-            {!isSelecting && (
-              <p className="text-sm text-[var(--text-tertiary)]">
-                You completed{" "}
-                <span className="font-medium text-amber-500 dark:text-amber-400">
-                  {completedToday}
-                </span>{" "}
-                {completedToday === 1 ? "pomodoro" : "pomodoros"} today
-              </p>
-            )}
-
-            {/* Controls */}
-            {!isSelecting && (
-              <div className="flex items-center gap-4">
-                {!isDone && (
-                  <>
-                    <button
-                      onClick={togglePause}
-                      className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-primary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)]"
-                      aria-label={paused ? "Resume" : "Pause"}
-                    >
-                      {paused ? (
-                        <PlayCircle size={24} strokeWidth={1.5} />
-                      ) : (
-                        <PauseCircle size={24} strokeWidth={1.5} />
-                      )}
-                    </button>
-                    <button
-                      onClick={onStop}
-                      className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20 transition hover:bg-red-500/20"
-                      aria-label="Stop"
-                    >
-                      <StopCircle size={24} strokeWidth={1.5} />
-                    </button>
-                  </>
-                )}
-                {isDone && (
-                  <>
-                    <button
-                      onClick={startAnotherSession}
-                      className="flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20 transition hover:bg-amber-500/20 text-sm font-medium"
-                    >
-                      <RotateCcw size={16} strokeWidth={1.5} />
-                      Start Another
-                    </button>
-                    <button
-                      onClick={onStop}
-                      className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[var(--surface-hover)] text-[var(--text-secondary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)] text-sm font-medium"
-                    >
-                      <StopCircle size={16} strokeWidth={1.5} />
-                      Done
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Ambient selector */}
-            {!isSelecting && (
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex items-center gap-2">
-                  {ambientOptions.map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setAmbient(opt.key)}
-                      className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ring-1 ${
-                        ambient === opt.key
-                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/30"
-                          : "text-[var(--text-tertiary)] ring-[var(--border-subtle)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
-                      }`}
-                    >
-                      {opt.icon}
-                      <span>{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-                {/* Volume slider */}
-                {ambient !== "silence" && (
-                  <div className="flex items-center gap-2 w-48">
-                    <Volume2 size={14} strokeWidth={1.5} className="text-[var(--text-tertiary)]" />
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={volume}
-                      onChange={(e) => setVolume(parseFloat(e.target.value))}
-                      className="flex-1 h-1.5 rounded-full appearance-none bg-[var(--border)] accent-amber-500 cursor-pointer"
-                    />
+                  {taskName && (
+                    <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
+                  )}
+                  <div className="text-center space-y-2">
+                    <p className="text-2xl font-medium text-[var(--text-primary)]">
+                      Choose Focus Duration
+                    </p>
+                    <p className="text-sm text-[var(--text-tertiary)]">
+                      Select how long you want to focus
+                    </p>
                   </div>
-                )}
-              </div>
+                  <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                    {DURATION_OPTIONS.map((mins) => (
+                      <button
+                        key={mins}
+                        onClick={() => selectDuration(mins)}
+                        className="flex flex-col items-center justify-center gap-1 px-6 py-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] hover:border-amber-500/40 transition-all duration-200 group"
+                      >
+                        <span className="text-2xl font-semibold group-hover:text-amber-500 transition-colors">
+                          {mins}
+                        </span>
+                        <span className="text-xs text-[var(--text-tertiary)] group-hover:text-amber-500/70 transition-colors">
+                          minutes
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={onStop}
+                    className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition"
+                  >
+                    <StopCircle size={16} strokeWidth={1.5} />
+                    Cancel
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Active timer screen */}
+              {!isSelecting && (
+                <motion.div
+                  key="active"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 24 }}
+                  className="flex flex-col items-center gap-6"
+                >
+                  {/* Task name */}
+                  {taskName && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="text-base text-[var(--text-tertiary)] font-medium"
+                    >
+                      {taskName}
+                    </motion.p>
+                  )}
+
+                  {/* Phase indicator */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${
+                        isFocus
+                          ? "bg-amber-500"
+                          : isBreak
+                            ? "bg-teal-400"
+                            : "bg-amber-400"
+                      }`}
+                    />
+                    <span className="text-sm font-medium text-[var(--text-secondary)]">
+                      {isFocus ? "Focus" : isBreak ? "Break" : "Session Complete"}
+                    </span>
+                  </motion.div>
+
+                  {/* Plant SVG with glow effect */}
+                  {!isDone && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 20 }}
+                      className="relative"
+                    >
+                      {/* Glow pulse on start */}
+                      {justStarted && (
+                        <motion.div
+                          className="absolute inset-0 rounded-full bg-amber-500/20 blur-xl"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: [0, 0.6, 0], scale: [0.8, 1.3, 1.5] }}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                        />
+                      )}
+                      <PlantGrowth progress={progress} phase={phase} />
+                    </motion.div>
+                  )}
+
+                  {/* Timer display */}
+                  {!isDone && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="flex flex-col items-center"
+                    >
+                      <p className="text-6xl font-light tabular-nums tracking-wider text-[var(--text-primary)]">
+                        {timeDisplay}
+                      </p>
+                      <p className="mt-2 text-sm text-[var(--text-tertiary)]">
+                        {paused
+                          ? "Paused"
+                          : isFocus
+                            ? "Stay focused"
+                            : "Time for a break!"}
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* Done state */}
+                  {isDone && (
+                    <div className="text-center space-y-2">
+                      <p className="text-2xl font-medium text-[var(--text-primary)]">
+                        Break complete!
+                      </p>
+                      <p className="text-sm text-[var(--text-tertiary)]">
+                        Ready for another session?
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Session stats */}
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="text-sm text-[var(--text-tertiary)]"
+                  >
+                    You completed{" "}
+                    <span className="font-medium text-amber-500 dark:text-amber-400">
+                      {completedToday}
+                    </span>{" "}
+                    {completedToday === 1 ? "pomodoro" : "pomodoros"} today
+                  </motion.p>
+
+                  {/* Controls */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center gap-4"
+                  >
+                    {!isDone && (
+                      <>
+                        <button
+                          onClick={togglePause}
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-primary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)]"
+                          aria-label={paused ? "Resume" : "Pause"}
+                        >
+                          {paused ? (
+                            <PlayCircle size={24} strokeWidth={1.5} />
+                          ) : (
+                            <PauseCircle size={24} strokeWidth={1.5} />
+                          )}
+                        </button>
+                        <button
+                          onClick={onStop}
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-500 dark:text-red-400 ring-1 ring-red-500/20 transition hover:bg-red-500/20"
+                          aria-label="Stop"
+                        >
+                          <StopCircle size={24} strokeWidth={1.5} />
+                        </button>
+                      </>
+                    )}
+                    {isDone && (
+                      <>
+                        <button
+                          onClick={startAnotherSession}
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20 transition hover:bg-amber-500/20 text-sm font-medium"
+                        >
+                          <RotateCcw size={16} strokeWidth={1.5} />
+                          Start Another
+                        </button>
+                        <button
+                          onClick={onStop}
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[var(--surface-hover)] text-[var(--text-secondary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)] text-sm font-medium"
+                        >
+                          <StopCircle size={16} strokeWidth={1.5} />
+                          Done
+                        </button>
+                      </>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* AI Chat Access Button - only visible when timer is active */}
+            {!isSelecting && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ delay: 0.8, type: "spring", stiffness: 300, damping: 25 }}
+                onClick={openAIChat}
+                className="absolute bottom-6 right-6 flex items-center justify-center h-10 w-10 rounded-full bg-[var(--surface)]/80 backdrop-blur-sm text-[var(--text-tertiary)] ring-1 ring-[var(--border)] hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface-hover)] transition-all duration-200 group"
+                aria-label="Ask AI"
+                title="Ask AI"
+              >
+                <Sparkles size={18} strokeWidth={1.5} />
+                {/* Tooltip */}
+                <span className="absolute bottom-full mb-2 px-2 py-1 text-xs rounded-md bg-[var(--surface)] text-[var(--text-secondary)] ring-1 ring-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  Ask AI
+                </span>
+              </motion.button>
             )}
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
