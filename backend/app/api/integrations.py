@@ -125,6 +125,9 @@ async def connect_service(service: str, auth_token: str = Query(...)):
     # Generate a signed state parameter with CSRF nonce
     signed_state = _generate_state(user_id, service)
 
+    # Get the user's email to force the correct account in the consent screen
+    user_email = user.get("email", "")
+
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
         "redirect_uri": settings.GOOGLE_REDIRECT_URI,
@@ -133,6 +136,7 @@ async def connect_service(service: str, auth_token: str = Query(...)):
         "access_type": "offline",
         "prompt": "consent",
         "state": signed_state,
+        "login_hint": user_email,
     }
 
     auth_url = f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
