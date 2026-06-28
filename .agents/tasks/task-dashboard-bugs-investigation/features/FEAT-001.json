@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix the task tripling/duplication bug that occurs when clicking on tasks or changing their state (done/in-progress). Root cause: the handleToggleTask callback depends on `tasks` in its dependency array and closes over a stale copy. When state updates trigger React re-renders, duplicate entries are produced. Additionally, the load() function in the useEffect merges API tasks incorrectly - if API returns tasks that are already in localStorage, they could get duplicated due to timing issues with the non-atomic state updates (setTasks is called multiple times within the same effect).",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/app/dashboard/tasks/page.tsx, fix handleToggleTask: remove `tasks` from the useCallback dependency array. Instead of reading `tasks` directly to find the task before updating, use a functional state update pattern or useRef to always have access to the latest tasks without causing the callback identity to change.",
     "Fix handleDeleteTask similarly - it reads `tasks` to find the task title for reportAction, which also creates stale closure issues and causes the function identity to change on every render, which can trigger extra effects.",
@@ -17,5 +17,5 @@
   ],
   "verification": ["cd frontend && pnpm build"],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Fix applied successfully. The root causes were: 1) handleToggleTask and handleDeleteTask both had `tasks` in their useCallback dependency arrays and read tasks.find() via closure - this caused callback identity to change on every render and stale closure reads. 2) The load() effect called setTasks multiple times (once for localStorage, once for API merge) which could cause race conditions. Fixed by: adding a tasksRef for stable reads, removing tasks from dependency arrays, using prev.find() inside functional updater for recurrence logic, and consolidating load() to a single setTasks call. Build and lint pass cleanly."
 }
