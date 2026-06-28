@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Mobile responsiveness improvements across all dashboard pages. Make Tasks Kanban stack vertically on mobile, Calendar week view collapse to day on mobile, Modals go full-screen on mobile, AI Chat panel full-screen on mobile, ensure minimum 44px touch targets, and scale typography for small screens.",
+  "status": "pending",
+  "steps": [
+    "In app/dashboard/tasks/page.tsx: Make the Kanban board view (the flex container with KanbanColumn components) stack vertically on mobile (flex-col on small screens, flex-row on md+). Ensure board columns have min-width only on desktop.",
+    "In app/dashboard/calendar/page.tsx: Add responsive logic so that on mobile (window width < 768px or via Tailwind md: breakpoint) the week view automatically shows a single-day view instead. Add a useEffect or CSS approach to detect mobile.",
+    "In components/ui/Modal.tsx: Make modals go full-screen on mobile by adding responsive classes: on small screens the modal should be w-full h-full max-w-none rounded-none, while on md+ it keeps the current max-w-lg centered style.",
+    "In components/chat/AIChatPanel.tsx: Make the chat panel full-screen on mobile (< md breakpoint) instead of the fixed-width side panel. Ensure it covers the viewport on small screens.",
+    "Audit and fix touch targets across interactive elements: Ensure all icon-only buttons are at least h-11 w-11 (44px). Check sidebar nav items, topbar buttons, FAB buttons. Add min-h-[44px] min-w-[44px] where needed on small screens.",
+    "Add responsive typography scaling: Reduce heading sizes on mobile (text-2xl to text-xl on mobile, text-3xl to text-2xl). Ensure body text remains readable at text-sm/text-xs. Use responsive Tailwind classes (text-xl md:text-2xl pattern).",
+    "Verify build passes with npm run build && npm run lint."
+  ],
+  "acceptance_criteria": [
+    "Tasks Kanban columns stack vertically on screens < 768px",
+    "Calendar week view collapses to day view on mobile",
+    "Modals render full-screen on mobile, normal centered on desktop",
+    "AI Chat panel is full-screen on mobile",
+    "All interactive elements have minimum 44px touch targets",
+    "Typography scales appropriately on small screens",
+    "npm run build and npm run lint pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

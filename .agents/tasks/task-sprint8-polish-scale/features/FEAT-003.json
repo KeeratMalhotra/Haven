@@ -1,0 +1,42 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Performance optimization (lazy loading, skeletons, debouncing, memoization) plus final UI polish (consistent spacing, hover states, empty states, loading feedback, spring animations) plus accessibility improvements (ARIA labels, keyboard nav, color contrast, prefers-reduced-motion) plus SEO meta tags.",
+  "status": "pending",
+  "steps": [
+    "Lazy load heavy components with next/dynamic: (1) In app/dashboard/page.tsx, lazy load FocusMode and AutoPilotPanel with ssr:false and a loading skeleton. (2) In any page that uses Three.js (check app/page.tsx landing), wrap Three.js canvas in dynamic(() => import(...), { ssr: false }). (3) On the analytics page, lazy load chart components.",
+    "Add Skeleton loading states on pages that currently lack them. Check app/dashboard/habits/page.tsx, app/dashboard/planner/page.tsx, and app/dashboard/settings/page.tsx and ensure they show Skeleton components while data is loading.",
+    "Add debouncing to search/filter inputs: In app/dashboard/tasks/page.tsx if there's inline search or filter input, add a 300ms debounce. Create a useDebounce hook in hooks/useDebounce.ts if not already present.",
+    "Add React.memo or useMemo on expensive list renders: wrap KanbanColumn, ListRow, SortableTaskCard with React.memo in tasks page. Use useMemo for filtered task lists.",
+    "Ensure every interactive element has hover state: audit buttons, cards, and links across all pages. Add hover:bg-[var(--surface-hover)] or hover:border-[var(--border)] transitions where missing.",
+    "Ensure every page has an empty state: verify habits, calendar, planner, and settings pages all show EmptyState component when no data. Add where missing.",
+    "Ensure every async action shows loading feedback: check create task, delete task, create event, check-in habit. Add loading spinners or disabled states on buttons during async operations.",
+    "Use consistent spring animations: ensure all motion components use the same spring config (stiffness: 300, damping: 30) or the timing function from tailwind (cubic-bezier(0.22, 1, 0.36, 1)).",
+    "Add ARIA labels on all icon-only buttons: audit Sidebar collapse button, theme toggle, TopBar hamburger, FABs, modal close buttons, etc. Add aria-label attributes describing their function.",
+    "Add keyboard navigation support: ensure all interactive elements are focusable, add focus-visible ring styles (the .focus-ring class from globals.css), ensure tab order is logical.",
+    "Respect prefers-reduced-motion: the globals.css already has a @media (prefers-reduced-motion) rule. Ensure Framer Motion components also check this - add a useReducedMotion hook usage on key animation-heavy components to disable or reduce animations.",
+    "Add proper SEO meta tags: In app/layout.tsx, enhance the metadata export with Open Graph tags (og:title, og:description, og:image, og:type), Twitter card meta, and verify the existing title/description. Add a metadata export to each dashboard page with appropriate titles (e.g., 'Tasks | ChronAI', 'Calendar | ChronAI'). Since pages are 'use client', use a <title> element or next/head pattern, or add metadata to a separate layout file or generateMetadata.",
+    "Verify build passes with npm run build && npm run lint."
+  ],
+  "acceptance_criteria": [
+    "Heavy components (FocusMode, AutoPilotPanel, Three.js, charts) are lazy loaded with dynamic()",
+    "All pages show Skeleton states during loading",
+    "A useDebounce hook exists and is applied to relevant inputs",
+    "Task list components are memoized",
+    "All interactive elements have visible hover states",
+    "All pages have empty states when no data exists",
+    "Async actions show loading feedback (spinner/disabled)",
+    "Consistent spring animations across the app",
+    "All icon-only buttons have aria-label attributes",
+    "Interactive elements have focus-visible styles",
+    "Animations respect prefers-reduced-motion",
+    "Root layout has full Open Graph and meta tags",
+    "npm run build and npm run lint pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

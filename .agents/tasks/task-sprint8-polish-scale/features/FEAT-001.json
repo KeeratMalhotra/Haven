@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Analytics / Productivity Dashboard page at /dashboard/analytics with sidebar navigation integration. SVG-based charts for tasks completed per day (bar chart), focus hours (line chart), habit completion rate (ring/donut), productivity score (0-100 gauge), and time period selector (This week / This month / Last 30 days). Also adds page transition animations via Framer Motion on the dashboard layout.",
+  "status": "completed",
+  "steps": [
+    "Create app/dashboard/analytics/page.tsx as a 'use client' page with the full analytics dashboard. Use SVG-based charts (no external chart library). Include: (1) Bar chart showing tasks completed per day, (2) Line chart for focus hours, (3) Ring/donut chart for habit completion rate, (4) Productivity score gauge 0-100, (5) Time period selector component with 'This week', 'This month', 'Last 30 days' options. Use mock/computed data from localStorage (chronai-tasks, chronai-pomodoro-stats) to populate charts. Follow existing page patterns with motion animations, Skeleton loading states, and EmptyState fallback.",
+    "Add 'Analytics' to the sidebar navigation in components/layout/Sidebar.tsx. Import BarChart3 icon from lucide-react. Add it between Habits and Settings in the NAV_ITEMS array with path '/dashboard/analytics'.",
+    "Add '/dashboard/analytics': 'Analytics' to the PAGE_TITLES map in components/layout/AppShell.tsx.",
+    "Add page transition animations to the dashboard layout (app/dashboard/layout.tsx). Wrap {children} in a Framer Motion AnimatePresence with fade+slide transitions so navigating between sub-pages has smooth animation rather than jarring reloads. Use a key based on pathname.",
+    "Verify build passes with npm run build && npm run lint."
+  ],
+  "acceptance_criteria": [
+    "New page at /dashboard/analytics renders with bar chart, line chart, ring chart, productivity score, and time period selector",
+    "Analytics appears in sidebar between Habits and Settings",
+    "Page transitions between dashboard sub-pages are animated with fade+slide",
+    "npm run build passes with no errors",
+    "npm run lint passes with no errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": "Build and lint pass cleanly. Analytics page is 5.17kB (159kB first load). Used pure SVG charts with no external library. Page transitions use spring animation (stiffness 380, damping 30) for smooth feel. localStorage keys used: chronai-tasks, chronai-pomodoro-stats, chronai-habits."
+}

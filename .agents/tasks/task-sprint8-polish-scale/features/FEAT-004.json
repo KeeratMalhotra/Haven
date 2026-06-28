@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-004",
+  "type": "chore",
+  "description": "Final bug sweep: remove console.logs and dead code, fix hydration warnings, verify dark/light mode on all pages, check all error handling paths. Also verify favicon exists in public/.",
+  "status": "pending",
+  "steps": [
+    "Search for and remove all console.log, console.warn, console.error statements in source files (excluding node_modules). Replace any necessary error logging with proper error boundaries or silent catch blocks.",
+    "Search for and remove dead/commented-out code blocks across all pages and components.",
+    "Audit for potential hydration mismatches: check for any usage of Date.now(), Math.random(), or window/localStorage in initial render without proper hydration guards (useEffect with mounted state). The tasks page already has some patterns - ensure consistency across all pages.",
+    "Verify dark/light mode works on all pages: ensure all color references use CSS variables (var(--text-primary), var(--surface), etc.) rather than hardcoded colors. Check for any Tailwind classes that use fixed colors without dark: variants.",
+    "Check all error handling: ensure every async function has a try/catch, every fetch has error recovery, and error states are shown to users where appropriate.",
+    "Verify favicon exists in public/favicon.ico. If missing, create a simple SVG favicon.",
+    "Verify build passes with npm run build && npm run lint."
+  ],
+  "acceptance_criteria": [
+    "No console.log/warn/error statements in source code",
+    "No dead or commented-out code blocks",
+    "No hydration warnings (no unguarded client-only values in initial render)",
+    "All pages render correctly in both dark and light mode using CSS variables",
+    "All async operations have error handling",
+    "Favicon exists in public/",
+    "npm run build and npm run lint pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
