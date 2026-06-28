@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "fix",
   "description": "Fix Analytics page - investigate why it is not working and fix the data loading/display issues",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "INVESTIGATE ANALYTICS PAGE (frontend/app/dashboard/analytics/page.tsx): The analytics page reads from localStorage keys: 'chronai-tasks', 'chronai-pomodoro-stats', and 'chronai-habits'. It expects pomodoro-stats to have a 'sessions' array with {date, minutes} objects. However, the PomodoroTimer (frontend/components/PomodoroTimer.tsx) stores stats in a different format - it stores a simple object with date keys mapping to counts (e.g. {'2025-01-15': 3}), not the {sessions: [{date, minutes}]} format the analytics page expects. This mismatch means the Focus Hours chart will always show 0. Fix the analytics page to read the actual localStorage format used by PomodoroTimer.",
     "FIX POMODORO STATS DATA FORMAT: The PomodoroTimer stores stats as {[dateKey: string]: number} counting completed pomodoros per day (under key 'chronai-pomodoro-stats'). The analytics page expects {sessions: [{date, minutes}], totalMinutes: number}. Fix the analytics page's useEffect that reads pomodoroStats to properly parse the actual format: iterate over the date keys, convert each to {date, minutes: count * focusMinutes}. Since we don't know the exact focus duration used, assume the default 25 minutes per pomodoro. Update the focusHoursPerDay useMemo to work with the corrected data structure.",
@@ -20,5 +20,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Fixed 3 issues: (1) Changed pomodoroStats state type from PomodoroStats interface to Record<string, number> to match the actual format stored by PomodoroTimer, (2) Updated focusHoursPerDay useMemo to iterate over record keys and compute hours as count * 25 / 60, (3) Added completedAt timestamp in tasks page handleToggleTask when marking done, and updated analytics tasksPerDay to also check status === 'done' with fallback to updatedAt. Build and lint both pass cleanly."
 }
