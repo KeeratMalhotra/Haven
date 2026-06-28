@@ -58,9 +58,9 @@ function StatChip({ label, value }: StatChipProps) {
 }
 
 /**
- * "What ChronAI knows about you" — the Sprint 11 memory transparency panel.
+ * "What Haven knows about you" — the Sprint 11 memory transparency panel.
  *
- * Surfaces everything ChronAI has learned (insights, productive hours,
+ * Surfaces everything Haven has learned (insights, productive hours,
  * patterns, preferences, vocabulary, behavioural stats) in a clean, readable
  * list, and gives the user full control: forget any single item or clear all
  * memory. Builds trust for the persistent-memory feature.
@@ -190,7 +190,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
           </div>
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              What ChronAI knows about you
+              What Haven knows about you
             </h2>
             <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
               Learned from how you actually work. You&apos;re always in control.
@@ -219,17 +219,17 @@ export function MemorySection({ authToken }: { authToken: string }) {
 
       {loading ? (
         <p className="text-sm text-[var(--text-tertiary)] py-6 text-center">
-          Loading what ChronAI has learned...
+          Loading what Haven has learned...
         </p>
       ) : !hasAnything ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <Sparkles size={22} strokeWidth={1.5} className="text-[var(--text-tertiary)]" />
           <p className="text-sm text-[var(--text-secondary)]">
-            ChronAI hasn&apos;t learned anything about you yet.
+            Haven hasn&apos;t learned anything about you yet.
           </p>
           <p className="text-xs text-[var(--text-tertiary)] max-w-sm">
             As you complete tasks, run focus sessions, and reschedule events,
-            ChronAI builds a private picture of how you work — and uses it to
+            Haven builds a private picture of how you work — and uses it to
             plan smarter days.
           </p>
         </div>

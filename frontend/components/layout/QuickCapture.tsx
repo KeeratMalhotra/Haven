@@ -226,7 +226,7 @@ export default function QuickCapture() {
 
               <div className="flex items-center justify-between px-4 py-2">
                 <span className="text-xs text-[var(--text-tertiary)]">
-                  Type naturally — ChronAI figures out the rest
+                  Type naturally — Haven figures out the rest
                 </span>
                 <span className="text-xs text-[var(--text-tertiary)]">
                   <kbd className="rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px]">

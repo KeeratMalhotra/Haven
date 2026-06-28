@@ -17,24 +17,24 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChronAI - Your Intelligent Time Companion",
+  title: "Haven - Your Calm Place to Get Things Done",
   description:
-    "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+    "Haven is the AI that plans your day, protects your time, and learns your rhythm. Calm in the chaos.",
   icons: {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "ChronAI - Your Intelligent Time Companion",
+    title: "Haven - Your Calm Place to Get Things Done",
     description:
-      "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+      "Haven is the AI that plans your day, protects your time, and learns your rhythm. Calm in the chaos.",
     type: "website",
-    siteName: "ChronAI",
+    siteName: "Haven",
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChronAI - Your Intelligent Time Companion",
+    title: "Haven - Your Calm Place to Get Things Done",
     description:
-      "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+      "Haven is the AI that plans your day, protects your time, and learns your rhythm. Calm in the chaos.",
   },
 };
 

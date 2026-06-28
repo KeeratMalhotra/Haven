@@ -156,7 +156,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         <div
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-accent-gradient"
         >
-          <span className="text-sm font-bold text-white select-none">C</span>
+          <span className="text-sm font-bold text-white select-none">H</span>
         </div>
         <AnimatePresence mode="wait">
           {!collapsed && (
@@ -167,7 +167,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="overflow-hidden whitespace-nowrap text-base font-semibold tracking-tight text-[var(--text-primary)]"
             >
-              ChronAI
+              Haven
             </motion.span>
           )}
         </AnimatePresence>

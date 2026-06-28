@@ -1068,7 +1068,7 @@ function TasksPageContent() {
 
   // Set page title
   useEffect(() => {
-    document.title = "Tasks | ChronAI";
+    document.title = "Tasks | Haven";
   }, []);
 
   // Check if Google Tasks is connected via cached integration status

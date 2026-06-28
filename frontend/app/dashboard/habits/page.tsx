@@ -325,7 +325,7 @@ export default function HabitsPage() {
 
   // Set page title
   useEffect(() => {
-    document.title = "Habits | ChronAI";
+    document.title = "Habits | Haven";
   }, []);
 
   const handleUpdate = useCallback((updated: HabitItem) => {

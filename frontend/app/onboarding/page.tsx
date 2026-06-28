@@ -251,7 +251,7 @@ export default function OnboardingPage() {
   const renderStep0 = () => (
     <div className="flex flex-col items-center">
       <Assistant>
-        Hi{sessionFirstName ? `, ${sessionFirstName}` : ""}! I&apos;m ChronAI.
+        Hi{sessionFirstName ? `, ${sessionFirstName}` : ""}! I&apos;m Haven.
         I&apos;ll help you plan your week in a couple of minutes. First — what
         should I call you?
       </Assistant>

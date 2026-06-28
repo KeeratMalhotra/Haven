@@ -4,7 +4,7 @@ them via MCP tools and persist them to Firestore.
 
 This powers the Sprint 9 "instant world population" onboarding moment: the user
 types something like "dentist Tuesday 3pm, finish report by Friday, gym 3x,
-mom's birthday next week" and ChronAI populates their week in one shot.
+mom's birthday next week" and Haven populates their week in one shot.
 
 Prompt-injection safety: the user's free text is NEVER concatenated into the
 instruction prompt. Instead it is passed as a separate user message while all
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # All behavioural rules live here, fully separated from the user's text so a
 # malicious brain-dump cannot rewrite the assistant's instructions.
-BRAINDUMP_SYSTEM_INSTRUCTION = """You are ChronAI's onboarding planner. You convert a user's messy, \
+BRAINDUMP_SYSTEM_INSTRUCTION = """You are Haven's onboarding planner. You convert a user's messy, \
 natural-language description of their upcoming week into STRUCTURED data.
 
 You will receive the current date/time, the user's profile (work hours and \

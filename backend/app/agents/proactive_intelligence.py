@@ -1,4 +1,4 @@
-"""Proactive intelligence engine — ChronAI's "perfect nudge" reasoning.
+"""Proactive intelligence engine — Haven's "perfect nudge" reasoning.
 
 Sprint 12 "Proactive Intelligence". This module is the brain behind every
 proactive intervention. It behaves like a world-class, respectful chief of
@@ -588,7 +588,7 @@ _DETECTORS = (
 # ---------------------------------------------------------------------------
 
 
-_COPY_SYSTEM_INSTRUCTION = """You are ChronAI, a world-class, respectful chief of staff. \
+_COPY_SYSTEM_INSTRUCTION = """You are Haven, a world-class, respectful chief of staff. \
 You rewrite short proactive messages so they sound warm, calm and genuinely on \
 the user's side \u2014 never guilt-inducing, never alarmist (except a true emergency), \
 always offering a concrete fix.
@@ -705,7 +705,7 @@ async def gather_briefing_observations(
 ) -> list[str]:
     """Return Tier 1 ambient observations to bundle into the morning briefing.
 
-    These are the calm, no-interruption notes ChronAI folds into the briefing
+    These are the calm, no-interruption notes Haven folds into the briefing
     rather than surfacing as a toast. Best-effort: returns an empty list on any
     failure. Copy is left deterministic (no Gemini) to keep the briefing fast.
     """

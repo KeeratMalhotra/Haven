@@ -77,7 +77,7 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
     """Send a nudge email to the user via Gmail API.
 
     Uses the user's stored refresh token to obtain fresh credentials and
-    sends an HTML email with ChronAI branding.
+    sends an HTML email with Haven branding.
 
     Args:
         user_email: The user's email address.
@@ -106,7 +106,7 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
 
         service = build("gmail", "v1", credentials=credentials)
 
-        # Build HTML email with ChronAI branding
+        # Build HTML email with Haven branding
         safe_nudge = html_mod.escape(nudge_message)
         html_body = f"""<!DOCTYPE html>
 <html>
@@ -126,14 +126,14 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
 <body>
   <div class="container">
     <div class="card">
-      <div class="logo">ChronAI</div>
+      <div class="logo">Haven</div>
       <div class="message">
         <p>{safe_nudge}</p>
       </div>
-      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
+      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open Haven</a>
     </div>
     <div class="footer">
-      <p>You received this because you have email notifications enabled in ChronAI.</p>
+      <p>You received this because you have email notifications enabled in Haven.</p>
     </div>
   </div>
 </body>
@@ -141,7 +141,7 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
 
         msg = MIMEMultipart("alternative")
         msg["to"] = user_email
-        msg["subject"] = f"ChronAI Reminder: {task_title}"
+        msg["subject"] = f"Haven Reminder: {task_title}"
         msg.attach(MIMEText(nudge_message, "plain"))
         msg.attach(MIMEText(html_body, "html"))
 
@@ -375,7 +375,7 @@ async def _run_proactive_pass(manager: ConnectionManager) -> None:
                             await _send_nudge_email(
                                 user.email,
                                 iv.get("message", ""),
-                                iv.get("title", "ChronAI"),
+                                iv.get("title", "Haven"),
                                 user.google_tokens,
                             )
                         except Exception as e:

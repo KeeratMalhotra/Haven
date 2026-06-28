@@ -74,7 +74,7 @@ export default function ChatComposer({
             autoGrow(e.target);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Message ChronAI"
+          placeholder="Message Haven"
           className="max-h-[200px] flex-1 resize-none self-center bg-transparent py-2.5 text-[15px] leading-relaxed text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none scroll-thin"
         />
 
@@ -101,7 +101,7 @@ export default function ChatComposer({
         </div>
       </div>
       <p className="mt-2.5 text-center font-mono text-[10px] tracking-wide text-[var(--text-tertiary)]">
-        ChronAI can make mistakes. Press the wave to talk.
+        Haven can make mistakes. Press the wave to talk.
       </p>
     </motion.div>
   );

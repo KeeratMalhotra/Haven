@@ -1,4 +1,4 @@
-"""Orchestrator Agent - Brain of ChronAI.
+"""Orchestrator Agent - Brain of Haven.
 
 Analyzes user intent using Gemini 2.5 Flash via Vertex AI and routes to specialist agents.
 """
@@ -20,7 +20,7 @@ from app.utils.timectx import time_context_string
 from app.utils.user_context import get_user_context
 
 
-SYSTEM_PROMPT = """You are ChronAI's orchestrator agent. Your PRIMARY job is to route user requests to specialist agents. You are NOT a chatbot. You are a router.
+SYSTEM_PROMPT = """You are Haven's orchestrator agent. Your PRIMARY job is to route user requests to specialist agents. You are NOT a chatbot. You are a router.
 
 CRITICAL RULE: When in doubt, ALWAYS route to an agent. Prefer routing over direct_response.
 
@@ -47,7 +47,7 @@ ROUTING RULES (follow these strictly):
 10. ANY mention of "focus mode", "start focus", "deep work", "pomodoro", "focus session", "focus time" -> route to "scheduler" with instruction to start a focus session
 11. ANY mention of "find me time for", "when should I work on", "I need X hours for" -> route to "scheduler" with instruction to suggest time
 12. Questions ABOUT calendar/tasks/emails (e.g. "What's on my calendar?", "Do I have any tasks?") ARE routed, not answered directly.
-13. ONLY use direct_response for pure small talk: greetings ("hello", "hi", "hey"), thanks ("thank you", "thanks"), meta questions ("who are you", "what can you do", "what is ChronAI").
+13. ONLY use direct_response for pure small talk: greetings ("hello", "hi", "hey"), thanks ("thank you", "thanks"), meta questions ("who are you", "what can you do", "what is Haven").
 14. When the user STATES they have an event/meeting/appointment ("I have X at Y", "there's X at Y") -> route to "scheduler" with instruction "Create event: [title], [time]". This IS a create request even though they didn't say "create" or "schedule".
 
 EXAMPLES of correct routing:
@@ -82,7 +82,7 @@ EXAMPLES of correct routing:
 - "Deep work for 2 hours" -> scheduler with instruction "Start focus session: 120 minutes, deep work"
 - "Find me time for the presentation" -> scheduler with instruction "Suggest time: find optimal slot for presentation work"
 - "I need 2 hours for deep work" -> scheduler with instruction "Suggest time: find 2-hour slot for deep work"
-- "Hello!" -> direct_response: "Hey! I'm ChronAI, your AI productivity assistant. I can help you manage your calendar, tasks, emails, and reminders. What would you like to do?"
+- "Hello!" -> direct_response: "Hey! I'm Haven, your AI productivity assistant. I can help you manage your calendar, tasks, emails, and reminders. What would you like to do?"
 
 Respond with a JSON object:
 {
@@ -570,7 +570,7 @@ Be concise but include all relevant information."""
     async def _suggest_followup(self, original_message: str, results: list[dict]) -> str:
         """Propose ONE concise, logical next step after completing an action.
 
-        This is ChronAI's lightweight context-chaining mechanism: e.g. after a
+        This is Haven's lightweight context-chaining mechanism: e.g. after a
         task is created it can offer to block focus time and set a reminder;
         after an event is created it can offer a reminder. Returns "" when no
         useful follow-up applies, or on any model error (graceful degradation).
@@ -593,7 +593,7 @@ Be concise but include all relevant information."""
         )
 
         system_instruction = (
-            "You are ChronAI's context-chaining helper. ChronAI just completed an "
+            "You are Haven's context-chaining helper. Haven just completed an "
             "action for the user. Suggest the SINGLE most logical next step that "
             "naturally follows, phrased as a short, friendly offer the user can "
             "accept (one sentence, starting with a verb like 'Want me to ...').\n\n"

@@ -356,7 +356,7 @@ export default function CalendarPage() {
 
   // Detect mobile viewport for responsive view override
   useEffect(() => {
-    document.title = "Calendar | ChronAI";
+    document.title = "Calendar | Haven";
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     setIsMobile(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);

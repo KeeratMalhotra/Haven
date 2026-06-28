@@ -32,7 +32,7 @@ Include these sections:
 6. **Suggestion for Next Week** - One actionable tip based on patterns you see
 
 Keep the tone positive and motivating. Use bullet points and short paragraphs.
-If data is limited, acknowledge it and encourage the user to keep using ChronAI."""
+If data is limited, acknowledge it and encourage the user to keep using Haven."""
 
 
 async def generate_weekly_review(

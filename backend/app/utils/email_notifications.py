@@ -1,4 +1,4 @@
-"""Email notification utilities for ChronAI.
+"""Email notification utilities for Haven.
 
 Provides reusable functions for sending formatted HTML emails via Gmail API,
 including task deadline reminders, daily digest summaries, and weekly reviews.
@@ -79,7 +79,7 @@ async def send_task_reminder(
     """Send a task deadline reminder email via Gmail API.
 
     Sends a professional HTML email reminding the user about an upcoming
-    task deadline with ChronAI branding and a link to the app.
+    task deadline with Haven branding and a link to the app.
 
     Args:
         user_email: The recipient email address.
@@ -96,7 +96,7 @@ async def send_task_reminder(
         plain_text = (
             f"Task Reminder: {task_title}\n\n"
             f"Your task \"{task_title}\" is due {deadline}.\n\n"
-            f"Open ChronAI to take action: {settings.FRONTEND_ORIGIN}"
+            f"Open Haven to take action: {settings.FRONTEND_ORIGIN}"
         )
 
         safe_title = html.escape(task_title)
@@ -123,16 +123,16 @@ async def send_task_reminder(
 <body>
   <div class="container">
     <div class="card">
-      <div class="logo">ChronAI</div>
+      <div class="logo">Haven</div>
       <div class="heading">Task Reminder</div>
       <div class="message">
         <span class="task-badge">{safe_title}</span>
         <p>This task is due <span class="deadline">{safe_deadline}</span>. Make sure to wrap it up before the deadline.</p>
       </div>
-      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
+      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open Haven</a>
     </div>
     <div class="footer">
-      <p>You received this because you have task reminders enabled in ChronAI.</p>
+      <p>You received this because you have task reminders enabled in Haven.</p>
     </div>
   </div>
 </body>
@@ -140,7 +140,7 @@ async def send_task_reminder(
 
         await asyncio.to_thread(
             _send_email, service, user_email,
-            f"ChronAI: {task_title} - Due {deadline}", plain_text, html_body,
+            f"Haven: {task_title} - Due {deadline}", plain_text, html_body,
         )
         logger.info(f"Task reminder email sent to {user_email} for '{task_title}'")
         return True
@@ -189,10 +189,10 @@ async def send_daily_digest(
             event_lines += f"  - {summary}" + (f" at {start}" if start else "") + "\n"
 
         plain_text = (
-            "Good morning! Here is your daily digest from ChronAI:\n\n"
+            "Good morning! Here is your daily digest from Haven:\n\n"
             f"Tasks ({len(tasks)}):\n{task_lines or '  No pending tasks.'}\n\n"
             f"Events ({len(events)}):\n{event_lines or '  No events today.'}\n\n"
-            f"Open ChronAI: {settings.FRONTEND_ORIGIN}"
+            f"Open Haven: {settings.FRONTEND_ORIGIN}"
         )
 
         # Build task HTML rows
@@ -237,7 +237,7 @@ async def send_daily_digest(
 <body>
   <div class="container">
     <div class="card">
-      <div class="logo">ChronAI</div>
+      <div class="logo">Haven</div>
       <div class="heading">Your Daily Digest</div>
       <div class="subheading">Here is what is on your plate today.</div>
 
@@ -247,10 +247,10 @@ async def send_daily_digest(
       <div class="section-title">Events ({len(events)})</div>
       {events_html}
 
-      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
+      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open Haven</a>
     </div>
     <div class="footer">
-      <p>You received this daily digest from ChronAI.</p>
+      <p>You received this daily digest from Haven.</p>
     </div>
   </div>
 </body>
@@ -258,7 +258,7 @@ async def send_daily_digest(
 
         await asyncio.to_thread(
             _send_email, service, user_email,
-            "ChronAI: Your Daily Digest", plain_text, html_body,
+            "Haven: Your Daily Digest", plain_text, html_body,
         )
         logger.info(f"Daily digest email sent to {user_email}")
         return True
@@ -345,7 +345,7 @@ async def send_weekly_review(
     """Send a weekly review email via Gmail API.
 
     Formats the markdown review content from the ReviewAgent as an HTML email
-    with ChronAI dark-theme branding.
+    with Haven dark-theme branding.
 
     Args:
         user_email: The recipient email address.
@@ -360,9 +360,9 @@ async def send_weekly_review(
 
         # Plain text is the raw markdown
         plain_text = (
-            "Your Weekly Review from ChronAI\n\n"
+            "Your Weekly Review from Haven\n\n"
             f"{review_content}\n\n"
-            f"Open ChronAI: {settings.FRONTEND_ORIGIN}"
+            f"Open Haven: {settings.FRONTEND_ORIGIN}"
         )
 
         # Convert markdown review to HTML
@@ -388,16 +388,16 @@ async def send_weekly_review(
 <body>
   <div class="container">
     <div class="card">
-      <div class="logo">ChronAI</div>
+      <div class="logo">Haven</div>
       <div class="heading">Your Weekly Review</div>
       <div class="subheading">Here is how your week went.</div>
       <div class="review-content">
         {review_html}
       </div>
-      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open ChronAI</a>
+      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open Haven</a>
     </div>
     <div class="footer">
-      <p>You received this weekly review from ChronAI.</p>
+      <p>You received this weekly review from Haven.</p>
     </div>
   </div>
 </body>
@@ -405,7 +405,7 @@ async def send_weekly_review(
 
         await asyncio.to_thread(
             _send_email, service, user_email,
-            "ChronAI: Your Weekly Review", plain_text, html_body,
+            "Haven: Your Weekly Review", plain_text, html_body,
         )
         logger.info(f"Weekly review email sent to {user_email}")
         return True

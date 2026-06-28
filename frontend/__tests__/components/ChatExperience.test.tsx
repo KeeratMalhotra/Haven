@@ -55,7 +55,7 @@ describe("ChatExperience", () => {
   it("renders the composer with input and send button", () => {
     render(<ChatExperience accessToken="mock-access-token" userName="Test" />);
 
-    expect(screen.getByPlaceholderText("Message ChronAI")).toBeDefined();
+    expect(screen.getByPlaceholderText("Message Haven")).toBeDefined();
     expect(screen.getByLabelText("Send message")).toBeDefined();
   });
 
@@ -71,7 +71,7 @@ describe("ChatExperience", () => {
   it("sends a chat message with the correct payload shape", () => {
     render(<ChatExperience accessToken="mock-access-token" />);
 
-    const input = screen.getByPlaceholderText("Message ChronAI");
+    const input = screen.getByPlaceholderText("Message Haven");
     fireEvent.change(input, { target: { value: "Hello ChronAI!" } });
 
     fireEvent.click(screen.getByLabelText("Send message"));

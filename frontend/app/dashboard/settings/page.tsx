@@ -213,7 +213,7 @@ function SettingsContent() {
 
   // Load preferences on mount
   useEffect(() => {
-    document.title = "Settings | ChronAI";
+    document.title = "Settings | Haven";
   }, []);
 
   useEffect(() => {
@@ -802,7 +802,7 @@ function SettingsContent() {
         </div>
       </Card>
 
-      {/* What ChronAI knows about you (Sprint 11: persistent memory) */}
+      {/* What Haven knows about you (Sprint 11: persistent memory) */}
       <MemorySection authToken={authToken} />
 
       {/* Integrations Section */}

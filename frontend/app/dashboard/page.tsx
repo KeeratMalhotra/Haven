@@ -190,7 +190,7 @@ export default function DashboardPage() {
 
   // Set page title
   useEffect(() => {
-    document.title = "Dashboard | ChronAI";
+    document.title = "Dashboard | Haven";
   }, []);
 
   // Onboarding gate

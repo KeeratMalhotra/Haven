@@ -284,7 +284,7 @@ export default function PlannerPage() {
 
   // Set page title
   useEffect(() => {
-    document.title = "Planner | ChronAI";
+    document.title = "Planner | Haven";
   }, []);
 
   // Load tasks from localStorage
