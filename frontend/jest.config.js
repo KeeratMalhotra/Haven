@@ -29,6 +29,10 @@ const config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
     "\\.glsl$": "<rootDir>/__mocks__/fileMock.js",
+    // react-markdown / remark-gfm ship as native ESM that ts-jest does not
+    // transform; map them to local stubs so component tests can import them.
+    "^react-markdown$": "<rootDir>/__mocks__/react-markdown.tsx",
+    "^remark-gfm$": "<rootDir>/__mocks__/remark-gfm.js",
   },
   testMatch: ["**/__tests__/**/*.test.(ts|tsx)"],
 };

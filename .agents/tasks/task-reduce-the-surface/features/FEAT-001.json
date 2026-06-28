@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Establish a green baseline before any changes. Confirm dependencies are installed and the existing frontend builds and lints clean so later features can be verified against a known-good starting point.",
+  "status": "completed",
+  "steps": [
+    "cd /projects/sandbox/ChronAI/frontend and confirm node_modules exists; if not, run `npm install`.",
+    "Run `npm run build` and confirm the Next.js production build compiles with no errors.",
+    "Run `npm run lint` and confirm next lint passes (record any pre-existing warnings as baseline, do not fix unrelated ones).",
+    "Run `npm test` and confirm jest passes (it uses --passWithNoTests).",
+    "Record the baseline result in this feature's findings field."
+  ],
+  "acceptance_criteria": [
+    "`npm run build` exits 0 with a successful compile.",
+    "`npm run lint` exits 0 (no errors).",
+    "`npm test` exits 0."
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && npm run build",
+    "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+    "cd /projects/sandbox/ChronAI/frontend && npm test"
+  ],
+  "blocked_reason": null,
+  "findings": "Baseline established on branch feat/premium-ui-rebuild (HEAD 01f60ac 'Sprint 12'). node_modules already present (no install needed). RESULTS: `npm run build` -> exit 0, clean Next.js 15.5.19 production compile, all 12 routes generated. `npm run lint` -> exit 0, 'No ESLint warnings or errors' (next lint deprecation notice only, harmless). `npm test` -> initially FAILED (exit 1): __tests__/components/ChatExperience.test.tsx threw 'SyntaxError: Unexpected token export' because the ESM-only `react-markdown` (imported via components/chat/MessageBubble.tsx) is not transformed by the ts-jest config (transform only targets .ts/.tsx, node_modules JS untransformed). Confirmed pre-existing (zero frontend code changes in working tree). FIX (test-infra only, no app behavior change): added __mocks__/react-markdown.tsx (renders children) and __mocks__/remark-gfm.js (no-op), wired via moduleNameMapper in jest.config.js. After fix `npm test` -> exit 0, 2 suites / 4 tests passing (ParticleSystem, ChatExperience). Re-verified build (exit 0) and lint (exit 0) after the change. Known-good baseline now: build/lint/test all green. NOTE for later features: react-markdown/remark-gfm are mocked in jest; any new tests rendering markdown will see raw text, not parsed HTML. Did NOT touch any DO NOT MODIFY files."
+}
