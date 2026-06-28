@@ -165,7 +165,7 @@ export default function TopBar({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.95 }}
                 transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute right-0 top-full mt-2 z-50 border border-[var(--border)] bg-[var(--surface)] rounded-xl shadow-lg p-2 min-w-[200px]"
+                className="absolute right-0 top-full mt-2 z-[999] border border-[var(--border)] bg-[var(--surface)] rounded-xl shadow-lg p-2 min-w-[200px]"
               >
                 {/* Universal Quick Capture — primary, frictionless capture */}
                 <button

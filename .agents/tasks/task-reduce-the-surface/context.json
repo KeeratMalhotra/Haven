@@ -1,0 +1,26 @@
+{
+  "project_type": "ChronAI - Next.js 15 (App Router, React 19) frontend + FastAPI backend. This sprint is frontend-only.",
+  "language": "TypeScript (frontend), Python (backend, not touched this sprint)",
+  "build_system": "npm (frontend). Dependencies already installed in frontend/node_modules. Node v22.22.3.",
+  "test_framework": "Jest with @testing-library/react (frontend, jest.config.js + jest.setup.js). Existing tests under frontend/__tests__/components. `npm test` runs `jest --passWithNoTests`.",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && npm run build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && npm run lint && npm test",
+  "verification_instructions": "From /projects/sandbox/ChronAI/frontend run `npm run build` (Next.js production build, must compile clean) and `npm run lint` (next lint, must pass with no errors). Both must be clean before a feature is considered done. Do NOT push or open PRs.",
+  "snapshot_or_generated_files": "None. Next.js .next/ build output is gitignored. tsconfig.tsbuildinfo is incremental cache, ignore it.",
+  "setup_instructions": "Dependencies are already installed (frontend/node_modules present). If a clean install is needed: cd frontend && npm install. No backend setup needed this sprint.",
+  "environment_constraints": "No external network access assumed (get_sandbox_info unavailable). Do NOT run a dev server or hit live backend; verification is build + lint + jest only. Backend braindump endpoint is reused as-is but not invoked during verification. Work happens on existing branch feat/premium-ui-rebuild. Commit with clear messages; do NOT push.",
+  "contribution_requirements": "Match existing style: matte dark theme via CSS variables (--bg, --bg-secondary, --bg-tertiary, --surface, --surface-hover, --border, --border-subtle, --text-primary/secondary/tertiary, accent-500/400, --accent-subtle). Framer Motion micro-interactions at 200-300ms (spring stiffness ~300-400, damping ~25-30 is the house pattern). Use lucide-react icons. \"use client\" directive on interactive components. Do NOT remove any functionality. DO NOT MODIFY: hooks/useChatSocket.ts, lib/api.ts, lib/ws.ts, lib/voice.ts, middleware.ts, components/Providers.tsx, components/entity/, shared/.",
+  "key_patterns": "1) TopBar is rendered by AppShell OUTSIDE AIContextProvider, so TopBar CANNOT call useAI() directly. The codebase bridges this with window CustomEvents: TopBar/pages dispatch events like `chronai-open-chat` and `chronai-start-focus`; listeners live inside the provider tree (dashboard/layout.tsx). Quick Capture MUST follow this same CustomEvent pattern. 2) Toasts: useAI().addNotification({ id, text, type:'info'|'action'|'warning', actions:[], timestamp, dismissed:false }) renders via AIToast (auto-dismiss ~12s). 3) Natural-language capture is already implemented server-side: parseBraindump(authToken, text) in lib/api-extended.ts -> POST /api/onboarding/parse-braindump returns { summary, counts:{tasks,events,habits}, tasks[], events[], habits[] } and CREATES the items. Reuse it for Quick Capture. 4) Sidebar active state uses framer-motion layoutId 'sidebar-active-indicator' and 'sidebar-active-bg'; collapsed state persisted to localStorage key 'chronai-sidebar-collapsed'. 5) accessToken via useSession(): (session as any).accessToken.",
+  "relevant_files": [
+    "frontend/components/layout/Sidebar.tsx (reorganize nav into groups + collapsible More; keep all 7 destinations)",
+    "frontend/components/layout/TopBar.tsx (+ button: open Quick Capture via CustomEvent; keep existing quick-action shortcuts)",
+    "frontend/components/layout/AppShell.tsx (layout shell; PAGE_TITLES map)",
+    "frontend/app/dashboard/layout.tsx (mount QuickCapture inside AIContextProvider so it can use addNotification; add window event listeners)",
+    "frontend/components/ai/AIContextProvider.tsx (addNotification/useAI - read only, do not break API)",
+    "frontend/components/ai/AIToast.tsx (toast renderer - pattern reference)",
+    "frontend/lib/api-extended.ts (parseBraindump helper - reuse, read only)",
+    "frontend/components/CommandPalette.tsx (cmdk usage pattern + 'n' vs Cmd+K shortcut reference; note: currently defined but not mounted)",
+    "frontend/__tests__/components (existing jest test location/patterns)"
+  ],
+  "directory_structure": "frontend/app/dashboard/{page.tsx,layout.tsx,tasks,calendar,planner,habits,analytics,settings}; frontend/components/layout/{Sidebar,TopBar,AppShell,NotificationBell}.tsx; frontend/components/ai/{AIContextProvider,AIToast,AISuggestionBanner}.tsx; frontend/components/CommandPalette.tsx; frontend/lib/{api.ts(DO NOT MODIFY),api-extended.ts}; backend/app/agents/braindump.py + backend/app/api/onboarding.py (reused, unchanged)."
+}

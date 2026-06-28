@@ -14,7 +14,6 @@ import {
   Settings,
   ChevronsLeft,
   ChevronsRight,
-  ChevronRight,
   Moon,
   Sun,
   X,
@@ -23,7 +22,6 @@ import {
 import { useTheme } from "@/components/ui/theme-provider";
 
 const STORAGE_KEY = "chronai-sidebar-collapsed";
-const MORE_STORAGE_KEY = "chronai-sidebar-more-open";
 
 interface NavItem {
   label: string;
@@ -62,30 +60,12 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const storedCollapsed = localStorage.getItem(STORAGE_KEY);
     if (storedCollapsed === "true") setCollapsed(true);
-
-    // Auto-expand "More" on first load when the active route lives in the
-    // secondary group, so a user deep-linking to e.g. /dashboard/analytics
-    // never finds it hidden. Otherwise honour the persisted choice (collapsed
-    // by default for new users). After mount, `moreOpen` is the single source
-    // of truth driving the disclosure, so an explicit manual collapse always
-    // wins over the auto-expand (no dead toggle on secondary routes).
-    const storedMore = localStorage.getItem(MORE_STORAGE_KEY);
-    const onSecondaryRoute = SECONDARY_ITEMS.some((item) =>
-      item.path === "/dashboard"
-        ? pathname === "/dashboard"
-        : pathname.startsWith(item.path)
-    );
-    if (storedMore === "true" || onSecondaryRoute) {
-      setMoreOpen(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -94,22 +74,10 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     }
   }, [collapsed, mounted]);
 
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(MORE_STORAGE_KEY, String(moreOpen));
-    }
-  }, [moreOpen, mounted]);
-
   const isActive = (path: string) => {
     if (path === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(path);
   };
-
-  // `moreOpen` is the single source of truth for the disclosure. It is
-  // auto-expanded once on mount when landing on a secondary route (see the
-  // mount effect) and otherwise reflects the persisted manual choice, so the
-  // toggle button always has a visible effect.
-  const moreExpanded = moreOpen;
 
   const sidebarWidth = collapsed ? 68 : 260;
 
@@ -207,49 +175,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="mt-4 flex flex-1 flex-col gap-0.5 px-3">
-        {collapsed ? (
-          // Icon-only mode: keep every destination reachable in order.
-          [...PRIMARY_ITEMS, ...SECONDARY_ITEMS].map(renderNavItem)
-        ) : (
-          <>
-            {PRIMARY_ITEMS.map(renderNavItem)}
-
-            {/* De-emphasized "More" disclosure for the secondary group */}
-            <div className="my-1 mx-3 border-t border-[var(--border-subtle)]" />
-
-            <button
-              onClick={() => setMoreOpen((o) => !o)}
-              className="group flex w-full items-center gap-2 rounded-xl px-3 py-2 min-h-[36px] text-[var(--text-tertiary)] transition-all duration-200 ease-out hover:text-[var(--text-secondary)]"
-              aria-expanded={moreExpanded}
-              aria-label={moreExpanded ? "Collapse more navigation" : "Expand more navigation"}
-            >
-              <motion.div
-                animate={{ rotate: moreExpanded ? 90 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="flex-shrink-0"
-              >
-                <ChevronRight size={16} strokeWidth={1.75} />
-              </motion.div>
-              <span className="overflow-hidden whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider">
-                More
-              </span>
-            </button>
-
-            <AnimatePresence initial={false}>
-              {moreExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="flex flex-col gap-0.5 overflow-hidden"
-                >
-                  {SECONDARY_ITEMS.map(renderNavItem)}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+        {[...PRIMARY_ITEMS, ...SECONDARY_ITEMS].map(renderNavItem)}
       </nav>
 
       {/* Bottom section */}

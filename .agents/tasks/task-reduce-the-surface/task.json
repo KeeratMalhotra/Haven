@@ -1,0 +1,14 @@
+{
+  "task_id": "task-reduce-the-surface",
+  "task_description": "Sprint 13 'Reduce the Surface': simplify ChronAI so users never feel lost, without removing functionality. (1) Clearer information architecture: regroup the sidebar into a primary group (Home/Dashboard, Tasks, Calendar) and a de-emphasized, collapsible 'More' group (Planner, Habits, Analytics) with Settings pinned at the bottom. (2) Universal Quick Capture: an always-accessible command-style input opened by the TopBar '+' and the 'n' shortcut that turns natural language into the right task/event via the existing braindump backend, confirmed with a subtle toast. (3) Progressive disclosure of advanced features. (4) Consistent, polished navigation states. Keep the matte premium theme and 200-300ms micro-interactions. Frontend-only; no backend changes. Must build and lint clean. Commit on feat/premium-ui-rebuild; do not push.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Final pass from frontend/ after semantic-review revisions: `npm run build` exit 0 (clean Next.js 15 compile, all 12 routes). `npm run lint` exit 0 (no ESLint warnings/errors). `npm test` exit 0 (4 suites / 14 tests). Semantic review (v1) confirmed all four requirements met and no functionality removed; review concerns were addressed in commits 72e4ee5: 'More' toggle now uses moreOpen as single source of truth (manual collapse wins; auto-expand once on mount for secondary routes), QuickCapture 'n' bails when a role=dialog overlay is open and Escape stopPropagation prevents double-close with the chat panel, SECONDARY_ITEMS reordered to Habits/Analytics/Planner per the brief, and new tests added (QuickCapture empty-result + thrown-error paths; new Sidebar.test.tsx proving all 7 destinations reachable and auto-expand on a secondary route). Tests exercise real component logic with only boundary mocks, so they would fail if the code were reverted. Docker build skipped (frontend-only sprint, no network for image pulls). Commits: 10f9467, 2f5c515, 394347a, 72e4ee5 on feat/premium-ui-rebuild (not pushed)."
+  }
+}
