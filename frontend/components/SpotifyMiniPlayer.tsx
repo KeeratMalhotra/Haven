@@ -101,6 +101,15 @@ export default function SpotifyMiniPlayer() {
   // Window position state
   const [windowPos, setWindowPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Ref tracking current button position to avoid stale closure in pointer-up
+  const buttonPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Ref tracking current window position to avoid stale closure
+  const windowPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Defer iframe rendering until the player has been expanded at least once
+  const hasEverExpanded = useRef(false);
+
   // Drag tracking refs
   const buttonDragRef = useRef(false);
   const buttonDragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
@@ -116,14 +125,19 @@ export default function SpotifyMiniPlayer() {
     if (saved) {
       const clamped = clampButtonPos(saved.x, saved.y);
       setButtonPos(clamped);
+      buttonPosRef.current = clamped;
     } else {
-      setButtonPos(getDefaultButtonPos());
+      const defaultPos = getDefaultButtonPos();
+      setButtonPos(defaultPos);
+      buttonPosRef.current = defaultPos;
     }
     // Center the window initially
-    setWindowPos({
+    const initialWindowPos = {
       x: Math.max(0, Math.floor(window.innerWidth / 2 - 170)),
       y: Math.max(0, Math.floor(window.innerHeight / 2 - 150)),
-    });
+    };
+    setWindowPos(initialWindowPos);
+    windowPosRef.current = initialWindowPos;
   }, []);
 
   // Listen for playlist changes
@@ -157,15 +171,16 @@ export default function SpotifyMiniPlayer() {
       e.stopPropagation();
       buttonDragRef.current = true;
       buttonMovedRef.current = false;
+      const currentPos = buttonPosRef.current;
       buttonDragStartRef.current = {
         x: e.clientX,
         y: e.clientY,
-        posX: buttonPos.x,
-        posY: buttonPos.y,
+        posX: currentPos.x,
+        posY: currentPos.y,
       };
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [buttonPos]
+    []
   );
 
   const handleButtonPointerMove = useCallback((e: React.PointerEvent) => {
@@ -179,6 +194,7 @@ export default function SpotifyMiniPlayer() {
     const newY = buttonDragStartRef.current.posY + dy;
     const clamped = clampButtonPos(newX, newY);
     setButtonPos(clamped);
+    buttonPosRef.current = clamped;
   }, []);
 
   const handleButtonPointerUp = useCallback(
@@ -186,13 +202,28 @@ export default function SpotifyMiniPlayer() {
       if (!buttonDragRef.current) return;
       buttonDragRef.current = false;
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-      saveButtonPos(buttonPos);
+      saveButtonPos(buttonPosRef.current);
       if (!buttonMovedRef.current) {
+        hasEverExpanded.current = true;
         setExpanded(true);
       }
     },
-    [buttonPos]
+    []
   );
+
+  const handleButtonPointerCancel = useCallback((e: React.PointerEvent) => {
+    buttonDragRef.current = false;
+    buttonMovedRef.current = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  }, []);
+
+  const handleButtonKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      hasEverExpanded.current = true;
+      setExpanded(true);
+    }
+  }, []);
 
   // --- Window drag handlers ---
   const handleWindowPointerDown = useCallback(
@@ -200,15 +231,16 @@ export default function SpotifyMiniPlayer() {
       e.preventDefault();
       e.stopPropagation();
       windowDragRef.current = true;
+      const currentPos = windowPosRef.current;
       windowDragStartRef.current = {
         x: e.clientX,
         y: e.clientY,
-        posX: windowPos.x,
-        posY: windowPos.y,
+        posX: currentPos.x,
+        posY: currentPos.y,
       };
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [windowPos]
+    []
   );
 
   const handleWindowPointerMove = useCallback((e: React.PointerEvent) => {
@@ -219,6 +251,7 @@ export default function SpotifyMiniPlayer() {
     const newY = windowDragStartRef.current.posY + dy;
     const clamped = clampWindowPos(newX, newY);
     setWindowPos(clamped);
+    windowPosRef.current = clamped;
   }, []);
 
   const handleWindowPointerUp = useCallback((e: React.PointerEvent) => {
@@ -227,65 +260,74 @@ export default function SpotifyMiniPlayer() {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   }, []);
 
+  const handleWindowPointerCancel = useCallback((e: React.PointerEvent) => {
+    windowDragRef.current = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  }, []);
+
   if (!mounted) return null;
 
   return (
     <>
-      {/* Iframe always mounted - positioned offscreen when collapsed so music persists */}
-      <div
-        className="fixed z-[110]"
-        style={{
-          top: expanded ? windowPos.y : -9999,
-          left: expanded ? windowPos.x : -9999,
-          opacity: expanded ? 1 : 0,
-          pointerEvents: expanded ? "auto" : "none",
-        }}
-      >
-        {/* Player window */}
-        <div className="w-[340px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg overflow-hidden">
-          {/* Drag handle / header */}
-          <div
-            className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] cursor-grab active:cursor-grabbing select-none"
-            onPointerDown={handleWindowPointerDown}
-            onPointerMove={handleWindowPointerMove}
-            onPointerUp={handleWindowPointerUp}
-          >
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-medium text-[var(--text-secondary)]">
-                Now Playing
-              </span>
-            </div>
-            <button
-              onClick={() => setExpanded(false)}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
-              aria-label="Close player"
+      {/* Player window - only rendered after first expand; stays mounted thereafter */}
+      {hasEverExpanded.current && (
+        <div
+          className="fixed z-[110]"
+          style={{
+            top: expanded ? windowPos.y : -9999,
+            left: expanded ? windowPos.x : -9999,
+            opacity: expanded ? 1 : 0,
+            pointerEvents: expanded ? "auto" : "none",
+          }}
+        >
+          {/* Player window */}
+          <div className="w-[340px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg overflow-hidden">
+            {/* Drag handle / header */}
+            <div
+              className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] cursor-grab active:cursor-grabbing select-none"
+              onPointerDown={handleWindowPointerDown}
+              onPointerMove={handleWindowPointerMove}
+              onPointerUp={handleWindowPointerUp}
+              onPointerCancel={handleWindowPointerCancel}
+              onLostPointerCapture={handleWindowPointerCancel}
             >
-              <X
-                size={14}
-                strokeWidth={1.5}
-                className="text-[var(--text-tertiary)]"
-              />
-            </button>
-          </div>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-medium text-[var(--text-secondary)]">
+                  Now Playing
+                </span>
+              </div>
+              <button
+                onClick={() => setExpanded(false)}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
+                aria-label="Close player"
+              >
+                <X
+                  size={14}
+                  strokeWidth={1.5}
+                  className="text-[var(--text-tertiary)]"
+                />
+              </button>
+            </div>
 
-          {/* Spotify embed */}
-          <div className="p-3">
-            <iframe
-              src={embedUrl}
-              width="100%"
-              height="152"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              allowFullScreen
-              loading="lazy"
-              style={{ borderRadius: "12px" }}
-              title="Spotify Player"
-            />
+            {/* Spotify embed */}
+            <div className="p-3">
+              <iframe
+                src={embedUrl}
+                width="100%"
+                height="152"
+                frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                allowFullScreen
+                loading="lazy"
+                style={{ borderRadius: "12px" }}
+                title="Spotify Player"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Draggable music button */}
       {!expanded && (
@@ -298,6 +340,9 @@ export default function SpotifyMiniPlayer() {
           onPointerDown={handleButtonPointerDown}
           onPointerMove={handleButtonPointerMove}
           onPointerUp={handleButtonPointerUp}
+          onPointerCancel={handleButtonPointerCancel}
+          onLostPointerCapture={handleButtonPointerCancel}
+          onKeyDown={handleButtonKeyDown}
           role="button"
           aria-label="Open Spotify player"
           tabIndex={0}
