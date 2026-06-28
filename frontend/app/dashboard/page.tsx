@@ -35,7 +35,16 @@ import {
   type HabitItem,
 } from "@/lib/api";
 import Link from "next/link";
-import { fetchSuggestions } from "@/lib/api-extended";
+import {
+  fetchSuggestions,
+  fetchTodayBriefing,
+  checkinStreak,
+  type TodayBriefing,
+  type StreakResult,
+} from "@/lib/api-extended";
+import MorningBriefing from "@/components/dashboard/MorningBriefing";
+import StreakBadge from "@/components/dashboard/StreakBadge";
+import EveningReflection from "@/components/dashboard/EveningReflection";
 
 const FocusMode = dynamic(() => import("@/components/FocusMode"), { ssr: false, loading: () => <div /> });
 const AutoPilotPanel = dynamic(() => import("@/components/autopilot/AutoPilotPanel"), { ssr: false, loading: () => <div /> });
@@ -138,6 +147,15 @@ export default function DashboardPage() {
   >([]);
   const [dataLoading, setDataLoading] = useState(true);
 
+  // Sprint 10: morning briefing + engagement streak
+  const [briefing, setBriefing] = useState<TodayBriefing | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(true);
+  const [streak, setStreak] = useState<StreakResult>({
+    streak: 0,
+    longest_streak: 0,
+    last_active_date: "",
+  });
+
   // Chat panel state removed - now handled by layout.tsx
 
   // Focus mode
@@ -215,6 +233,20 @@ export default function DashboardPage() {
       .catch(() => {
         // Silently fail - suggestions are non-critical
       });
+
+    // Sprint 10: fetch the AI-narrated morning briefing (non-blocking)
+    setBriefingLoading(true);
+    fetchTodayBriefing(accessToken)
+      .then((data) => setBriefing(data))
+      .catch(() => setBriefing(null))
+      .finally(() => setBriefingLoading(false));
+
+    // Sprint 10: record daily engagement and update the streak
+    checkinStreak(accessToken)
+      .then((data) => setStreak(data))
+      .catch(() => {
+        // Streak is non-critical; ignore failures
+      });
   }, [onboardingChecked, accessToken]);
 
   // Read checklist dismissal from localStorage
@@ -241,6 +273,13 @@ export default function DashboardPage() {
     setChecklistDismissed(true);
     if (typeof window !== "undefined") {
       localStorage.setItem("chronai-checklist-dismissed", "true");
+    }
+  }, []);
+
+  // Open the AI chat panel (owned by the dashboard layout) via a window event.
+  const handleAdjust = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("chronai-open-chat"));
     }
   }, []);
 
@@ -291,6 +330,8 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(" ")[0] || "there";
   const todayFormatted = format(new Date(), "EEEE, MMMM d");
   const pendingTasks = tasks.filter((t) => !t.completed);
+  const completedTasks = tasks.filter((t) => t.completed);
+  const isEvening = new Date().getHours() >= 18;
   // Skip events with missing/malformed start dates so a bad payload can't
   // crash the schedule rendering.
   const validEvents = events.filter((e) => safeParseDate(e.start) !== null);
@@ -360,17 +401,28 @@ export default function DashboardPage() {
         animate="visible"
         className="space-y-10"
       >
-        {/* Greeting */}
-        <motion.div variants={reducedItemVariants}>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
-            {getGreeting()},{" "}
-            <span className="bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent">
-              {firstName}
-            </span>
-          </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-tertiary)] font-normal">
-            {todayFormatted}
-          </p>
+        {/* Greeting + Morning Briefing (focal point) */}
+        <motion.div variants={reducedItemVariants} className="space-y-4">
+          {streak.streak > 0 && (
+            <StreakBadge
+              streak={streak.streak}
+              longestStreak={streak.longest_streak}
+            />
+          )}
+          <MorningBriefing
+            briefing={briefing}
+            loading={briefingLoading}
+            fallbackGreeting={`${getGreeting()}, ${firstName}`}
+            fallbackDate={todayFormatted}
+            onPlanDay={() => setAutopilotOpen(true)}
+            onAdjust={handleAdjust}
+          />
+          {isEvening && (
+            <EveningReflection
+              doneCount={completedTasks.length}
+              totalCount={tasks.length}
+            />
+          )}
         </motion.div>
 
         {isAllEmpty ? (

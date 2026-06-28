@@ -41,6 +41,10 @@ class User(BaseModel):
         }
     )
     profile: UserProfile = Field(default_factory=UserProfile)
+    # App-wide engagement streak (consecutive days the user planned/engaged).
+    streak: int = 0
+    longest_streak: int = 0
+    last_active_date: str = ""  # ISO date (YYYY-MM-DD) in IST of last engagement
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

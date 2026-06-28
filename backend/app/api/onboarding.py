@@ -2,9 +2,10 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Header, Query, status
+from fastapi import APIRouter, HTTPException, Header, Query, Request, status
 from pydantic import BaseModel, Field
 
+from app.agents.braindump import parse_braindump
 from app.auth import verify_google_token
 from app.db.models import User, UserProfile
 from app.db.repositories import UserRepository
@@ -24,6 +25,13 @@ class OnboardingRequest(BaseModel):
     priorities: list[str] = Field(default_factory=list)
     daily_routine: str = ""
     goals: list[str] = Field(default_factory=list)
+
+
+class BrainDumpRequest(BaseModel):
+    """Request body for parsing a brain-dump into a populated week."""
+
+    auth_token: str = ""
+    braindump: str = ""
 
 
 async def _get_user_from_token(
@@ -106,3 +114,57 @@ async def get_profile(
         return {"profile": UserProfile().model_dump()}
 
     return {"profile": user.profile.model_dump()}
+
+
+@router.post("/onboarding/parse-braindump")
+async def parse_braindump_endpoint(
+    body: BrainDumpRequest,
+    request: Request,
+    auth_token: Optional[str] = Query(default=None),
+    authorization: Optional[str] = Header(default=None),
+):
+    """Parse a free-text brain-dump and instantly populate the user's week.
+
+    Uses Gemini to turn a messy paragraph (e.g. "dentist Tuesday, finish report
+    by Friday, gym 3x") into structured tasks, calendar events, and habits, then
+    creates them via the Google Tasks/Calendar MCP servers and persists them to
+    Firestore. Returns a summary with counts and the created items so the
+    frontend can play the "here's your week" reveal.
+
+    Accepts the auth token in the body, as a query param, or via the
+    Authorization header.
+    """
+    token = body.auth_token or auth_token
+    user_info = await _get_user_from_token(token, authorization)
+    user_id = user_info["sub"]
+    resolved_token = body.auth_token or auth_token
+    if not resolved_token and authorization:
+        resolved_token = (
+            authorization[7:] if authorization.startswith("Bearer ") else authorization
+        )
+
+    # Ensure the user exists so persisted tasks/habits have an owner.
+    user = await UserRepository.get_by_id(user_id)
+    if not user:
+        user = User(
+            id=user_id,
+            email=user_info.get("email", ""),
+            name=user_info.get("name", ""),
+        )
+        await UserRepository.create(user)
+
+    if not body.braindump.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Brain-dump text is required",
+        )
+
+    mcp_client = getattr(request.app.state, "mcp_client", None)
+
+    result = await parse_braindump(
+        user_id=user_id,
+        auth_token=resolved_token or "",
+        braindump_text=body.braindump,
+        mcp_client=mcp_client,
+    )
+    return result

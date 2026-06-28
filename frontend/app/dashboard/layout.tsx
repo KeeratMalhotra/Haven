@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
@@ -39,6 +39,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const [chatOpen, setChatOpen] = useState(false);
   const [detached, setDetached] = useState(false);
+
+  // Allow pages (e.g. the morning briefing "Adjust" action) to open the chat
+  // panel by dispatching a window event.
+  useEffect(() => {
+    const openChat = () => setChatOpen(true);
+    window.addEventListener("chronai-open-chat", openChat);
+    return () => window.removeEventListener("chronai-open-chat", openChat);
+  }, []);
 
   const handleDetach = () => {
     setDetached(true);

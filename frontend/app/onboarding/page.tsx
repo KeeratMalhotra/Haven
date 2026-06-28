@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Variants } from "framer-motion";
 import {
   Briefcase,
   GraduationCap,
@@ -14,10 +15,19 @@ import {
   ArrowLeft,
   Check,
   Sparkles,
-  PartyPopper,
+  Mic,
+  MicOff,
+  Calendar,
+  CheckSquare,
+  Flame,
+  Loader2,
+  Wand2,
 } from "lucide-react";
 import { postOnboarding } from "@/lib/api";
+import { parseBraindump, type BrainDumpResult } from "@/lib/api-extended";
+import { startListening } from "@/lib/voice";
 import { Button } from "@/components/ui/Button";
+import { Confetti } from "@/components/ui/Confetti";
 
 /* ------------------------------------------------------------------ */
 /* Types & constants                                                    */
@@ -49,7 +59,11 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
   return { value: i, label: `${h}:00` };
 });
 
-const totalSteps = 4;
+// Conversational form steps (the reveal is a separate phase, not counted here).
+const totalSteps = 5;
+
+const BRAINDUMP_PLACEHOLDER =
+  "Dentist Tuesday at 3pm, finish the Q3 report by Friday, gym 3x this week, mom's birthday next Wednesday, read 20 min every night...";
 
 /* ------------------------------------------------------------------ */
 /* Animation variants                                                  */
@@ -58,100 +72,10 @@ const totalSteps = 4;
 const spring = { type: "spring" as const, stiffness: 300, damping: 30 };
 
 const slideVariants = {
-  enter: (dir: number) => ({
-    x: dir > 0 ? 120 : -120,
-    opacity: 0,
-    scale: 0.95,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-  },
-  exit: (dir: number) => ({
-    x: dir > 0 ? -120 : 120,
-    opacity: 0,
-    scale: 0.95,
-  }),
+  enter: (dir: number) => ({ x: dir > 0 ? 120 : -120, opacity: 0, scale: 0.95 }),
+  center: { x: 0, opacity: 1, scale: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? -120 : 120, opacity: 0, scale: 0.95 }),
 };
-
-/* ------------------------------------------------------------------ */
-/* Confetti Component                                                   */
-/* ------------------------------------------------------------------ */
-
-interface ConfettiPiece {
-  id: number;
-  x: number;
-  delay: number;
-  duration: number;
-  color: string;
-  size: number;
-  rotation: number;
-}
-
-function Confetti({ active }: { active: boolean }) {
-  const [pieces, setPieces] = useState<ConfettiPiece[]>([]);
-
-  useEffect(() => {
-    if (active) {
-      const colors = [
-        "#6366f1",
-        "#8b5cf6",
-        "#a78bfa",
-        "#818cf8",
-        "#34d399",
-        "#fbbf24",
-        "#f472b6",
-        "#22d3ee",
-      ];
-      const newPieces: ConfettiPiece[] = Array.from({ length: 50 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        delay: Math.random() * 0.8,
-        duration: 2 + Math.random() * 2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        size: 4 + Math.random() * 8,
-        rotation: Math.random() * 360,
-      }));
-      setPieces(newPieces);
-    }
-  }, [active]);
-
-  if (!active || pieces.length === 0) return null;
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
-      {pieces.map((piece) => (
-        <motion.div
-          key={piece.id}
-          initial={{
-            x: `${piece.x}vw`,
-            y: "-10%",
-            rotate: piece.rotation,
-            opacity: 1,
-          }}
-          animate={{
-            y: "110vh",
-            rotate: piece.rotation + 720,
-            opacity: [1, 1, 0],
-          }}
-          transition={{
-            duration: piece.duration,
-            delay: piece.delay,
-            ease: [0.25, 0.46, 0.45, 0.94],
-          }}
-          style={{
-            position: "absolute",
-            width: piece.size,
-            height: piece.size,
-            backgroundColor: piece.color,
-            borderRadius: piece.size > 8 ? "2px" : "50%",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
@@ -162,6 +86,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const accessToken =
     ((session as Record<string, unknown> | null)?.accessToken as string) || "";
+  const sessionFirstName = session?.user?.name?.split(" ")[0] || "";
 
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -169,16 +94,22 @@ export default function OnboardingPage() {
   const [submitError, setSubmitError] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // Reveal phase
+  const [result, setResult] = useState<BrainDumpResult | null>(null);
+
+  // Voice capture
+  const [listening, setListening] = useState(false);
+
   // Form state
+  const [name, setName] = useState(sessionFirstName);
   const [role, setRole] = useState("");
   const [occupation, setOccupation] = useState("");
   const [workStart, setWorkStart] = useState(9);
   const [workEnd, setWorkEnd] = useState(17);
-  const [wakeTime, setWakeTime] = useState(7);
-  const [sleepTime, setSleepTime] = useState(23);
-  const [dailyRoutine, setDailyRoutine] = useState("");
   const [priorities, setPriorities] = useState<string[]>([]);
-  const [goals, setGoals] = useState("");
+  const [braindump, setBraindump] = useState("");
+
+  const displayName = (name || sessionFirstName || "there").trim();
 
   const next = useCallback(() => {
     setDirection(1);
@@ -196,40 +127,92 @@ export default function OnboardingPage() {
     );
   };
 
-  const handleSubmit = async () => {
+  const handleVoice = useCallback(async () => {
+    if (listening) return;
+    setListening(true);
+    try {
+      const transcript = await startListening();
+      if (transcript) {
+        setBraindump((cur) => (cur ? `${cur} ${transcript}` : transcript));
+      }
+    } catch {
+      // Speech not supported / denied — silently ignore, typing still works.
+    } finally {
+      setListening(false);
+    }
+  }, [listening]);
+
+  const saveProfile = useCallback(async () => {
+    await postOnboarding(accessToken, {
+      role,
+      occupation,
+      work_hours_start: workStart,
+      work_hours_end: workEnd,
+      wake_time: 7,
+      sleep_time: 23,
+      daily_routine: "",
+      priorities,
+      goals: [],
+      onboarding_complete: true,
+    });
+  }, [accessToken, role, occupation, workStart, workEnd, priorities]);
+
+  // Brain-dump -> save profile -> parse -> reveal.
+  const handlePlanWeek = useCallback(async () => {
     setSubmitting(true);
     setSubmitError("");
-    setShowConfetti(true);
     try {
-      await postOnboarding(accessToken, {
-        role,
-        occupation,
-        work_hours_start: workStart,
-        work_hours_end: workEnd,
-        wake_time: wakeTime,
-        sleep_time: sleepTime,
-        daily_routine: dailyRoutine,
-        priorities,
-        goals: goals
-          .split("\n")
-          .map((g) => g.trim())
-          .filter(Boolean),
-        onboarding_complete: true,
-      });
-      // Brief delay to show confetti before navigating
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1500);
+      await saveProfile();
+      const parsed = await parseBraindump(accessToken, braindump.trim());
+      setResult(parsed);
+      setShowConfetti(true);
     } catch (err) {
-      setShowConfetti(false);
       setSubmitError(
         err instanceof Error
           ? err.message
-          : "Failed to save profile. Please try again."
+          : "Something went wrong while planning your week. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }, [accessToken, braindump, saveProfile]);
+
+  // Skip the brain-dump but still complete onboarding.
+  const handleSkip = useCallback(async () => {
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      await saveProfile();
+      router.push("/dashboard");
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to save your profile."
       );
       setSubmitting(false);
     }
-  };
+  }, [saveProfile, router]);
+
+  /* ---------------------------------------------------------------- */
+  /* Conversational header bubble                                      */
+  /* ---------------------------------------------------------------- */
+
+  const Assistant = ({ children }: { children: React.ReactNode }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={spring}
+      className="mb-8 flex items-start gap-3"
+    >
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-gradient shadow-glow-sm">
+        <Sparkles className="h-4.5 w-4.5 text-white" />
+      </div>
+      <div className="rounded-2xl rounded-tl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-left">
+        <p className="text-sm leading-relaxed text-[var(--text-primary)] sm:text-base">
+          {children}
+        </p>
+      </div>
+    </motion.div>
+  );
 
   /* ---------------------------------------------------------------- */
   /* Progress Bar                                                      */
@@ -262,24 +245,48 @@ export default function OnboardingPage() {
   );
 
   /* ---------------------------------------------------------------- */
-  /* Step 0: Role                                                      */
+  /* Step 0: Welcome + name                                            */
   /* ---------------------------------------------------------------- */
 
   const renderStep0 = () => (
     <div className="flex flex-col items-center">
+      <Assistant>
+        Hi{sessionFirstName ? `, ${sessionFirstName}` : ""}! I&apos;m ChronAI.
+        I&apos;ll help you plan your week in a couple of minutes. First — what
+        should I call you?
+      </Assistant>
+
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={spring}
-        className="mb-10 text-center"
+        transition={{ ...spring, delay: 0.15 }}
+        className="w-full max-w-md"
       >
-        <h2 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-          What best describes you?
-        </h2>
-        <p className="mt-3 text-base text-[var(--text-secondary)]">
-          This helps ChronAI understand your workflow.
-        </p>
+        <input
+          type="text"
+          value={name}
+          autoFocus
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") next();
+          }}
+          placeholder="Your name"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-center text-base text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+        />
       </motion.div>
+    </div>
+  );
+
+  /* ---------------------------------------------------------------- */
+  /* Step 1: Role + occupation                                         */
+  /* ---------------------------------------------------------------- */
+
+  const renderStep1 = () => (
+    <div className="flex flex-col items-center">
+      <Assistant>
+        Nice to meet you, {displayName}. What best describes what you do? This
+        helps me understand your workflow.
+      </Assistant>
 
       <div className="grid w-full max-w-md grid-cols-2 gap-3 sm:grid-cols-3">
         {ROLES.map((r, i) => {
@@ -339,241 +346,155 @@ export default function OnboardingPage() {
   );
 
   /* ---------------------------------------------------------------- */
-  /* Step 1: Schedule                                                   */
-  /* ---------------------------------------------------------------- */
-
-  const renderStep1 = () => (
-    <div className="flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={spring}
-        className="mb-10 text-center"
-      >
-        <h2 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-          Tell us about your schedule
-        </h2>
-        <p className="mt-3 text-base text-[var(--text-secondary)]">
-          We will use this to time suggestions and structure your day.
-        </p>
-      </motion.div>
-
-      <div className="w-full max-w-md space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.1 }}
-          className="grid grid-cols-2 gap-4"
-        >
-          <TimeSelect
-            label="Work starts"
-            value={workStart}
-            onChange={setWorkStart}
-            delay={0}
-          />
-          <TimeSelect
-            label="Work ends"
-            value={workEnd}
-            onChange={setWorkEnd}
-            delay={0.05}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.2 }}
-          className="grid grid-cols-2 gap-4"
-        >
-          <TimeSelect
-            label="Wake time"
-            value={wakeTime}
-            onChange={setWakeTime}
-            delay={0.1}
-          />
-          <TimeSelect
-            label="Sleep time"
-            value={sleepTime}
-            onChange={setSleepTime}
-            delay={0.15}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.3 }}
-        >
-          <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
-            Describe your typical daily routine{" "}
-            <span className="text-[var(--text-tertiary)]">(optional)</span>
-          </label>
-          <textarea
-            value={dailyRoutine}
-            onChange={(e) => setDailyRoutine(e.target.value)}
-            rows={3}
-            placeholder="e.g. Morning run, deep work 9-12, meetings after lunch..."
-            className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
-          />
-        </motion.div>
-      </div>
-    </div>
-  );
-
-  /* ---------------------------------------------------------------- */
-  /* Step 2: Priorities & Goals                                        */
+  /* Step 2: Work hours                                                */
   /* ---------------------------------------------------------------- */
 
   const renderStep2 = () => (
     <div className="flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={spring}
-        className="mb-10 text-center"
-      >
-        <h2 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-          What matters most to you?
-        </h2>
-        <p className="mt-3 text-base text-[var(--text-secondary)]">
-          Select your priorities so we can focus on what counts.
-        </p>
-      </motion.div>
+      <Assistant>
+        When are your working hours? I&apos;ll protect your mornings for deep
+        work and time my suggestions around your day.
+      </Assistant>
 
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-2.5"
+          className="grid grid-cols-2 gap-4"
         >
-          {PRIORITIES.map((p, i) => {
-            const active = priorities.includes(p);
-            return (
-              <motion.button
-                key={p}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ ...spring, delay: i * 0.04 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => togglePriority(p)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? "border-accent-500/60 bg-accent-500/15 text-accent-300 shadow-glow-sm"
-                    : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
-                }`}
-              >
-                {active && (
-                  <motion.span
-                    initial={{ scale: 0, rotate: -90 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={spring}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </motion.span>
-                )}
-                {p}
-              </motion.button>
-            );
-          })}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.3 }}
-        >
-          <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
-            Your goals{" "}
-            <span className="text-[var(--text-tertiary)]">(one per line)</span>
-          </label>
-          <textarea
-            value={goals}
-            onChange={(e) => setGoals(e.target.value)}
-            rows={4}
-            placeholder={
-              "Ship my side project by March\nExercise 4x per week\nRead 2 books per month"
-            }
-            className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
-          />
+          <TimeSelect label="Work starts" value={workStart} onChange={setWorkStart} />
+          <TimeSelect label="Work ends" value={workEnd} onChange={setWorkEnd} />
         </motion.div>
       </div>
     </div>
   );
 
   /* ---------------------------------------------------------------- */
-  /* Step 3: Summary                                                   */
+  /* Step 3: Priorities                                                */
   /* ---------------------------------------------------------------- */
 
   const renderStep3 = () => (
     <div className="flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={spring}
-        className="mb-10 text-center"
-      >
-        <motion.div
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ ...spring, delay: 0.1 }}
-          className="mb-4 inline-flex"
-        >
-          <PartyPopper className="h-8 w-8 text-accent-400" />
-        </motion.div>
-        <h2 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-          You are all set!
-        </h2>
-        <p className="mt-3 text-base text-[var(--text-secondary)]">
-          Here is a summary of your profile. You can always update this later.
-        </p>
-      </motion.div>
+      <Assistant>
+        What matters most to you right now? Pick a few — I&apos;ll focus your
+        plan around them.
+      </Assistant>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={spring}
-        className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...spring, delay: 0.1 }}
+        className="flex w-full max-w-md flex-wrap justify-center gap-2.5"
       >
-        <SummaryRow label="Role" value={role || "Not set"} />
-        <SummaryRow label="Occupation" value={occupation || "Not set"} />
-        <SummaryRow
-          label="Work hours"
-          value={`${workStart.toString().padStart(2, "0")}:00 - ${workEnd.toString().padStart(2, "0")}:00`}
+        {PRIORITIES.map((p, i) => {
+          const active = priorities.includes(p);
+          return (
+            <motion.button
+              key={p}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ ...spring, delay: i * 0.04 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => togglePriority(p)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                active
+                  ? "border-accent-500/60 bg-accent-500/15 text-accent-300 shadow-glow-sm"
+                  : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
+              }`}
+            >
+              {active && (
+                <motion.span
+                  initial={{ scale: 0, rotate: -90 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={spring}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </motion.span>
+              )}
+              {p}
+            </motion.button>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+
+  /* ---------------------------------------------------------------- */
+  /* Step 4: Brain-dump                                                */
+  /* ---------------------------------------------------------------- */
+
+  const renderStep4 = () => (
+    <div className="flex flex-col items-center">
+      <Assistant>
+        Now the magic part. Just dump everything on your mind for the week —
+        appointments, deadlines, routines, anything. I&apos;ll turn it into a
+        real plan. Type it however you think it.
+      </Assistant>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...spring, delay: 0.1 }}
+        className="relative w-full max-w-xl"
+      >
+        <textarea
+          value={braindump}
+          autoFocus
+          onChange={(e) => setBraindump(e.target.value)}
+          rows={6}
+          placeholder={BRAINDUMP_PLACEHOLDER}
+          className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 pr-14 text-sm leading-relaxed text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
         />
-        <SummaryRow
-          label="Wake / Sleep"
-          value={`${wakeTime.toString().padStart(2, "0")}:00 / ${sleepTime.toString().padStart(2, "0")}:00`}
-        />
-        <SummaryRow
-          label="Priorities"
-          value={
-            priorities.length > 0 ? priorities.join(", ") : "None selected"
-          }
-        />
-        <SummaryRow label="Goals" value={goals.trim() || "None set"} />
+        <button
+          type="button"
+          onClick={handleVoice}
+          aria-label={listening ? "Listening..." : "Dictate with your voice"}
+          className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 ${
+            listening
+              ? "animate-pulse border-accent-500/60 bg-accent-500/20 text-accent-300"
+              : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-tertiary)] hover:border-accent-500/40 hover:text-accent-400"
+          }`}
+        >
+          {listening ? (
+            <MicOff className="h-4 w-4" />
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+        </button>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...spring, delay: 0.2 }}
-        className="mt-8 w-full max-w-md"
+        className="mt-6 flex w-full max-w-xl flex-col items-center gap-3"
       >
         <button
-          onClick={handleSubmit}
-          disabled={submitting}
+          onClick={handlePlanWeek}
+          disabled={submitting || !braindump.trim()}
           className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-accent-gradient px-6 py-4 text-base font-semibold text-white shadow-glow transition-all duration-300 hover:shadow-glow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
         >
-          {/* Shimmer glow effect */}
           <span className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
           </span>
-          <Sparkles className="relative h-4.5 w-4.5" />
+          {submitting ? (
+            <Loader2 className="relative h-4.5 w-4.5 animate-spin" />
+          ) : (
+            <Wand2 className="relative h-4.5 w-4.5" />
+          )}
           <span className="relative">
-            {submitting ? "Setting up your workspace..." : "Start using ChronAI"}
+            {submitting ? "Planning your week..." : "Plan my week"}
           </span>
+        </button>
+
+        <button
+          onClick={handleSkip}
+          disabled={submitting}
+          className="text-sm text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)] disabled:opacity-50"
+        >
+          Skip for now
         </button>
       </motion.div>
 
@@ -589,18 +510,29 @@ export default function OnboardingPage() {
     </div>
   );
 
-  const steps = [renderStep0, renderStep1, renderStep2, renderStep3];
+  const steps = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4];
 
   /* ---------------------------------------------------------------- */
-  /* Main Render                                                       */
+  /* Reveal phase                                                      */
+  /* ---------------------------------------------------------------- */
+
+  if (result) {
+    return (
+      <RevealView
+        result={result}
+        displayName={displayName}
+        showConfetti={showConfetti}
+        onContinue={() => router.push("/dashboard")}
+      />
+    );
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Form Render                                                       */
   /* ---------------------------------------------------------------- */
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[var(--bg)]">
-      {/* Confetti celebration */}
-      <Confetti active={showConfetti} />
-
-      {/* Subtle animated gradient background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-[25%] left-[30%] h-[500px] w-[500px] rounded-full bg-accent-500/[0.06] blur-[100px] animate-breathe" />
         <div className="absolute -bottom-[15%] right-[20%] h-[400px] w-[400px] rounded-full bg-accent-700/[0.04] blur-[80px] animate-float" />
@@ -609,7 +541,6 @@ export default function OnboardingPage() {
 
       <ProgressBar />
 
-      {/* Step content */}
       <div className="relative z-10 flex w-full max-w-2xl flex-1 items-center justify-center px-6 py-24">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
@@ -627,7 +558,7 @@ export default function OnboardingPage() {
         </AnimatePresence>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — hidden on the brain-dump step which has its own CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg)]/80 px-6 py-4 backdrop-blur-xl">
         <Button
           variant="ghost"
@@ -652,26 +583,264 @@ export default function OnboardingPage() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Reveal View — the WOW moment                                         */
+/* ------------------------------------------------------------------ */
+
+function RevealView({
+  result,
+  displayName,
+  showConfetti,
+  onContinue,
+}: {
+  result: BrainDumpResult;
+  displayName: string;
+  showConfetti: boolean;
+  onContinue: () => void;
+}) {
+  const { counts } = result;
+  const totalCreated = counts.tasks + counts.events + counts.habits;
+
+  const summaryStats = useMemo(
+    () => [
+      {
+        icon: CheckSquare,
+        count: counts.tasks,
+        label: counts.tasks === 1 ? "task" : "tasks",
+        color: "text-warning-500",
+        bg: "bg-warning-500/10",
+      },
+      {
+        icon: Calendar,
+        count: counts.events,
+        label: counts.events === 1 ? "event" : "events",
+        color: "text-accent-500",
+        bg: "bg-accent-500/10",
+      },
+      {
+        icon: Flame,
+        count: counts.habits,
+        label: counts.habits === 1 ? "habit" : "habits",
+        color: "text-success-500",
+        bg: "bg-success-500/10",
+      },
+    ],
+    [counts]
+  );
+
+  const listContainer = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
+  };
+  const listItem = {
+    hidden: { opacity: 0, y: 16 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
+    },
+  };
+
+  return (
+    <main className="relative flex min-h-screen flex-col items-center overflow-y-auto bg-[var(--bg)]">
+      <Confetti active={showConfetti} />
+
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-[25%] left-[30%] h-[500px] w-[500px] rounded-full bg-accent-500/[0.07] blur-[100px] animate-breathe" />
+        <div className="absolute -bottom-[15%] right-[20%] h-[400px] w-[400px] rounded-full bg-accent-700/[0.05] blur-[80px] animate-float" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-2xl px-6 py-20">
+        {/* Headline */}
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 24 }}
+          className="text-center"
+        >
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.15 }}
+            className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-gradient shadow-glow"
+          >
+            <Sparkles className="h-7 w-7 text-white" />
+          </motion.div>
+          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
+            Here&apos;s your week, planned.
+          </h1>
+          <p className="mx-auto mt-3 max-w-md text-base text-[var(--text-secondary)]">
+            {totalCreated > 0
+              ? result.summary
+              : "I couldn't find anything to plan just yet — you can add things any time from your dashboard."}
+          </p>
+        </motion.div>
+
+        {/* Stat counters */}
+        <motion.div
+          variants={listContainer}
+          initial="hidden"
+          animate="visible"
+          className="mt-10 grid grid-cols-3 gap-3"
+        >
+          {summaryStats.map((s) => {
+            const Icon = s.icon;
+            return (
+              <motion.div
+                key={s.label}
+                variants={listItem}
+                className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface)] p-5"
+              >
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${s.bg}`}>
+                  <Icon className={`h-5 w-5 ${s.color}`} strokeWidth={1.5} />
+                </div>
+                <span className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
+                  {s.count}
+                </span>
+                <span className="text-xs text-[var(--text-tertiary)]">{s.label}</span>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        {/* Detailed lists */}
+        <motion.div
+          variants={listContainer}
+          initial="hidden"
+          animate="visible"
+          className="mt-8 space-y-6"
+        >
+          {result.events.length > 0 && (
+            <RevealSection
+              title="Scheduled"
+              icon={Calendar}
+              iconColor="text-accent-500"
+              variants={listItem}
+            >
+              {result.events.map((e, i) => (
+                <RevealRow key={e.id || i} accent="bg-accent-500" title={e.summary}>
+                  {formatEventTime(e.start)}
+                </RevealRow>
+              ))}
+            </RevealSection>
+          )}
+
+          {result.tasks.length > 0 && (
+            <RevealSection
+              title="To do"
+              icon={CheckSquare}
+              iconColor="text-warning-500"
+              variants={listItem}
+            >
+              {result.tasks.map((t, i) => (
+                <RevealRow key={i} accent="bg-warning-500" title={t.title}>
+                  {t.due_days_from_now === 0
+                    ? "Due today"
+                    : `Due in ${t.due_days_from_now} day${t.due_days_from_now === 1 ? "" : "s"}`}
+                </RevealRow>
+              ))}
+            </RevealSection>
+          )}
+
+          {result.habits.length > 0 && (
+            <RevealSection
+              title="Habits"
+              icon={Flame}
+              iconColor="text-success-500"
+              variants={listItem}
+            >
+              {result.habits.map((h, i) => (
+                <RevealRow key={h.id || i} accent="bg-success-500" title={h.name}>
+                  {h.frequency === "daily"
+                    ? "Daily"
+                    : `${h.target_days}x / week`}
+                </RevealRow>
+              ))}
+            </RevealSection>
+          )}
+        </motion.div>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, ...{ type: "spring", stiffness: 300, damping: 30 } }}
+          className="mt-10"
+        >
+          <button
+            onClick={onContinue}
+            className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-accent-gradient px-6 py-4 text-base font-semibold text-white shadow-glow transition-all duration-300 hover:shadow-glow-lg hover:scale-[1.01] active:scale-[0.99]"
+          >
+            <span className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
+            </span>
+            <span className="relative">Take me to my dashboard</span>
+            <ArrowRight className="relative h-4.5 w-4.5 transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </motion.div>
+      </div>
+    </main>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Subcomponents                                                        */
 /* ------------------------------------------------------------------ */
+
+function RevealSection({
+  title,
+  icon: Icon,
+  iconColor,
+  variants,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  iconColor: string;
+  variants: Variants;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.section variants={variants}>
+      <div className="mb-2.5 flex items-center gap-2">
+        <Icon size={15} strokeWidth={1.5} className={iconColor} />
+        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </motion.section>
+  );
+}
+
+function RevealRow({
+  accent,
+  title,
+  children,
+}: {
+  accent: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
+      <div className={`h-8 w-[3px] flex-shrink-0 rounded-full ${accent}`} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-[var(--text-primary)]">{title}</p>
+        <p className="text-xs text-[var(--text-tertiary)]">{children}</p>
+      </div>
+    </div>
+  );
+}
 
 function TimeSelect({
   label,
   value,
   onChange,
-  delay = 0,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
-  delay?: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ ...{ type: "spring" as const, stiffness: 300, damping: 30 }, delay }}
-    >
+    <div>
       <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
         {label}
       </label>
@@ -687,38 +856,27 @@ function TimeSelect({
             </option>
           ))}
         </select>
-        {/* Custom dropdown arrow */}
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            className="text-[var(--text-tertiary)]"
-          >
-            <path
-              d="M3 4.5L6 7.5L9 4.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[var(--text-tertiary)]">
+            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-3 last:border-0 last:pb-0">
-      <span className="shrink-0 text-sm font-medium text-[var(--text-tertiary)]">
-        {label}
-      </span>
-      <span className="text-right text-sm text-[var(--text-primary)]">
-        {value}
-      </span>
-    </div>
-  );
+/* ------------------------------------------------------------------ */
+/* Helpers                                                              */
+/* ------------------------------------------------------------------ */
+
+function formatEventTime(iso: string): string {
+  if (!iso) return "Scheduled";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Scheduled";
+  return d.toLocaleString(undefined, {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

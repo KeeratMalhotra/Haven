@@ -110,6 +110,81 @@ class UserRepository:
         """
         await cls.update(user_id, {"google_tokens": tokens})
 
+    @classmethod
+    async def record_engagement(cls, user_id: str, today: str) -> dict:
+        """Record a daily engagement and update the user's streak.
+
+        Streak rules:
+        - First ever engagement -> streak becomes 1.
+        - Engaging on the same day again -> no change (idempotent).
+        - Engaging the day after the last active date -> streak + 1.
+        - Engaging after a gap of more than one day -> streak resets to 1.
+
+        Args:
+            user_id: The Firestore document ID.
+            today: Today's date as an ISO string (YYYY-MM-DD), caller-provided
+                so the timezone policy stays consistent across the app.
+
+        Returns:
+            Dict with the updated 'streak', 'longest_streak', 'last_active_date',
+            and whether this call 'incremented' the streak.
+        """
+        from datetime import date, timedelta
+
+        user = await cls.get_by_id(user_id)
+        if not user:
+            return {
+                "streak": 0,
+                "longest_streak": 0,
+                "last_active_date": "",
+                "incremented": False,
+            }
+
+        last_active = user.last_active_date or ""
+        current_streak = user.streak or 0
+        longest = user.longest_streak or 0
+
+        if last_active == today:
+            # Already counted today; return current values unchanged.
+            return {
+                "streak": current_streak,
+                "longest_streak": max(longest, current_streak),
+                "last_active_date": last_active,
+                "incremented": False,
+            }
+
+        # Determine whether the last engagement was exactly yesterday.
+        new_streak = 1
+        if last_active:
+            try:
+                last_date = date.fromisoformat(last_active)
+                today_date = date.fromisoformat(today)
+                if today_date - last_date == timedelta(days=1):
+                    new_streak = current_streak + 1
+                elif today_date <= last_date:
+                    # Clock skew / out-of-order: keep the existing streak.
+                    new_streak = max(current_streak, 1)
+                else:
+                    new_streak = 1
+            except ValueError:
+                new_streak = 1
+
+        new_longest = max(longest, new_streak)
+        await cls.update(
+            user_id,
+            {
+                "streak": new_streak,
+                "longest_streak": new_longest,
+                "last_active_date": today,
+            },
+        )
+        return {
+            "streak": new_streak,
+            "longest_streak": new_longest,
+            "last_active_date": today,
+            "incremented": True,
+        }
+
 
 class TaskRepository:
     """Repository for Task documents in the 'tasks' collection."""

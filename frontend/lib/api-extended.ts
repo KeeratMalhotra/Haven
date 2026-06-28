@@ -592,3 +592,133 @@ export async function updateProfile(
   }
   return (await res.json()) as UserPreferences;
 }
+
+
+
+// --- Sprint 9: Brain-dump onboarding ---
+
+export interface BrainDumpTask {
+  title: string;
+  notes?: string;
+  due_days_from_now: number;
+  priority: "high" | "medium" | "low";
+}
+
+export interface BrainDumpEvent {
+  id?: string;
+  summary: string;
+  start: string;
+}
+
+export interface BrainDumpHabit {
+  id?: string;
+  name: string;
+  frequency: string;
+  target_days: number;
+}
+
+export interface BrainDumpResult {
+  summary: string;
+  counts: { tasks: number; events: number; habits: number };
+  tasks: BrainDumpTask[];
+  events: BrainDumpEvent[];
+  habits: BrainDumpHabit[];
+}
+
+/**
+ * Parse a free-text brain-dump into tasks, events, and habits, creating them
+ * server-side and returning a summary for the onboarding reveal.
+ */
+export async function parseBraindump(
+  authToken: string,
+  braindump: string
+): Promise<BrainDumpResult> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(`${getApiBase()}/api/onboarding/parse-braindump`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ auth_token: authToken, braindump }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to parse brain-dump (${res.status})`);
+  }
+  return (await res.json()) as BrainDumpResult;
+}
+
+// --- Sprint 10: Morning briefing & streak ---
+
+export interface BriefingMeeting {
+  summary: string;
+  start: string;
+  end: string;
+  start_label: string;
+}
+
+export interface BriefingDeadline {
+  title: string;
+  due: string;
+  due_label: string;
+}
+
+export interface TodayBriefing {
+  greeting: string;
+  time_of_day: "morning" | "afternoon" | "evening";
+  date: string;
+  narrative: string;
+  meetings: BriefingMeeting[];
+  deadlines: BriefingDeadline[];
+  top_priority: string;
+  warnings: string[];
+  stats: { meetings: number; deadlines: number; tasks_pending: number };
+  suggested_actions: string[];
+}
+
+/**
+ * Fetch the structured, AI-narrated briefing for the user's day.
+ */
+export async function fetchTodayBriefing(
+  authToken: string
+): Promise<TodayBriefing | null> {
+  if (!authToken) return null;
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/briefing/today?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as TodayBriefing;
+  } catch {
+    return null;
+  }
+}
+
+export interface StreakResult {
+  streak: number;
+  longest_streak: number;
+  last_active_date: string;
+  incremented?: boolean;
+}
+
+/**
+ * Record a daily engagement and return the updated streak.
+ * Idempotent within the same day.
+ */
+export async function checkinStreak(
+  authToken: string
+): Promise<StreakResult> {
+  if (!authToken) {
+    return { streak: 0, longest_streak: 0, last_active_date: "" };
+  }
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/streak/checkin?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "POST" }
+    );
+    if (!res.ok) {
+      return { streak: 0, longest_streak: 0, last_active_date: "" };
+    }
+    return (await res.json()) as StreakResult;
+  } catch {
+    return { streak: 0, longest_streak: 0, last_active_date: "" };
+  }
+}
