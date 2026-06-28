@@ -229,6 +229,11 @@ const config: Config = {
         "pixel-smoke": "pixel-smoke 4s steps(8) infinite",
         "pixel-twinkle": "pixel-twinkle 2.2s steps(2) infinite",
         "pixel-firefly": "pixel-firefly 7s steps(10) infinite",
+        "pixel-fire": "pixel-fire 0.45s steps(2) infinite",
+        "pixel-fire-slow": "pixel-fire 0.65s steps(2) infinite",
+        "pixel-ember": "pixel-ember 2.6s steps(7) infinite",
+        "pixel-zzz": "pixel-zzz 4s steps(8) infinite",
+        "pixel-glow": "pixel-glow 1.2s steps(3) infinite",
       },
       keyframes: {
         "fade-in": {
@@ -340,6 +345,24 @@ const config: Config = {
           "25%": { transform: "translate(10px, -8px)", opacity: "1" },
           "50%": { transform: "translate(18px, 4px)", opacity: "0.6" },
           "75%": { transform: "translate(6px, 10px)", opacity: "0.9" },
+        },
+        "pixel-fire": {
+          "0%, 100%": { transform: "scaleY(1) scaleX(1)", opacity: "1" },
+          "50%": { transform: "scaleY(0.8) scaleX(1.12)", opacity: "0.85" },
+        },
+        "pixel-ember": {
+          "0%": { transform: "translate(0, 0)", opacity: "0" },
+          "25%": { opacity: "1" },
+          "100%": { transform: "translate(4px, -26px)", opacity: "0" },
+        },
+        "pixel-zzz": {
+          "0%": { transform: "translate(0, 0)", opacity: "0" },
+          "20%": { opacity: "1" },
+          "100%": { transform: "translate(9px, -22px)", opacity: "0" },
+        },
+        "pixel-glow": {
+          "0%, 100%": { opacity: "0.55" },
+          "50%": { opacity: "0.9" },
         },
       },
       transitionTimingFunction: {
