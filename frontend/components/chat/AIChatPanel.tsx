@@ -88,6 +88,9 @@ export default function AIChatPanel({
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="fixed inset-0 z-[81] flex flex-col bg-[var(--bg)]"
+                role="dialog"
+                aria-modal="true"
+                aria-label="AI Assistant"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
@@ -165,6 +168,9 @@ export default function AIChatPanel({
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="fixed z-[90] flex flex-col rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl"
+              role="dialog"
+              aria-modal="false"
+              aria-label="AI Assistant"
               style={{
                 width: Math.min(400, typeof window !== "undefined" ? window.innerWidth - 32 : 400),
                 height: Math.min(550, typeof window !== "undefined" ? window.innerHeight - 32 : 550),
@@ -255,6 +261,9 @@ export default function AIChatPanel({
             exit={{ x: 400, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed inset-0 md:inset-auto md:right-0 md:top-0 z-[81] flex h-full md:w-[400px] md:max-w-[90vw] flex-col border-l border-[var(--border)] bg-[var(--bg)] shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="AI Assistant"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-4">

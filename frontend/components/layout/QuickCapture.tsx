@@ -71,6 +71,16 @@ export default function QuickCapture() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (open) return;
 
+      // Don't stack on top of an already-open overlay (e.g. the AI chat
+      // panel or any other modal dialog). Those overlays flag themselves
+      // with role="dialog"/aria-modal, so bail if one is present.
+      if (
+        typeof document !== "undefined" &&
+        document.querySelector('[role="dialog"], [aria-modal="true"]')
+      ) {
+        return;
+      }
+
       const target = (e.target as HTMLElement | null) ?? null;
       const active = document.activeElement as HTMLElement | null;
       const isEditable = (el: HTMLElement | null) => {
@@ -148,6 +158,9 @@ export default function QuickCapture() {
       void handleSubmit();
     } else if (e.key === "Escape") {
       e.preventDefault();
+      // Stop the keystroke before it reaches document-level Escape listeners
+      // (e.g. the AI chat panel) so a single Escape only closes this overlay.
+      e.stopPropagation();
       close();
     }
   };

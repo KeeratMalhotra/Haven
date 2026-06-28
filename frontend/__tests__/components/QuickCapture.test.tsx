@@ -131,4 +131,75 @@ describe("QuickCapture", () => {
 
     expect(screen.queryByPlaceholderText(PLACEHOLDER)).toBeNull();
   });
+
+  it("stays open and warns when the backend creates nothing (empty result)", async () => {
+    mockParseBraindump.mockResolvedValueOnce({
+      summary: "",
+      counts: { tasks: 0, events: 0, habits: 0 },
+      tasks: [],
+      events: [],
+      habits: [],
+    });
+
+    render(<QuickCapture />);
+
+    act(() => {
+      fireEvent.keyDown(document.body, { key: "n" });
+    });
+
+    const input = screen.getByPlaceholderText(PLACEHOLDER);
+    fireEvent.change(input, { target: { value: "asdf" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(mockParseBraindump).toHaveBeenCalledWith("mock-access-token", "asdf");
+    });
+
+    // A warning toast fires with the component's exact empty-result copy.
+    await waitFor(() => {
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: "Couldn't capture that - try adding a time or more detail.",
+          type: "warning",
+        })
+      );
+    });
+
+    // The modal stays open so the user can retry without re-typing.
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).toBeDefined();
+  });
+
+  it("stays open and warns when parseBraindump throws", async () => {
+    mockParseBraindump.mockRejectedValueOnce(new Error("network down"));
+
+    render(<QuickCapture />);
+
+    act(() => {
+      fireEvent.keyDown(document.body, { key: "n" });
+    });
+
+    const input = screen.getByPlaceholderText(PLACEHOLDER);
+    fireEvent.change(input, { target: { value: "call dentist tomorrow 3pm" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(mockParseBraindump).toHaveBeenCalledWith(
+        "mock-access-token",
+        "call dentist tomorrow 3pm"
+      );
+    });
+
+    // A warning toast fires with the component's exact error copy.
+    await waitFor(() => {
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: "Something went wrong capturing that - please try again.",
+          type: "warning",
+        })
+      );
+    });
+
+    // The modal stays open after a thrown error.
+    expect(screen.getByPlaceholderText(PLACEHOLDER)).toBeDefined();
+  });
 });

@@ -39,10 +39,11 @@ const PRIMARY_ITEMS: NavItem[] = [
 ];
 
 // Secondary group — de-emphasized, lives under the collapsible "More" section.
+// Order follows the Sprint 13 brief: Habits, Analytics, Planner.
 const SECONDARY_ITEMS: NavItem[] = [
-  { label: "Planner", icon: CalendarClock, path: "/dashboard/planner" },
   { label: "Habits", icon: Flame, path: "/dashboard/habits" },
   { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
+  { label: "Planner", icon: CalendarClock, path: "/dashboard/planner" },
 ];
 
 // Settings — pinned utility at the bottom.
@@ -68,8 +69,23 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     setMounted(true);
     const storedCollapsed = localStorage.getItem(STORAGE_KEY);
     if (storedCollapsed === "true") setCollapsed(true);
+
+    // Auto-expand "More" on first load when the active route lives in the
+    // secondary group, so a user deep-linking to e.g. /dashboard/analytics
+    // never finds it hidden. Otherwise honour the persisted choice (collapsed
+    // by default for new users). After mount, `moreOpen` is the single source
+    // of truth driving the disclosure, so an explicit manual collapse always
+    // wins over the auto-expand (no dead toggle on secondary routes).
     const storedMore = localStorage.getItem(MORE_STORAGE_KEY);
-    if (storedMore === "true") setMoreOpen(true);
+    const onSecondaryRoute = SECONDARY_ITEMS.some((item) =>
+      item.path === "/dashboard"
+        ? pathname === "/dashboard"
+        : pathname.startsWith(item.path)
+    );
+    if (storedMore === "true" || onSecondaryRoute) {
+      setMoreOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -89,10 +105,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     return pathname.startsWith(path);
   };
 
-  // Auto-expand "More" when the active route lives inside the secondary group,
-  // while still honouring the user's persisted manual choice otherwise.
-  const onSecondaryRoute = SECONDARY_ITEMS.some((item) => isActive(item.path));
-  const moreExpanded = moreOpen || onSecondaryRoute;
+  // `moreOpen` is the single source of truth for the disclosure. It is
+  // auto-expanded once on mount when landing on a secondary route (see the
+  // mount effect) and otherwise reflects the persisted manual choice, so the
+  // toggle button always has a visible effect.
+  const moreExpanded = moreOpen;
 
   const sidebarWidth = collapsed ? 68 : 260;
 
