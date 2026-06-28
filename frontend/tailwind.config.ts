@@ -143,6 +143,10 @@ const config: Config = {
           '"Liberation Mono"',
           "monospace",
         ],
+        // Pixel display face for headings + wordmark (cozy 16-bit feel)
+        pixel: ['var(--font-pixel)', '"Pixelify Sans"', "monospace"],
+        // Terminal pixel face for HUD / eyebrow labels
+        terminal: ['var(--font-terminal)', '"VT323"', "monospace"],
       },
       spacing: {
         "4.5": "1.125rem",
@@ -180,6 +184,12 @@ const config: Config = {
         // Card hover shadow (subtle)
         "card-hover":
           "0 2px 8px -2px rgba(0, 0, 0, 0.06), 0 1px 3px -1px rgba(0, 0, 0, 0.03)",
+        // Pixel-art hard offset shadows (no blur — NES/SNES style)
+        pixel: "4px 4px 0 0 rgba(20, 14, 10, 0.55)",
+        "pixel-sm": "3px 3px 0 0 rgba(20, 14, 10, 0.5)",
+        "pixel-lg": "6px 6px 0 0 rgba(20, 14, 10, 0.6)",
+        "pixel-warm": "4px 4px 0 0 rgba(168, 87, 47, 0.55)",
+        "pixel-accent": "4px 4px 0 0 rgba(67, 56, 202, 0.5)",
       },
       backgroundImage: {
         "accent-gradient":
@@ -211,6 +221,14 @@ const config: Config = {
         "pulse-soft": "pulse-soft 2.4s ease-in-out infinite",
         "caret-blink": "caret-blink 1s steps(1) infinite",
         "spin-in": "spin-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both",
+        // Pixel-art stepped motion (snappy, frame-by-frame feel)
+        "pixel-bob": "pixel-bob 2.4s steps(4) infinite",
+        "pixel-bob-slow": "pixel-bob 3.6s steps(6) infinite",
+        "pixel-blink": "pixel-blink 4.5s steps(1) infinite",
+        "pixel-flicker": "pixel-flicker 3s steps(3) infinite",
+        "pixel-smoke": "pixel-smoke 4s steps(8) infinite",
+        "pixel-twinkle": "pixel-twinkle 2.2s steps(2) infinite",
+        "pixel-firefly": "pixel-firefly 7s steps(10) infinite",
       },
       keyframes: {
         "fade-in": {
@@ -291,6 +309,37 @@ const config: Config = {
         "spin-in": {
           "0%": { opacity: "0", transform: "rotate(-90deg) scale(0.8)" },
           "100%": { opacity: "1", transform: "rotate(0deg) scale(1)" },
+        },
+        "pixel-bob": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+        "pixel-blink": {
+          "0%, 92%, 100%": { transform: "scaleY(1)" },
+          "95%": { transform: "scaleY(0.1)" },
+        },
+        "pixel-flicker": {
+          "0%, 100%": { opacity: "0.92" },
+          "33%": { opacity: "1" },
+          "66%": { opacity: "0.8" },
+        },
+        "pixel-smoke": {
+          "0%": { transform: "translateY(0) translateX(0)", opacity: "0" },
+          "20%": { opacity: "0.8" },
+          "100%": {
+            transform: "translateY(-26px) translateX(6px)",
+            opacity: "0",
+          },
+        },
+        "pixel-twinkle": {
+          "0%, 100%": { opacity: "0.25" },
+          "50%": { opacity: "1" },
+        },
+        "pixel-firefly": {
+          "0%, 100%": { transform: "translate(0, 0)", opacity: "0.2" },
+          "25%": { transform: "translate(10px, -8px)", opacity: "1" },
+          "50%": { transform: "translate(18px, 4px)", opacity: "0.6" },
+          "75%": { transform: "translate(6px, 10px)", opacity: "0.9" },
         },
       },
       transitionTimingFunction: {

@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import {
+  Inter,
+  JetBrains_Mono,
+  Pixelify_Sans,
+  VT323,
+} from "next/font/google";
 import Providers from "@/components/Providers";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import "./globals.css";
@@ -13,6 +18,22 @@ const inter = Inter({
 const mono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
+});
+
+/* Pixel display face — cozy + readable, used for headings and the wordmark */
+const pixel = Pixelify_Sans({
+  subsets: ["latin"],
+  variable: "--font-pixel",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+/* Terminal pixel face — used for tiny eyebrow labels and HUD text */
+const terminal = VT323({
+  subsets: ["latin"],
+  variable: "--font-terminal",
+  weight: "400",
   display: "swap",
 });
 
@@ -44,7 +65,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      className={`dark ${inter.variable} ${mono.variable} ${pixel.variable} ${terminal.variable}`}
+    >
       <body className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans antialiased">
         <Providers>
           <ThemeProvider>{children}</ThemeProvider>
