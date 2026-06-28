@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Add dark/light mode toggle to the landing page navigation, fix card text visibility in dark mode, make the Spotify music button more prominent",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/app/page.tsx, import useTheme from '@/components/ui/theme-provider' and add the Sun/Moon icons from lucide-react",
     "In the Nav() component in page.tsx, add a theme toggle button in the nav bar (between the nav links and the sign in button). Use a pixel-styled button that matches the landing page aesthetic (pixel-corners or similar). Toggle between Sun and Moon icons based on current theme.",
@@ -21,5 +21,5 @@
     "Run cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Theme toggle added to Nav between nav links and sign-in button using pixel-corners style. Spotify button updated from h-12/w-12 to h-14/w-14 with emerald-500 tinted background, border, glow shadow, and larger icon (24px). Card text was already using CSS variables (--text-primary, --text-secondary) which adapt correctly in both modes - no hardcoded color fixes needed. Build and lint pass cleanly."
 }
