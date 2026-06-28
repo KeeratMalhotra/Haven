@@ -131,23 +131,18 @@ function PixelLogo({ size = 28 }: { size?: number }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Small cozy accents (no AI mascots)                                  */
+/* Small cozy accents                                                  */
 /* ------------------------------------------------------------------ */
 
 function MiniCampfire({ size = 52 }: { size?: number }) {
   return (
-    <div
-      className="pixelated relative"
-      style={{ width: size, height: size, imageRendering: "pixelated" }}
-    >
+    <div className="pixelated relative" style={{ width: size, height: size, imageRendering: "pixelated" }}>
       <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[150%] w-[150%] -translate-x-1/2 -translate-y-1/2 bg-warm-500/30 blur-lg animate-pixel-glow" />
       <svg viewBox="0 0 16 16" width={size} height={size} shapeRendering="crispEdges" aria-hidden="true">
-        {/* logs */}
         <rect x="3" y="12" width="10" height="2" fill="#6b4329" />
         <rect x="4" y="11" width="8" height="1" fill="#82542f" />
         <rect x="2" y="13" width="3" height="1" fill="#ff8a3a" className="animate-pixel-flicker" />
         <rect x="11" y="13" width="3" height="1" fill="#ff8a3a" className="animate-pixel-flicker" style={{ animationDelay: "0.4s" }} />
-        {/* flames */}
         <g className="animate-pixel-fire" style={{ transformBox: "fill-box", transformOrigin: "center bottom" }}>
           <rect x="5" y="5" width="6" height="7" fill="#d8392a" />
           <rect x="6" y="3" width="4" height="3" fill="#f0742e" />
@@ -185,6 +180,104 @@ function MiniMoon({ size = 56 }: { size?: number }) {
       <rect x="20" y="6" width="2" height="2" fill="#ffe98a" className="animate-pixel-twinkle" style={{ animationDelay: "0.8s" }} />
       <rect x="6" y="20" width="2" height="2" fill="#ffe98a" className="animate-pixel-twinkle" style={{ animationDelay: "1.4s" }} />
     </svg>
+  );
+}
+
+/* ================================================================== */
+/* HERO ILLUSTRATION — the reference artwork + animated glow effects   */
+/* ================================================================== */
+
+function Glow({
+  x,
+  y,
+  size,
+  color,
+  opacity = 0.5,
+  className = "",
+  style,
+}: {
+  x: string;
+  y: string;
+  size: string;
+  color: string;
+  opacity?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <span
+      className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full mix-blend-screen blur-xl ${className}`}
+      style={{ left: x, top: y, width: size, height: size, backgroundColor: color, opacity, ...style }}
+    />
+  );
+}
+
+function HeroIllustration() {
+  return (
+    <div className="relative w-full">
+      <div
+        className="relative w-full bg-[#173242] bg-cover bg-center bg-no-repeat"
+        style={{ aspectRatio: "1024 / 559", backgroundImage: "url('/hero-cabin.svg')" }}
+        role="img"
+        aria-label="A cozy log cabin glowing in a jungle clearing at night, with a campfire, a steaming coffee on the porch, and a dog asleep on a rug under a crescent moon."
+      >
+        {/* glowing windows */}
+        <Glow x="24%" y="44%" size="6vw" color="#ffce6b" opacity={0.45} className="animate-pixel-flicker" />
+        <Glow x="33%" y="43%" size="5vw" color="#ffd27a" opacity={0.4} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
+        <Glow x="46%" y="42%" size="5vw" color="#ffce6b" opacity={0.4} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
+
+        {/* crescent moon shimmer */}
+        <Glow x="74%" y="9%" size="5vw" color="#ffeccb" opacity={0.35} className="animate-pixel-glow" />
+
+        {/* campfire glow */}
+        <Glow x="66%" y="68%" size="12vw" color="#ff7a2e" opacity={0.5} className="animate-pixel-fire" />
+        <Glow x="66%" y="66%" size="6vw" color="#ffc23a" opacity={0.55} className="animate-pixel-flicker" />
+
+        {/* rising embers */}
+        {[
+          { l: "64%", t: "62%", d: "0s" },
+          { l: "67%", t: "60%", d: "1s" },
+          { l: "65.5%", t: "64%", d: "1.8s" },
+          { l: "68%", t: "63%", d: "2.6s" },
+        ].map((e, i) => (
+          <span
+            key={i}
+            className="pointer-events-none absolute animate-pixel-ember rounded-full bg-[#ffce6b]"
+            style={{ left: e.l, top: e.t, width: "0.4vw", height: "0.4vw", animationDelay: e.d }}
+          />
+        ))}
+
+        {/* steam off the coffee */}
+        {[
+          { l: "36.5%", t: "58%", d: "0s" },
+          { l: "37.5%", t: "56%", d: "1.6s" },
+        ].map((s, i) => (
+          <span
+            key={i}
+            className="pointer-events-none absolute animate-pixel-smoke rounded-full bg-white/70 blur-[1px]"
+            style={{ left: s.l, top: s.t, width: "0.5vw", height: "0.9vw", animationDelay: s.d }}
+          />
+        ))}
+
+        {/* fireflies */}
+        {[
+          { l: "12%", t: "60%", d: "0s" },
+          { l: "55%", t: "55%", d: "2.2s" },
+          { l: "82%", t: "62%", d: "4s" },
+          { l: "30%", t: "72%", d: "3s" },
+          { l: "90%", t: "48%", d: "1.4s" },
+        ].map((f, i) => (
+          <span
+            key={i}
+            className="pointer-events-none absolute animate-pixel-firefly rounded-full bg-[#ffe98a] shadow-[0_0_6px_2px_rgba(255,233,138,0.5)]"
+            style={{ left: f.l, top: f.t, width: "0.45vw", height: "0.45vw", animationDelay: f.d }}
+          />
+        ))}
+      </div>
+
+      {/* fade the bottom of the art into the page */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[16%] bg-gradient-to-b from-transparent to-[var(--bg)]" />
+    </div>
   );
 }
 
@@ -226,365 +319,6 @@ function GetStartedButton({
       </span>
       {label}
     </button>
-  );
-}
-
-/* ================================================================== */
-/* HERO SCENE — jungle cabin at night (matching the reference vibe)   */
-/* ================================================================== */
-
-function JungleCabinScene({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 360 200"
-      preserveAspectRatio="xMidYMax slice"
-      shapeRendering="crispEdges"
-      className={`pixelated ${className}`}
-      style={{ imageRendering: "pixelated" }}
-      role="img"
-      aria-label="A pixel-art jungle clearing at night: a glowing log cabin with a porch, a steaming coffee and open book on a table, a crackling campfire, and a dog asleep on a rug — framed by lush leaves under a crescent moon."
-    >
-      {/* ===================== NIGHT SKY ===================== */}
-      <rect x="0" y="0" width="360" height="200" fill="#0e1430" />
-      <rect x="0" y="68" width="360" height="40" fill="#141d40" />
-      <rect x="0" y="104" width="360" height="22" fill="#1b2649" />
-
-      {/* stars */}
-      <g fill="#eef2ff">
-        <rect x="26" y="14" width="2" height="2" className="animate-pixel-twinkle" />
-        <rect x="58" y="26" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "0.7s" }} />
-        <rect x="96" y="12" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "1.3s" }} />
-        <rect x="150" y="20" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "0.4s" }} />
-        <rect x="206" y="10" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "1.6s" }} />
-        <rect x="250" y="22" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "0.5s" }} />
-        <rect x="288" y="48" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "2s" }} />
-        <rect x="338" y="16" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "1.1s" }} />
-        <rect x="120" y="40" width="2" height="2" className="animate-pixel-twinkle" style={{ animationDelay: "2.3s" }} />
-      </g>
-
-      {/* crescent moon (top-right) */}
-      <g>
-        <circle cx="316" cy="30" r="10" fill="#ffeccb" />
-        <circle cx="311" cy="27" r="8.5" fill="#0e1430" />
-      </g>
-
-      {/* ===================== FAR JUNGLE SILHOUETTE ===================== */}
-      <g fill="#0f2620">
-        <rect x="0" y="96" width="360" height="40" />
-        <rect x="0" y="88" width="60" height="12" />
-        <rect x="150" y="86" width="70" height="12" />
-        <rect x="300" y="84" width="60" height="14" />
-      </g>
-      <g fill="#163a2c">
-        <rect x="40" y="100" width="50" height="20" />
-        <rect x="250" y="98" width="60" height="22" />
-        <rect x="120" y="104" width="40" height="18" />
-      </g>
-
-      {/* ===================== PALMS (framing) ===================== */}
-      {/* left palm */}
-      <g>
-        <rect x="30" y="70" width="6" height="60" fill="#5a3f26" />
-        <rect x="28" y="70" width="2" height="60" fill="#42301c" />
-        <g fill="#2f6b3e">
-          <polygon points="33,70 8,58 6,64 33,76" />
-          <polygon points="33,70 58,58 60,64 33,76" />
-          <polygon points="33,72 14,84 18,88 33,80" />
-          <polygon points="33,72 52,84 48,88 33,80" />
-        </g>
-        <polygon points="33,66 22,56 44,56" fill="#3a7a47" />
-      </g>
-      {/* right palms */}
-      <g>
-        <rect x="326" y="58" width="7" height="74" fill="#5a3f26" />
-        <rect x="333" y="58" width="2" height="74" fill="#42301c" />
-        <g fill="#2f6b3e">
-          <polygon points="330,58 304,46 302,52 330,64" />
-          <polygon points="330,58 356,46 358,52 330,64" />
-          <polygon points="330,60 310,72 314,76 330,68" />
-          <polygon points="330,60 350,72 346,76 330,68" />
-        </g>
-        <polygon points="330,54 318,44 342,44" fill="#3a7a47" />
-      </g>
-
-      {/* ===================== GROUND ===================== */}
-      <rect x="0" y="150" width="360" height="50" fill="#284326" />
-      <rect x="0" y="160" width="360" height="40" fill="#22381f" />
-      {/* dirt clearing */}
-      <rect x="120" y="166" width="170" height="34" fill="#4a3826" />
-      <rect x="120" y="166" width="170" height="3" fill="#56432e" />
-
-      {/* ===================== CABIN ===================== */}
-      <g>
-        {/* roof (pitched gable) */}
-        <polygon points="165,46 95,100 165,100" fill="#5a3620" />
-        <polygon points="165,46 235,100 165,100" fill="#6e4426" />
-        {/* roof plank lines */}
-        <g stroke="#43291a" strokeWidth="1">
-          <line x1="150" y1="60" x2="112" y2="92" />
-          <line x1="180" y1="60" x2="218" y2="92" />
-        </g>
-        {/* eave board + ridge */}
-        <rect x="90" y="98" width="150" height="6" fill="#43291a" />
-        <rect x="160" y="46" width="10" height="6" fill="#7d5230" />
-
-        {/* left receding side wall (depth) */}
-        <polygon points="120,100 104,106 104,152 120,152" fill="#4a2c18" />
-
-        {/* front log wall */}
-        <rect x="120" y="100" width="110" height="52" fill="#6b4226" />
-        <g fill="#4a2c18">
-          <rect x="120" y="110" width="110" height="2" />
-          <rect x="120" y="120" width="110" height="2" />
-          <rect x="120" y="130" width="110" height="2" />
-          <rect x="120" y="140" width="110" height="2" />
-        </g>
-        <rect x="120" y="100" width="3" height="52" fill="#3a2415" />
-        <rect x="227" y="100" width="3" height="52" fill="#3a2415" />
-
-        {/* gable window (in the roof triangle) */}
-        <g className="animate-pixel-flicker">
-          <rect x="156" y="74" width="14" height="14" fill="#2a1a0e" />
-          <rect x="158" y="76" width="10" height="10" fill="#ffd27a" />
-          <rect x="158" y="76" width="10" height="4" fill="#ffe6ad" />
-          <rect x="162" y="76" width="2" height="10" fill="#2a1a0e" />
-        </g>
-
-        {/* warm light spilling from door */}
-        <rect x="150" y="152" width="30" height="16" fill="#ffce6b" opacity="0.14" />
-
-        {/* left window */}
-        <g className="animate-pixel-flicker">
-          <rect x="130" y="112" width="20" height="22" fill="#2a1a0e" />
-          <rect x="132" y="114" width="16" height="18" fill="#ffd27a" />
-          <rect x="132" y="114" width="16" height="6" fill="#ffe6ad" />
-          <rect x="139" y="114" width="2" height="18" fill="#2a1a0e" />
-          <rect x="132" y="122" width="16" height="2" fill="#2a1a0e" />
-        </g>
-        {/* right window */}
-        <g className="animate-pixel-flicker" style={{ animationDelay: "0.7s" }}>
-          <rect x="194" y="112" width="20" height="22" fill="#2a1a0e" />
-          <rect x="196" y="114" width="16" height="18" fill="#ffd27a" />
-          <rect x="196" y="114" width="16" height="6" fill="#ffe6ad" />
-          <rect x="203" y="114" width="2" height="18" fill="#2a1a0e" />
-          <rect x="196" y="122" width="16" height="2" fill="#2a1a0e" />
-        </g>
-        {/* door */}
-        <rect x="158" y="118" width="24" height="34" fill="#2a1a0e" />
-        <rect x="160" y="120" width="20" height="32" fill="#5e3a20" />
-        <rect x="160" y="120" width="20" height="5" fill="#6e4426" />
-        <rect x="175" y="135" width="2" height="3" fill="#ffd27a" />
-      </g>
-
-      {/* ===================== PORCH DECK ===================== */}
-      <g>
-        {/* deck surface + front edge */}
-        <rect x="110" y="152" width="135" height="8" fill="#7d5230" />
-        <rect x="110" y="160" width="135" height="6" fill="#4f3320" />
-        <g fill="#5e3a20">
-          <rect x="134" y="152" width="1" height="8" />
-          <rect x="158" y="152" width="1" height="8" />
-          <rect x="182" y="152" width="1" height="8" />
-          <rect x="206" y="152" width="1" height="8" />
-          <rect x="230" y="152" width="1" height="8" />
-        </g>
-        {/* posts */}
-        <g fill="#3a2415">
-          <rect x="116" y="166" width="3" height="8" />
-          <rect x="236" y="166" width="3" height="8" />
-          <rect x="176" y="166" width="3" height="6" />
-        </g>
-        {/* steps (front) */}
-        <rect x="160" y="166" width="30" height="4" fill="#6b4226" />
-        <rect x="164" y="170" width="22" height="4" fill="#5e3a20" />
-
-        {/* table */}
-        <rect x="118" y="144" width="24" height="2" fill="#8a5a32" />
-        <rect x="119" y="146" width="2" height="8" fill="#6e4426" />
-        <rect x="139" y="146" width="2" height="8" fill="#6e4426" />
-        {/* open book on table */}
-        <polygon points="120,143 129,141 129,144 120,146" fill="#ece0c6" />
-        <polygon points="130,141 139,143 139,146 130,144" fill="#ece0c6" />
-        <rect x="129" y="141" width="1" height="4" fill="#b06a3a" />
-        {/* coffee cup + steam */}
-        <rect x="132" y="138" width="6" height="5" fill="#f2ece2" />
-        <rect x="132" y="138" width="6" height="1" fill="#d8d0c4" />
-        <rect x="138" y="139" width="2" height="3" fill="#d8d0c4" />
-        <rect x="131" y="143" width="8" height="1" fill="#cfc6b8" />
-        <g fill="#dfeef0">
-          <rect x="133" y="133" width="2" height="3" className="animate-pixel-smoke" />
-          <rect x="135" y="130" width="2" height="3" className="animate-pixel-smoke" style={{ animationDelay: "1.4s" }} />
-        </g>
-
-        {/* potted plant by the door */}
-        <rect x="214" y="142" width="12" height="9" fill="#9a5532" />
-        <rect x="214" y="142" width="12" height="2" fill="#b06a3a" />
-        <g fill="#2f6b3e">
-          <polygon points="220,142 214,130 218,130" />
-          <polygon points="220,142 226,131 222,130" />
-          <polygon points="220,142 220,128 222,130" />
-        </g>
-        <polygon points="217,134 213,127 219,129" fill="#9b3f7a" />
-      </g>
-
-      {/* ===================== CAMPFIRE ===================== */}
-      <g>
-        {/* glow pool */}
-        <g className="animate-pixel-glow">
-          <rect x="262" y="176" width="56" height="14" fill="#f0742e" opacity="0.2" />
-          <rect x="270" y="172" width="40" height="18" fill="#ffae3a" opacity="0.16" />
-        </g>
-        {/* log beside the fire */}
-        <rect x="300" y="176" width="36" height="7" fill="#6b4329" />
-        <rect x="300" y="176" width="36" height="2" fill="#82542f" />
-        <rect x="332" y="176" width="4" height="7" fill="#4a2f1c" />
-        <rect x="333" y="178" width="2" height="3" fill="#3a2718" />
-        {/* stone ring */}
-        <g fill="#6f6a63">
-          <rect x="268" y="182" width="6" height="5" />
-          <rect x="276" y="184" width="6" height="4" />
-          <rect x="296" y="184" width="6" height="4" />
-          <rect x="302" y="182" width="6" height="5" />
-        </g>
-        <g fill="#8a847b">
-          <rect x="269" y="182" width="3" height="2" />
-          <rect x="303" y="182" width="3" height="2" />
-        </g>
-        {/* fire logs */}
-        <rect x="278" y="180" width="22" height="5" fill="#6b4329" />
-        <rect x="276" y="183" width="4" height="3" fill="#ff8a3a" className="animate-pixel-flicker" />
-        <rect x="298" y="183" width="4" height="3" fill="#ff8a3a" className="animate-pixel-flicker" style={{ animationDelay: "0.4s" }} />
-        {/* flames */}
-        <g className="animate-pixel-fire" style={{ transformBox: "fill-box", transformOrigin: "center bottom" }}>
-          <rect x="282" y="164" width="16" height="16" fill="#d8392a" />
-          <rect x="284" y="158" width="12" height="8" fill="#d8392a" />
-          <rect x="287" y="152" width="6" height="8" fill="#d8392a" />
-          <rect x="284" y="166" width="12" height="14" fill="#f0742e" />
-          <rect x="286" y="160" width="8" height="8" fill="#f0742e" />
-          <rect x="288" y="154" width="4" height="6" fill="#f0742e" />
-          <rect x="286" y="168" width="8" height="12" fill="#ffc23a" />
-          <rect x="288" y="162" width="4" height="8" fill="#ffc23a" />
-          <rect x="288" y="170" width="4" height="10" fill="#fff0a8" />
-        </g>
-        <g className="animate-pixel-fire-slow" style={{ transformBox: "fill-box", transformOrigin: "center bottom" }}>
-          <rect x="296" y="164" width="5" height="12" fill="#f0742e" />
-          <rect x="297" y="160" width="3" height="6" fill="#ffc23a" />
-          <rect x="279" y="166" width="4" height="10" fill="#d8392a" />
-        </g>
-        {/* embers */}
-        <g fill="#ffce6b">
-          <rect x="288" y="150" width="2" height="2" className="animate-pixel-ember" />
-          <rect x="294" y="154" width="2" height="2" className="animate-pixel-ember" style={{ animationDelay: "1s" }} />
-          <rect x="284" y="152" width="2" height="2" className="animate-pixel-ember" style={{ animationDelay: "1.8s" }} />
-        </g>
-      </g>
-
-      {/* ===================== DOG ON A RUG ===================== */}
-      <g>
-        {/* woven rug */}
-        <polygon points="150,190 214,187 220,195 156,198" fill="#a8503e" />
-        <g fill="#c98a5a">
-          <polygon points="164,189 167,189 173,197 170,197" />
-          <polygon points="180,188 183,188 189,196 186,196" />
-          <polygon points="196,188 199,188 205,196 202,196" />
-        </g>
-        {/* fringe */}
-        <g fill="#d8c0a0">
-          <rect x="150" y="190" width="1" height="3" />
-          <rect x="153" y="191" width="1" height="3" />
-          <rect x="216" y="188" width="1" height="3" />
-          <rect x="219" y="189" width="1" height="3" />
-        </g>
-        {/* dog (curled, sleeping) */}
-        <rect x="166" y="183" width="30" height="9" fill="#d4a36a" />
-        <rect x="168" y="181" width="26" height="3" fill="#dcb079" />
-        <rect x="166" y="190" width="30" height="2" fill="#b5763f" />
-        {/* curled tail */}
-        <rect x="163" y="184" width="5" height="4" fill="#b5763f" />
-        <rect x="161" y="186" width="3" height="3" fill="#c08a52" />
-        {/* head resting */}
-        <rect x="190" y="180" width="11" height="9" fill="#d4a36a" />
-        <rect x="190" y="180" width="11" height="2" fill="#dcb079" />
-        <rect x="196" y="177" width="5" height="6" fill="#b5763f" />
-        <rect x="199" y="185" width="4" height="3" fill="#c08a52" />
-        <rect x="202" y="186" width="2" height="2" fill="#3a241a" />
-        {/* closed happy eye */}
-        <g fill="#3a241a">
-          <rect x="192" y="184" width="1" height="1" />
-          <rect x="193" y="185" width="2" height="1" />
-          <rect x="195" y="184" width="1" height="1" />
-        </g>
-        <rect x="197" y="187" width="3" height="1" fill="#5a3a28" />
-        <rect x="172" y="185" width="16" height="2" fill="#e0b884" />
-        {/* zzz */}
-        <g fill="#eef2ff">
-          <g className="animate-pixel-zzz">
-            <rect x="204" y="172" width="4" height="1" />
-            <rect x="206" y="173" width="1" height="1" />
-            <rect x="205" y="174" width="1" height="1" />
-            <rect x="204" y="175" width="4" height="1" />
-          </g>
-          <g className="animate-pixel-zzz" style={{ animationDelay: "1.4s" }}>
-            <rect x="210" y="168" width="3" height="1" />
-            <rect x="211" y="169" width="1" height="1" />
-            <rect x="210" y="170" width="3" height="1" />
-          </g>
-        </g>
-      </g>
-
-      {/* ===================== LUSH FOREGROUND FOLIAGE ===================== */}
-      {/* bottom-left cluster */}
-      <g>
-        <polygon points="0,200 0,150 26,148 40,176 30,200" fill="#163a2c" />
-        <polygon points="6,200 2,164 18,150 34,168 28,200" fill="#245536" />
-        <polygon points="10,198 8,168 22,158 30,176 24,198" fill="#2f6b3e" />
-        <polygon points="14,196 13,172 22,166 26,180" fill="#3a7a47" />
-        {/* purple accent leaf */}
-        <polygon points="34,200 30,170 46,160 56,184 50,200" fill="#4a2e5e" />
-        <polygon points="38,198 36,176 48,168 54,186" fill="#6b3f7e" />
-        <line x1="44" y1="170" x2="46" y2="196" stroke="#8a4a86" strokeWidth="1" />
-      </g>
-      {/* left mid fronds */}
-      <g>
-        <polygon points="0,140 0,108 22,116 18,140" fill="#1d4030" />
-        <polygon points="0,134 0,114 16,120 14,136" fill="#2a5a36" />
-      </g>
-
-      {/* bottom-right cluster */}
-      <g>
-        <polygon points="360,200 360,150 330,146 316,178 326,200" fill="#163a2c" />
-        <polygon points="354,200 358,160 340,148 322,170 330,200" fill="#245536" />
-        <polygon points="350,198 352,166 338,156 328,176 334,198" fill="#2f6b3e" />
-        <polygon points="346,196 347,170 338,164 334,180" fill="#3a7a47" />
-        {/* magenta accent */}
-        <polygon points="318,200 322,168 306,158 296,184 304,200" fill="#5a2e5e" />
-        <polygon points="314,198 316,176 304,168 298,188" fill="#8a4a86" />
-        <line x1="308" y1="170" x2="306" y2="196" stroke="#b85aa0" strokeWidth="1" />
-      </g>
-      {/* right mid fronds */}
-      <g>
-        <polygon points="360,144 360,110 338,118 342,144" fill="#1d4030" />
-        <polygon points="360,138 360,116 344,122 346,138" fill="#2a5a36" />
-      </g>
-
-      {/* a couple of small ferns near the clearing */}
-      <g fill="#2f6b3e">
-        <rect x="116" y="158" width="3" height="10" />
-        <rect x="112" y="160" width="5" height="2" />
-        <rect x="119" y="160" width="5" height="2" />
-        <rect x="246" y="158" width="3" height="10" />
-        <rect x="242" y="160" width="5" height="2" />
-        <rect x="249" y="160" width="5" height="2" />
-      </g>
-
-      {/* fireflies */}
-      <g fill="#ffe98a">
-        <rect x="100" y="150" width="2" height="2" className="animate-pixel-firefly" />
-        <rect x="240" y="146" width="2" height="2" className="animate-pixel-firefly" style={{ animationDelay: "2.2s" }} />
-        <rect x="70" y="158" width="2" height="2" className="animate-pixel-firefly" style={{ animationDelay: "4s" }} />
-        <rect x="300" y="150" width="2" height="2" className="animate-pixel-firefly" style={{ animationDelay: "3s" }} />
-      </g>
-    </svg>
   );
 }
 
@@ -1184,6 +918,18 @@ export default function LandingPage() {
     };
   }, []);
 
+  // a few twinkling stars in the sky above the artwork (visual continuity)
+  const skyStars = [
+    { l: "8%", t: "22%", d: "0s" },
+    { l: "18%", t: "40%", d: "1.1s" },
+    { l: "30%", t: "16%", d: "2s" },
+    { l: "44%", t: "30%", d: "0.6s" },
+    { l: "60%", t: "20%", d: "1.6s" },
+    { l: "72%", t: "38%", d: "2.4s" },
+    { l: "86%", t: "18%", d: "0.9s" },
+    { l: "92%", t: "44%", d: "1.9s" },
+  ];
+
   return (
     <div id="top" className="relative w-full bg-[var(--bg)]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -1194,22 +940,31 @@ export default function LandingPage() {
 
       <Nav />
 
-      {/* ===================== HERO (full-bleed scene) ===================== */}
-      <section className="relative flex min-h-[94vh] w-full flex-col items-center justify-center overflow-hidden">
-        <JungleCabinScene className="absolute inset-0 h-full w-full" />
+      {/* ===================== HERO ===================== */}
+      <section className="relative w-full overflow-hidden bg-[#173242]">
+        {/* twinkling sky above the artwork */}
+        <div className="pointer-events-none absolute inset-0">
+          {skyStars.map((s, i) => (
+            <span
+              key={i}
+              className="absolute h-[2px] w-[2px] animate-pixel-twinkle rounded-full bg-warm-50"
+              style={{ left: s.l, top: s.t, animationDelay: s.d }}
+            />
+          ))}
+          {/* soft moon glow up top, continuing the night sky */}
+          <div className="absolute right-[16%] top-[8%] h-40 w-40 rounded-full bg-warm-100/10 blur-3xl" />
+        </div>
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0a0a1e]/85 via-[#0c0c22]/35 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[var(--bg)]" />
-
+        {/* hero copy */}
         <motion.div
           initial={reduce ? undefined : "hidden"}
           animate={reduce ? undefined : "visible"}
           variants={reduce ? undefined : stagger}
-          className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 pb-24 pt-28 text-center"
+          className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 pb-12 pt-28 text-center"
         >
           <motion.div
             variants={reduce ? undefined : fadeUp}
-            className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-300/40 bg-[#0a0a1e]/45 px-3 py-1.5 backdrop-blur-sm"
+            className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-300/40 bg-[#0c1a24]/50 px-3 py-1.5 backdrop-blur-sm"
           >
             <span className="h-2 w-2 bg-success-400 animate-pixel-twinkle" />
             <span className="font-terminal text-lg leading-none text-warm-100">
@@ -1219,7 +974,7 @@ export default function LandingPage() {
 
           <motion.h1
             variants={reduce ? undefined : fadeUp}
-            className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-warm-50 drop-shadow-[3px_3px_0_rgba(8,8,24,0.85)] sm:text-5xl md:text-6xl"
+            className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-warm-50 drop-shadow-[3px_3px_0_rgba(6,16,22,0.85)] sm:text-5xl md:text-6xl"
           >
             Come home to a{" "}
             <span className="gradient-text-pixel">calmer way to work</span>
@@ -1227,7 +982,7 @@ export default function LandingPage() {
 
           <motion.p
             variants={reduce ? undefined : fadeUp}
-            className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-warm-100/90 drop-shadow-[1px_1px_0_rgba(8,8,24,0.9)]"
+            className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-warm-100/90 drop-shadow-[1px_1px_0_rgba(6,16,22,0.9)]"
           >
             Haven is your cozy AI home. It plans your day, guards your time, and
             quietly handles every task and deadline — so you can put the noise
@@ -1242,8 +997,9 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
 
-        <div className="pixel-corners absolute bottom-8 left-1/2 z-10 -translate-x-1/2 border-2 border-[#5e3a26] bg-warm-100 px-4 py-1 shadow-pixel-sm">
-          <span className="font-pixel text-sm font-semibold text-[#5e3a26]">welcome home</span>
+        {/* the artwork */}
+        <div className="relative z-[1] w-full">
+          <HeroIllustration />
         </div>
       </section>
 
