@@ -33,6 +33,7 @@ from app.api.slides import router as slides_router
 from app.api.research import router as research_router
 from app.api.preferences import router as preferences_router
 from app.api.integrations import router as integrations_router
+from app.api.memory import router as memory_router
 from app.auth import verify_google_token
 from app.config import settings
 from app.db.firestore import init_firestore
@@ -199,6 +200,7 @@ app.include_router(slides_router)
 app.include_router(research_router)
 app.include_router(preferences_router)
 app.include_router(integrations_router)
+app.include_router(memory_router)
 
 
 @app.websocket("/ws")
@@ -548,7 +550,7 @@ async def update_task(task_id: str, body: UpdateTaskRequest):
             detail="Authentication required",
         )
 
-    await verify_google_token(body.auth_token)
+    user = await verify_google_token(body.auth_token)
 
     if mcp_client:
         try:
@@ -558,6 +560,20 @@ async def update_task(task_id: str, body: UpdateTaskRequest):
                     "complete_task",
                     {"auth_token": body.auth_token, "task_id": task_id},
                 )
+                # Learn from the completion: record WHEN the user actually
+                # finishes work so adaptive planning can find productive hours.
+                # Best-effort and non-blocking — never break the update flow.
+                try:
+                    from app.agents.memory import record_observation
+                    from app.utils.timectx import now_ist
+
+                    await record_observation(
+                        user.get("sub", ""),
+                        "task_completed",
+                        {"hour": now_ist().hour},
+                    )
+                except Exception:
+                    pass
             else:
                 await mcp_client.call_tool(
                     "google-tasks",

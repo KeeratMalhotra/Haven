@@ -83,3 +83,73 @@ class Conversation(BaseModel):
     user_id: str = ""
     messages: list[dict] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class BehavioralStats(BaseModel):
+    """Aggregated behavioral statistics distilled from raw observations.
+
+    These are recomputed deterministically every time an observation is
+    recorded, so they stay accurate even if the Gemini distillation step is
+    unavailable.
+    """
+
+    tasks_created: int = 0
+    tasks_completed: int = 0
+    tasks_rescheduled: int = 0
+    focus_sessions: int = 0
+    # Completion rate in [0, 1] = tasks_completed / tasks_created.
+    completion_rate: float = 0.0
+    # Estimate accuracy in [0, 1]: 1.0 means estimates match reality perfectly.
+    # Derived from the average ratio between estimated and actual durations.
+    estimate_accuracy: float = 0.0
+    # How many task-estimate samples backed the estimate_accuracy figure.
+    estimate_samples: int = 0
+
+
+class MemoryInsight(BaseModel):
+    """A single human-readable insight ChronAI has learned about the user.
+
+    Each insight carries a stable ``id`` so the transparency UI can let the
+    user forget individual insights without touching the rest of memory.
+    """
+
+    id: str = ""
+    text: str = ""
+    # One of: productivity | pattern | preference | behavior.
+    category: str = "pattern"
+    # "computed" (deterministic) or "distilled" (Gemini-authored).
+    source: str = "computed"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class UserMemory(BaseModel):
+    """Persistent, per-user memory — ChronAI's learning + competitive moat.
+
+    Stored as a single document keyed by ``user_id`` in the ``user_memory``
+    collection. It blends deterministically-computed structure (productive
+    hours, behavioral stats) with Gemini-distilled, human-readable insights.
+
+    Raw ``observations`` are capped (see MemoryRepository.MAX_OBSERVATIONS) so
+    the document stays small and cheap to read on every prompt.
+    """
+
+    user_id: str = ""
+    # Hours (0-23, IST) when the user actually completes work / focuses, most
+    # productive first.
+    productive_hours: list[int] = Field(default_factory=list)
+    # Hours the user reliably skips/reschedules away from — avoid scheduling.
+    avoided_hours: list[int] = Field(default_factory=list)
+    # Recurring behaviours / commonly created task types, human-readable.
+    task_patterns: list[str] = Field(default_factory=list)
+    # Preferences learned over time (e.g. {"preferred_meeting_time": "morning"}).
+    learned_preferences: dict = Field(default_factory=dict)
+    # Vocabulary / aliases: a simple key -> meaning map ("the report" -> "...").
+    vocabulary: dict = Field(default_factory=dict)
+    behavioral_stats: BehavioralStats = Field(default_factory=BehavioralStats)
+    # Distilled, readable insights surfaced on the transparency page.
+    insights: list[MemoryInsight] = Field(default_factory=list)
+    # Raw behavioural signals (capped), used to recompute stats + distill.
+    observations: list[dict] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_distilled_at: Optional[datetime] = None

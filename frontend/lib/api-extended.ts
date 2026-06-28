@@ -722,3 +722,178 @@ export async function checkinStreak(
     return { streak: 0, longest_streak: 0, last_active_date: "" };
   }
 }
+
+
+
+// --- Sprint 11: Persistent memory & learning ("The Brain Gets Real") ---
+
+export interface MemoryInsight {
+  id: string;
+  text: string;
+  category: "productivity" | "pattern" | "preference" | "behavior" | string;
+  source: "computed" | "distilled" | string;
+  created_at?: string;
+}
+
+export interface MemoryBehavioralStats {
+  tasks_created: number;
+  tasks_completed: number;
+  tasks_rescheduled: number;
+  focus_sessions: number;
+  completion_rate: number;
+  estimate_accuracy: number;
+  estimate_samples: number;
+}
+
+export interface MemoryView {
+  productive_hours: number[];
+  avoided_hours: number[];
+  task_patterns: string[];
+  learned_preferences: Record<string, unknown>;
+  vocabulary: Record<string, string>;
+  behavioral_stats: MemoryBehavioralStats;
+  insights: MemoryInsight[];
+  observation_count: number;
+  updated_at: string | null;
+  last_distilled_at: string | null;
+}
+
+const EMPTY_STATS: MemoryBehavioralStats = {
+  tasks_created: 0,
+  tasks_completed: 0,
+  tasks_rescheduled: 0,
+  focus_sessions: 0,
+  completion_rate: 0,
+  estimate_accuracy: 0,
+  estimate_samples: 0,
+};
+
+const EMPTY_MEMORY: MemoryView = {
+  productive_hours: [],
+  avoided_hours: [],
+  task_patterns: [],
+  learned_preferences: {},
+  vocabulary: {},
+  behavioral_stats: EMPTY_STATS,
+  insights: [],
+  observation_count: 0,
+  updated_at: null,
+  last_distilled_at: null,
+};
+
+/**
+ * Fetch the full learned-memory view for the transparency page.
+ * Degrades gracefully to an empty memory on any failure.
+ */
+export async function fetchMemory(authToken: string): Promise<MemoryView> {
+  if (!authToken) return EMPTY_MEMORY;
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/memory?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) return EMPTY_MEMORY;
+    return (await res.json()) as MemoryView;
+  } catch {
+    return EMPTY_MEMORY;
+  }
+}
+
+/**
+ * Fetch the user's learned insights as readable strings.
+ */
+export async function fetchMemoryInsights(
+  authToken: string
+): Promise<{ insights: string[]; detailed: MemoryInsight[] }> {
+  if (!authToken) return { insights: [], detailed: [] };
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/memory/insights?auth_token=${encodeURIComponent(authToken)}`,
+      { method: "GET", cache: "no-store" }
+    );
+    if (!res.ok) return { insights: [], detailed: [] };
+    return (await res.json()) as { insights: string[]; detailed: MemoryInsight[] };
+  } catch {
+    return { insights: [], detailed: [] };
+  }
+}
+
+/**
+ * Record a behavioural observation so ChronAI can learn from it.
+ * Best-effort: failures are swallowed so the UI flow is never blocked.
+ */
+export async function recordObservation(
+  authToken: string,
+  type: "task_completed" | "task_rescheduled" | "focus_session" | "task_created",
+  data: Record<string, unknown> = {},
+  timestamp?: string
+): Promise<void> {
+  if (!authToken) return;
+  try {
+    await fetch(`${getApiBase()}/api/memory/observe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_token: authToken, type, data, timestamp }),
+    });
+  } catch {
+    // Learning is best-effort; never surface this to the user.
+  }
+}
+
+/**
+ * Force a fresh distillation pass and return the updated memory view.
+ */
+export async function refreshMemory(authToken: string): Promise<MemoryView> {
+  if (!authToken) return EMPTY_MEMORY;
+  try {
+    const res = await fetch(`${getApiBase()}/api/memory/distill`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ auth_token: authToken }),
+    });
+    if (!res.ok) return EMPTY_MEMORY;
+    return (await res.json()) as MemoryView;
+  } catch {
+    return EMPTY_MEMORY;
+  }
+}
+
+/**
+ * Forget a single piece of learned memory (insight / preference / alias / pattern).
+ */
+export async function forgetMemoryItem(
+  authToken: string,
+  payload:
+    | { kind: "insight"; id: string }
+    | { kind: "preference"; key: string }
+    | { kind: "vocabulary"; key: string }
+    | { kind: "pattern"; value: string }
+): Promise<{ status: string; view: MemoryView }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(`${getApiBase()}/api/memory/forget`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ auth_token: authToken, ...payload }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to forget memory item (${res.status})`);
+  }
+  return (await res.json()) as { status: string; view: MemoryView };
+}
+
+/**
+ * Clear ALL learned memory for the user.
+ */
+export async function clearAllMemory(
+  authToken: string
+): Promise<{ status: string }> {
+  if (!authToken) throw new Error("No auth token provided");
+  const res = await fetch(
+    `${getApiBase()}/api/memory?auth_token=${encodeURIComponent(authToken)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to clear memory (${res.status})`);
+  }
+  return (await res.json()) as { status: string };
+}

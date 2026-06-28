@@ -29,6 +29,7 @@ import {
 import Image from "next/image";
 import { Card } from "@/components/ui/Card";
 import { Toggle } from "@/components/ui/Toggle";
+import { MemorySection } from "@/components/memory/MemorySection";
 import { useTheme } from "@/components/ui/theme-provider";
 import {
   fetchPreferences,
@@ -770,6 +771,9 @@ function SettingsContent() {
           </div>
         </div>
       </Card>
+
+      {/* What ChronAI knows about you (Sprint 11: persistent memory) */}
+      <MemorySection authToken={authToken} />
 
       {/* Integrations Section */}
       <Card hover={false} className="p-6">

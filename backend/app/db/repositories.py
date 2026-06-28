@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 
 from app.db.firestore import get_db
-from app.db.models import User, Task, Habit, Conversation
+from app.db.models import User, Task, Habit, Conversation, UserMemory
 
 
 class UserRepository:
@@ -505,3 +505,117 @@ class ConversationRepository:
             await db.collection(cls.COLLECTION).document(conversation_id).update(
                 {"messages": messages}
             )
+
+
+
+class MemoryRepository:
+    """Repository for per-user UserMemory documents in 'user_memory'.
+
+    The document ID is the user's ID, so a user has exactly one memory record.
+    All reads degrade gracefully: a missing document yields a fresh, empty
+    UserMemory rather than raising, so agents can always rely on getting a
+    usable object back.
+    """
+
+    COLLECTION = "user_memory"
+    # Cap raw observations so the document stays small and cheap to read on
+    # every prompt. Oldest observations are dropped first.
+    MAX_OBSERVATIONS = 500
+
+    @classmethod
+    async def get_memory(cls, user_id: str) -> UserMemory:
+        """Get the user's memory document, or a fresh empty one if absent.
+
+        Args:
+            user_id: The Firestore document ID (the user's ID).
+
+        Returns:
+            A UserMemory instance (never None). On any read error, returns an
+            empty UserMemory so callers degrade gracefully.
+        """
+        if not user_id:
+            return UserMemory()
+        try:
+            db = get_db()
+            doc = await db.collection(cls.COLLECTION).document(user_id).get()
+            if doc.exists:
+                data = doc.to_dict() or {}
+                data["user_id"] = user_id
+                return UserMemory(**data)
+        except Exception:
+            # Memory must never break the main flow — fall through to empty.
+            pass
+        return UserMemory(user_id=user_id)
+
+    @classmethod
+    async def save_memory(cls, memory: UserMemory) -> None:
+        """Persist a full UserMemory document (overwrites existing).
+
+        Args:
+            memory: The UserMemory instance to store. Its ``user_id`` is used
+                as the document ID.
+        """
+        if not memory.user_id:
+            return
+        memory.updated_at = datetime.utcnow()
+        db = get_db()
+        data = memory.model_dump(exclude={"user_id"})
+        await db.collection(cls.COLLECTION).document(memory.user_id).set(data)
+
+    @classmethod
+    async def update_memory(cls, user_id: str, partial: dict) -> UserMemory:
+        """Merge a partial update into the user's memory and persist it.
+
+        Args:
+            user_id: The user's ID.
+            partial: Dict of UserMemory fields to overwrite.
+
+        Returns:
+            The updated UserMemory instance.
+        """
+        memory = await cls.get_memory(user_id)
+        merged = memory.model_dump()
+        merged.update(partial)
+        merged["user_id"] = user_id
+        updated = UserMemory(**merged)
+        await cls.save_memory(updated)
+        return updated
+
+    @classmethod
+    async def record_observation(
+        cls, user_id: str, observation: dict
+    ) -> UserMemory:
+        """Append a raw behavioural observation, capping the stored history.
+
+        This only persists the raw signal; statistical distillation is handled
+        by the memory agent so the write stays cheap.
+
+        Args:
+            user_id: The user's ID.
+            observation: A JSON-serializable dict describing the signal, e.g.
+                ``{"type": "task_completed", "hour": 10, "title": "..."}``.
+
+        Returns:
+            The updated UserMemory instance.
+        """
+        memory = await cls.get_memory(user_id)
+        observations = list(memory.observations or [])
+        observations.append(observation)
+        # Keep only the most recent MAX_OBSERVATIONS entries.
+        if len(observations) > cls.MAX_OBSERVATIONS:
+            observations = observations[-cls.MAX_OBSERVATIONS :]
+        memory.observations = observations
+        await cls.save_memory(memory)
+        return memory
+
+    @classmethod
+    async def clear_memory(cls, user_id: str) -> None:
+        """Delete the user's memory document entirely ('forget everything').
+
+        Args:
+            user_id: The user's ID.
+        """
+        if not user_id:
+            return
+        db = get_db()
+        await db.collection(cls.COLLECTION).document(user_id).delete()

@@ -589,6 +589,12 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
         if result and not (isinstance(result, dict) and result.get("error")):
             if user_id:
                 await self._persist_event_to_firestore(user_id, event_details, result)
+                # Learn that the user does focused/deep work at this hour.
+                await self._record_memory_observation(
+                    user_id,
+                    "focus_session",
+                    {"hour": now_ist().hour, "title": summary},
+                )
 
             end_time = now_ist() + timedelta(minutes=duration)
             end_display = end_time.strftime("%-I:%M %p")
@@ -790,6 +796,19 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
         if result and not (isinstance(result, dict) and result.get("error")):
             if user_id:
                 await self._persist_event_to_firestore(user_id, new_details, result)
+                # Learn which hours the user reschedules AWAY from (avoided) and
+                # toward (preferred), so adaptive planning can respect both.
+                old_dt = self._parse_event_dt(target.get("start"))
+                new_dt = self._parse_event_dt(new_iso)
+                await self._record_memory_observation(
+                    user_id,
+                    "task_rescheduled",
+                    {
+                        "title": new_details.get("summary", ""),
+                        "from_hour": old_dt.hour if old_dt else None,
+                        "to_hour": new_dt.hour if new_dt else None,
+                    },
+                )
             summary = new_details["summary"]
             when = self._human_time(self._parse_event_dt(new_iso))
             return self._result(
@@ -1100,6 +1119,19 @@ Scheduling request: {message}"""
         # Fallback: next full hour, in IST.
         target = now_ist().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         return target.isoformat()
+
+    async def _record_memory_observation(
+        self, user_id: str, obs_type: str, data: dict
+    ) -> None:
+        """Record a behavioural signal for learning. Best-effort, never raises."""
+        if not user_id:
+            return
+        try:
+            from app.agents.memory import record_observation
+
+            await record_observation(user_id, obs_type, data)
+        except Exception as e:
+            logger.warning(f"[scheduler] memory observation failed: {e}")
 
     async def _persist_event_to_firestore(
         self, user_id: str, event_details: dict, result: dict

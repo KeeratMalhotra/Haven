@@ -305,6 +305,20 @@ async def generate_today_briefing(
         "tasks_pending": len(pending),
     }
 
+    # --- Learned memory: adapt the briefing to how the user actually works ---
+    productive_hours: list[int] = []
+    memory_insights: list[str] = []
+    try:
+        from app.agents.memory import memory_planning_hints
+        from app.db.repositories import MemoryRepository
+
+        memory = await MemoryRepository.get_memory(user_id)
+        hints = memory_planning_hints(memory)
+        productive_hours = hints.get("productive_hours", [])
+        memory_insights = [i.text for i in memory.insights][:3]
+    except Exception as e:
+        logger.warning(f"[briefing] Failed to load memory: {e}")
+
     # --- AI narration -----------------------------------------------------
     narrative = await _narrate_briefing(
         user_name=user_name,
@@ -315,6 +329,8 @@ async def generate_today_briefing(
         warnings=warnings,
         work_start=work_start,
         work_end=work_end,
+        productive_hours=productive_hours,
+        memory_insights=memory_insights,
     )
 
     greeting = f"Good {time_of_day}"
@@ -349,12 +365,30 @@ async def _narrate_briefing(
     warnings: list[str],
     work_start: int,
     work_end: int,
+    productive_hours: list[int] | None = None,
+    memory_insights: list[str] | None = None,
 ) -> str:
     """Compose a short, warm natural-language narration via Gemini.
 
     The user's data (titles etc.) is passed inside a JSON block that the model
     is told to treat as opaque data, keeping instructions separate from content.
+    Learned memory (productive hours, insights) is included so the narration can
+    suggest protecting the user's real deep-work window.
     """
+    productive_hours = productive_hours or []
+    memory_insights = memory_insights or []
+
+    def _hour_label(hour: int) -> str:
+        h12 = hour % 12 or 12
+        return f"{h12} {'AM' if hour < 12 else 'PM'}"
+
+    productive_window = ""
+    if productive_hours:
+        lo, hi = min(productive_hours), max(productive_hours)
+        productive_window = (
+            _hour_label(lo) if lo == hi else f"{_hour_label(lo)}\u2013{_hour_label(hi)}"
+        )
+
     facts = {
         "time_of_day": time_of_day,
         "name": user_name or "there",
@@ -368,6 +402,8 @@ async def _narrate_briefing(
         ],
         "top_priority": top_priority,
         "warnings": warnings,
+        "productive_window": productive_window,
+        "learned_insights": memory_insights,
     }
 
     system_instruction = (
@@ -377,9 +413,10 @@ async def _narrate_briefing(
         "Write a brief spoken-style daily briefing (2-3 short sentences, no "
         "markdown, no lists, no headers). Open by acknowledging how many "
         "meetings and deadlines there are. Name the top priority if present. If "
-        "there are warnings about tight gaps or conflicts, gently mention one "
-        "and offer to help (e.g. 'want me to protect 9-11am?'). Keep it "
-        "encouraging and concise."
+        "a 'productive_window' is given, suggest protecting it for deep work "
+        "(e.g. 'want me to guard your 9-11 AM focus window?'). If there are "
+        "warnings about tight gaps or conflicts, gently mention one and offer to "
+        "help. Keep it encouraging and concise."
     )
     user_message = f"FACTS:\n{json.dumps(facts, default=str)}"
 

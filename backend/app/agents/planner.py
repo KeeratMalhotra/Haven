@@ -159,7 +159,7 @@ class PlannerAgent(AgentBase):
             if not task_name:
                 # Try to extract from the message itself
                 task_name = message.replace("complete_task:", "").strip()
-            result = await self._complete_task(auth_token, task_name)
+            result = await self._complete_task(auth_token, task_name, user_id)
             return result
 
         # DECOMPOSE intent: break a goal into subtasks (max 6).
@@ -190,6 +190,8 @@ class PlannerAgent(AgentBase):
         persist_failures = 0
         if user_id and plan.get("tasks"):
             persist_failures = await self._persist_tasks_to_firestore(user_id, plan["tasks"])
+            # Learn recurring task types from what the user creates.
+            await self._record_creation_observation(user_id, plan["tasks"])
 
         response_content = plan.get(
             "response", plan.get("plan_summary", "Plan created.")
@@ -455,7 +457,7 @@ contain a usable deadline, return action "needs_info" again."""
             "pending_action": None,
         }
 
-    async def _complete_task(self, auth_token: str, task_name: str) -> dict:
+    async def _complete_task(self, auth_token: str, task_name: str, user_id: str = "") -> dict:
         """Mark a task as completed by finding it by name and calling MCP.
 
         Lists all tasks, finds the best match for the given name, then
@@ -464,6 +466,7 @@ contain a usable deadline, return action "needs_info" again."""
         Args:
             auth_token: Google OAuth token for API access.
             task_name: The name/title of the task to complete.
+            user_id: The user's ID, used to record a learning observation.
 
         Returns:
             Response dict with confirmation or error message.
@@ -519,6 +522,9 @@ contain a usable deadline, return action "needs_info" again."""
                 {"auth_token": auth_token, "task_id": task_id},
             )
             task_title = matched_task.get("title", task_name)
+            # Learn from the completion: record the time + title so memory can
+            # infer productive hours and recurring task types. Best-effort.
+            await self._record_completion_observation(user_id, task_title)
             return {
                 "content": f"Done! Marked '{task_title}' as completed. Nice work!",
                 "agent": self.name,
@@ -535,3 +541,43 @@ contain a usable deadline, return action "needs_info" again."""
                 "tasks": [],
                 "pending_action": None,
             }
+
+    @staticmethod
+    async def _record_completion_observation(user_id: str, title: str) -> None:
+        """Record a task-completion signal for behavioural learning.
+
+        Best-effort and isolated: memory failures must never affect the
+        user-facing task flow.
+        """
+        if not user_id:
+            return
+        try:
+            from app.agents.memory import record_observation
+            from app.utils.timectx import now_ist
+
+            await record_observation(
+                user_id,
+                "task_completed",
+                {"hour": now_ist().hour, "title": title},
+            )
+        except Exception as e:
+            logger.warning(f"[planner] memory observation failed: {e}")
+
+    @staticmethod
+    async def _record_creation_observation(user_id: str, tasks: list[dict]) -> None:
+        """Record task-creation signals so memory learns recurring task types."""
+        if not user_id or not tasks:
+            return
+        try:
+            from app.agents.memory import record_observation
+            from app.utils.timectx import now_ist
+
+            hour = now_ist().hour
+            for t in tasks:
+                title = t.get("title", "")
+                if title:
+                    await record_observation(
+                        user_id, "task_created", {"hour": hour, "title": title}
+                    )
+        except Exception as e:
+            logger.warning(f"[planner] memory creation observation failed: {e}")

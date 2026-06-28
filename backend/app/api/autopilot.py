@@ -106,6 +106,42 @@ async def generate_plan(body: AutopilotPlanRequest, request: Request):
         except Exception as e:
             logger.warning(f"Failed to get priorities for autopilot: {e}")
 
+    # Fetch learned memory so the plan adapts to how the user ACTUALLY works:
+    # schedule deep work in their productive hours, avoid times they always
+    # skip, and pad estimates when their estimate accuracy is poor.
+    memory_block = ""
+    try:
+        from app.agents.memory import memory_planning_hints
+        from app.db.repositories import MemoryRepository
+
+        memory = await MemoryRepository.get_memory(user_id)
+        hints = memory_planning_hints(memory)
+        insight_texts = [i.text for i in memory.insights][:5]
+        hint_lines = []
+        if hints["productive_hours"]:
+            hrs = ", ".join(f"{h:02d}:00" for h in hints["productive_hours"])
+            hint_lines.append(
+                f"- Schedule deep/focus work during the user's most productive hours: {hrs}."
+            )
+        if hints["avoided_hours"]:
+            hrs = ", ".join(f"{h:02d}:00" for h in hints["avoided_hours"])
+            hint_lines.append(
+                f"- AVOID scheduling anything important at hours the user repeatedly skips: {hrs}."
+            )
+        if hints["pad_focus_estimates"]:
+            hint_lines.append(
+                "- The user underestimates task durations, so add ~25% buffer to focus blocks."
+            )
+        if insight_texts:
+            hint_lines.append("- Learned insights about this user:")
+            hint_lines.extend(f"    * {t}" for t in insight_texts)
+        if hint_lines:
+            memory_block = "LEARNED MEMORY (adapt the plan to this):\n" + "\n".join(
+                hint_lines
+            )
+    except Exception as e:
+        logger.warning(f"Failed to load memory for autopilot: {e}")
+
     # Format data for Gemini
     tasks_block = json.dumps(tasks_list[:15], default=str, indent=None)
     events_block = json.dumps(events_list[:15], default=str, indent=None)
@@ -113,11 +149,13 @@ async def generate_plan(body: AutopilotPlanRequest, request: Request):
 
     system_instruction = (
         "You are a smart productivity AI planning an optimal day. Based on the user's "
-        "tasks, existing calendar events, free time slots, and priority rankings, "
-        "generate an actionable day plan.\n\n"
+        "tasks, existing calendar events, free time slots, priority rankings, and the "
+        "LEARNED MEMORY about how they actually work, generate an actionable day plan.\n\n"
         "RULES:\n"
         "- Schedule high-priority tasks into free slots\n"
-        "- Block focus time (at least one 60-90 min block) for deep work\n"
+        "- Block focus time (at least one 60-90 min block) for deep work, preferring the "
+        "user's productive hours from LEARNED MEMORY when available\n"
+        "- Avoid scheduling at hours the user habitually skips/reschedules (LEARNED MEMORY)\n"
         "- Add 10-15 min buffer between back-to-back meetings\n"
         "- Do not double-book or conflict with existing events\n"
         "- Only schedule during reasonable working hours (9am-6pm) unless user has later events\n"
@@ -143,7 +181,8 @@ async def generate_plan(body: AutopilotPlanRequest, request: Request):
         f"USER TASKS:\n{tasks_block}\n\n"
         f"EXISTING EVENTS:\n{events_block}\n\n"
         f"FREE SLOTS:\n{slots_block}\n\n"
-        f"PRIORITY RANKINGS:\n{priorities_content[:1000]}"
+        f"PRIORITY RANKINGS:\n{priorities_content[:1000]}\n\n"
+        f"{memory_block}"
     )
 
     try:
