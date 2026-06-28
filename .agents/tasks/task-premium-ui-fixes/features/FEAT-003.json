@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Toast Sound + Visual Improvement, Top Navbar Action Button (replacing bottom-right FAB from dashboard page), Profile Picture Upload, and Cache Integration Status on settings page.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "TOAST IMPROVEMENTS in frontend/components/ai/AIToast.tsx: (a) Add a playNotificationSound() function that uses Web Audio API to generate a short 200ms sine wave at 800Hz with quick exponential fade-out (gain from 0.3 to 0 over 200ms). Call it when a new toast appears (in ToastItem useEffect on mount). (b) Change the entrance animation from the current slide-from-right to a spring bounce: initial scale 0.8 + y offset, animate to scale 1 with type:'spring', stiffness ~500, damping ~25 (overshoot effect). (c) Add a left-border accent color on the toast card: border-l-3 with accent-500 for info/sparkles type, warning-500 for warning type.",
     "TOP NAVBAR ACTION BUTTON: (a) In frontend/app/dashboard/page.tsx: Remove the entire 'Quick Actions FAB' section at the bottom (the fixed bottom-6 right-6 div with the Plus button and the AnimatePresence dropdown). Keep the fabOpen state removal clean -- remove the state variable and all references. (b) In frontend/components/layout/TopBar.tsx: Add a '+' action button in the right section (before the search button). On click, toggle a dropdown menu below it. The dropdown shows: Add Task, Add Event, Start Pomodoro, Start Focus. Style the dropdown as a Card-like panel with border border-[var(--border)] bg-[var(--surface)] rounded-xl shadow-lg. Each item has an icon + label. Use click-outside to close. The button dispatches custom events or uses router.push for navigation actions.",

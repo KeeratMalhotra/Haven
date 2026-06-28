@@ -1,7 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Search, Menu, MessageCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Menu, MessageCircle, Plus, CheckSquare, Calendar, Timer, Zap } from "lucide-react";
 import Image from "next/image";
 
 interface TopBarProps {
@@ -12,6 +14,29 @@ interface TopBarProps {
   chatOpen?: boolean;
   onChatToggle?: () => void;
 }
+
+const quickActions = [
+  {
+    label: "Add Task",
+    icon: CheckSquare,
+    href: "/dashboard/tasks",
+  },
+  {
+    label: "Add Event",
+    icon: Calendar,
+    href: "/dashboard/calendar",
+  },
+  {
+    label: "Start Pomodoro",
+    icon: Timer,
+    href: null,
+  },
+  {
+    label: "Start Focus",
+    icon: Zap,
+    href: null,
+  },
+];
 
 /**
  * TopBar
@@ -26,6 +51,10 @@ export default function TopBar({
   chatOpen,
   onChatToggle,
 }: TopBarProps) {
+  const router = useRouter();
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+
   const connectionColor =
     connected === true
       ? "bg-emerald-400"
@@ -48,6 +77,28 @@ export default function TopBar({
       bubbles: true,
     });
     document.dispatchEvent(event);
+  };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) {
+        setActionsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [actionsOpen]);
+
+  const handleActionClick = (action: (typeof quickActions)[number]) => {
+    setActionsOpen(false);
+    if (action.href) {
+      router.push(action.href);
+    } else if (action.label === "Start Pomodoro" || action.label === "Start Focus") {
+      // Dispatch a custom event that FocusMode can listen for
+      window.dispatchEvent(new CustomEvent("chronai-start-focus"));
+    }
   };
 
   return (
@@ -81,8 +132,53 @@ export default function TopBar({
         </motion.h1>
       </div>
 
-      {/* Right section: search, connection, avatar */}
+      {/* Right section: actions, search, chat, connection, avatar */}
       <div className="flex items-center gap-3">
+        {/* Quick Actions "+" button */}
+        <div className="relative" ref={actionsRef}>
+          <motion.button
+            onClick={() => setActionsOpen((o) => !o)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`flex items-center justify-center rounded-lg p-2 border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-hover)] ${
+              actionsOpen
+                ? "text-accent-500"
+                : "text-[var(--text-secondary)]"
+            }`}
+            aria-label="Quick actions"
+          >
+            <Plus size={16} strokeWidth={1.5} />
+          </motion.button>
+
+          <AnimatePresence>
+            {actionsOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute right-0 top-full mt-2 z-50 border border-[var(--border)] bg-[var(--surface)] rounded-xl shadow-lg p-2 min-w-[180px]"
+              >
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.label}
+                      onClick={() => handleActionClick(action)}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-[var(--surface-hover)]"
+                    >
+                      <Icon size={16} strokeWidth={1.5} className="text-accent-500 shrink-0" />
+                      <span className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
+                        {action.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Search / Command Palette trigger */}
         <motion.button
           onClick={handleSearchClick}

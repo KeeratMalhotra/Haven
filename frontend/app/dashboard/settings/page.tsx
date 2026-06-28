@@ -23,6 +23,7 @@ import {
   CheckCheck,
   Globe,
   Save,
+  Camera,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -144,6 +145,10 @@ function SettingsContent() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
+  // Custom profile picture (localStorage)
+  const [customProfilePicture, setCustomProfilePicture] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Error state for surfacing failures to the user
   const [integrationError, setIntegrationError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -190,6 +195,21 @@ function SettingsContent() {
 
     const review = localStorage.getItem("chronai-weekly-review");
     if (review !== null) setWeeklyReview(review === "true");
+
+    // Load custom profile picture from localStorage
+    const profilePic = localStorage.getItem("chronai-profile-picture");
+    if (profilePic) setCustomProfilePicture(profilePic);
+
+    // Load cached integration status from localStorage to prevent flash
+    const cachedStatus = localStorage.getItem("chronai-integration-status-cache");
+    if (cachedStatus) {
+      try {
+        const parsed = JSON.parse(cachedStatus);
+        setIntegrationStatus(parsed);
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
   }, []);
 
   // Check for ?connected= query param (OAuth redirect callback)
@@ -239,6 +259,8 @@ function SettingsContent() {
     // Fetch integration status from backend
     fetchIntegrationStatus(authToken).then((status) => {
       setIntegrationStatus(status);
+      // Cache integration status in localStorage
+      localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
       // Sync Spotify status with localStorage for the mini player
       if (status.spotify?.connected) {
         localStorage.setItem("chronai-spotify-connected", "true");
@@ -255,6 +277,7 @@ function SettingsContent() {
         setTimeout(() => {
           fetchIntegrationStatus(authToken).then((status) => {
             setIntegrationStatus(status);
+            localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
             if (status.spotify?.connected) {
               localStorage.setItem("chronai-spotify-connected", "true");
               dispatchStorageChange("chronai-spotify-connected", "true");
@@ -279,6 +302,7 @@ function SettingsContent() {
         // Refresh integration status
         fetchIntegrationStatus(authToken).then((status) => {
           setIntegrationStatus(status);
+          localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
           setConnectionToast(`${service} connected successfully!`);
           setTimeout(() => setConnectionToast(null), 3000);
           if (status.spotify?.connected) {
@@ -390,6 +414,26 @@ function SettingsContent() {
     window.dispatchEvent(new CustomEvent("chronai-playlist-changed", { detail: { url } }));
   };
 
+  // --- Profile picture handlers ---
+  const handleProfilePictureSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setCustomProfilePicture(base64);
+      localStorage.setItem("chronai-profile-picture", base64);
+    };
+    reader.readAsDataURL(file);
+    // Reset input value so the same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleRemoveProfilePicture = () => {
+    setCustomProfilePicture(null);
+    localStorage.removeItem("chronai-profile-picture");
+  };
+
   // --- Profile handlers ---
   const handleSaveProfile = async () => {
     if (!authToken) return;
@@ -472,19 +516,44 @@ function SettingsContent() {
         <div className="space-y-5">
           {/* User info row */}
           <div className="flex items-center gap-4">
-            {user?.image ? (
-              <Image
-                src={user.image}
-                alt={user.name || "User"}
-                width={56}
-                height={56}
-                className="h-14 w-14 rounded-full ring-2 ring-[var(--border)]"
+            <div className="relative group">
+              {customProfilePicture ? (
+                <Image
+                  src={customProfilePicture}
+                  alt={user?.name || "User"}
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 rounded-full ring-2 ring-[var(--border)] object-cover"
+                />
+              ) : user?.image ? (
+                <Image
+                  src={user.image}
+                  alt={user.name || "User"}
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 rounded-full ring-2 ring-[var(--border)]"
+                />
+              ) : (
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-500/10 text-accent-500 font-semibold text-lg">
+                  {user?.name?.[0] || "U"}
+                </div>
+              )}
+              {/* Change Photo overlay */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                aria-label="Change photo"
+              >
+                <Camera size={18} strokeWidth={1.5} className="text-white" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureSelect}
+                className="hidden"
               />
-            ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-500/10 text-accent-500 font-semibold text-lg">
-                {user?.name?.[0] || "U"}
-              </div>
-            )}
+            </div>
             <div>
               <p className="text-sm font-medium text-[var(--text-primary)]">
                 {user?.name || "User"}
@@ -495,6 +564,14 @@ function SettingsContent() {
               <p className="mt-1 text-xs text-[var(--text-tertiary)]">
                 {connectedCount} service{connectedCount !== 1 ? "s" : ""} connected
               </p>
+              {customProfilePicture && (
+                <button
+                  onClick={handleRemoveProfilePicture}
+                  className="mt-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
           </div>
 

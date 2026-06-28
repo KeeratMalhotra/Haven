@@ -6,6 +6,37 @@ import { Sparkles, AlertTriangle, X } from "lucide-react";
 import { useAI } from "./AIContextProvider";
 import type { AISuggestion } from "./AIContextProvider";
 
+/**
+ * Play a subtle notification pop sound using Web Audio API.
+ * 200ms sine wave at 800Hz with quick exponential fade-out.
+ */
+function playNotificationSound() {
+  try {
+    const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.2);
+
+    // Clean up after sound finishes
+    oscillator.onended = () => {
+      audioCtx.close();
+    };
+  } catch {
+    // Silently fail if audio context is not available
+  }
+}
+
 function ToastItem({
   suggestion,
   onDismiss,
@@ -16,6 +47,9 @@ function ToastItem({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Play notification sound on mount
+    playNotificationSound();
+
     timerRef.current = setTimeout(() => {
       onDismiss();
     }, 12000);
@@ -26,14 +60,18 @@ function ToastItem({
   }, [onDismiss]);
 
   const Icon = suggestion.type === "warning" ? AlertTriangle : Sparkles;
+  const borderColor =
+    suggestion.type === "warning"
+      ? "border-l-warning-500"
+      : "border-l-accent-500";
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 80, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
+      initial={{ opacity: 0, y: -20, scale: 0.8 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 40, scale: 0.95 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg p-4 max-w-sm w-full"
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+      className={`bg-[var(--surface)] border border-[var(--border)] border-l-[3px] ${borderColor} rounded-xl shadow-lg p-4 max-w-sm w-full`}
     >
       <div className="flex items-start gap-3">
         <Icon className="w-4 h-4 text-[var(--text-tertiary)] mt-0.5 shrink-0" />

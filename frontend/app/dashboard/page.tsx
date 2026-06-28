@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
   Calendar,
@@ -17,8 +17,6 @@ import {
   CheckSquare as CheckSquareFilled,
   Bell,
   BookOpen,
-  Plus,
-  Timer,
   Zap,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -146,8 +144,7 @@ export default function DashboardPage() {
   const [focusActive, setFocusActive] = useState(false);
   const [focusTask, setFocusTask] = useState<string | undefined>(undefined);
 
-  // Quick Actions FAB
-  const [fabOpen, setFabOpen] = useState(false);
+
 
   // Auto-Pilot panel
   const [autopilotOpen, setAutopilotOpen] = useState(false);
@@ -819,73 +816,6 @@ export default function DashboardPage() {
         )}
       </motion.div>
       </ErrorBoundary>
-
-      {/* Quick Actions FAB */}
-      <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2">
-        <AnimatePresence>
-          {fabOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="mb-2 flex flex-col gap-2"
-            >
-              {[
-                {
-                  label: "Add Task",
-                  icon: CheckSquare,
-                  action: () => { router.push("/dashboard/tasks"); setFabOpen(false); },
-                },
-                {
-                  label: "Add Event",
-                  icon: Calendar,
-                  action: () => { router.push("/dashboard/calendar"); setFabOpen(false); },
-                },
-                {
-                  label: "Start Focus",
-                  icon: Timer,
-                  action: () => { setFocusActive(true); setFabOpen(false); },
-                },
-              ].map((item, i) => {
-                const Icon = item.icon;
-                return (
-                  <motion.button
-                    key={item.label}
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    transition={{ delay: i * 0.04, duration: 0.2 }}
-                    onClick={item.action}
-                    className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-lg transition-colors hover:bg-[var(--surface-hover)]"
-                  >
-                    <Icon size={16} strokeWidth={1.5} className="text-accent-500" />
-                    <span className="text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
-                      {item.label}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <motion.button
-          onClick={() => setFabOpen((o) => !o)}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-gradient shadow-lg shadow-accent-500/25 transition-shadow hover:shadow-xl hover:shadow-accent-500/30"
-          aria-label="Quick actions"
-        >
-          <motion.div
-            animate={{ rotate: fabOpen ? 45 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Plus size={22} className="text-white" />
-          </motion.div>
-        </motion.button>
-      </div>
 
       {/* Auto-Pilot Panel */}
       <AutoPilotPanel
