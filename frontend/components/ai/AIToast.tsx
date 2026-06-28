@@ -138,7 +138,7 @@ export default function AIToast() {
     .slice(-3);
 
   return (
-    <div className="fixed top-6 right-6 z-50 flex flex-col gap-3">
+    <div className="fixed top-20 right-6 z-[200] flex flex-col gap-3">
       <AnimatePresence mode="popLayout">
         {visibleSuggestions.map((suggestion) => (
           <ToastItem

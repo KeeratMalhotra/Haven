@@ -169,19 +169,25 @@ function SettingsContent() {
   const [proactiveNotifs, setProactiveNotifs] = useState(true);
   const [autopilotMode, setAutopilotMode] = useState<"ask_permission" | "full_auto">("ask_permission");
 
-  // Integration status (from backend) - initialized from cache to prevent flash
-  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>(() => {
-    if (typeof window === "undefined") return {};
+  // Integration status (from backend) - load from cache only on client to avoid hydration mismatch
+  const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({});
+  const [connectingService, setConnectingService] = useState<string | null>(null);
+  const [connectionToast, setConnectionToast] = useState<string | null>(null);
+
+  // Load cached integration status on mount (client-only)
+  useEffect(() => {
     try {
       const cached = localStorage.getItem("chronai-integration-status-cache");
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === "object") {
+          setIntegrationStatus(parsed);
+        }
+      }
     } catch {
       // Ignore invalid JSON
     }
-    return {};
-  });
-  const [connectingService, setConnectingService] = useState<string | null>(null);
-  const [connectionToast, setConnectionToast] = useState<string | null>(null);
+  }, []);
 
   // Spotify (hybrid: backend OAuth + localStorage embed URL)
   const [spotifyPlaylistUrl, setSpotifyPlaylistUrl] = useState("");
