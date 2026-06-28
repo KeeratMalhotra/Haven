@@ -250,7 +250,7 @@ export default function AIChatPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-[2px]"
+            className="fixed top-14 inset-x-0 bottom-0 z-[80] bg-black/30 backdrop-blur-[2px]"
             onClick={onClose}
           />
 
@@ -260,7 +260,7 @@ export default function AIChatPanel({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-0 md:inset-auto md:right-0 md:top-0 z-[81] flex h-full md:w-[400px] md:max-w-[90vw] flex-col border-l border-[var(--border)] bg-[var(--bg)] shadow-2xl"
+            className="fixed top-14 bottom-0 left-0 right-0 md:left-auto md:right-0 md:top-14 z-[81] flex h-auto md:w-[400px] md:max-w-[90vw] flex-col border-l border-[var(--border)] bg-[var(--bg)] shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-label="AI Assistant"

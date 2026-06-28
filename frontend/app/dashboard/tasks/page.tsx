@@ -25,6 +25,7 @@ import {
   Mail,
   Presentation,
   Search,
+  Star,
 } from "lucide-react";
 import {
   DndContext,
@@ -94,6 +95,7 @@ interface LocalTask extends TaskItem {
   priority: "high" | "medium" | "low" | "none";
   recurrence?: RecurrenceConfig | null;
   labels?: TaskLabel[];
+  source?: "gmail" | "manual";
 }
 
 type ViewMode = "board" | "list";
@@ -398,6 +400,12 @@ const SortableTaskCard = memo(function SortableTaskCard({
           <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2">
             {task.title}
           </p>
+          {(task.id.startsWith("task-gmail-") || task.source === "gmail") && (
+            <span className="inline-flex items-center gap-0.5 ml-1 flex-shrink-0">
+              <Mail size={12} className="text-[#EA4335]" />
+              <Star size={10} className="text-amber-500 fill-amber-500" />
+            </span>
+          )}
         </div>
         {task.labels && task.labels.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
@@ -518,17 +526,6 @@ const ListRow = memo(function ListRow({
     }
   }, [isEditing]);
 
-  const statusBadge = () => {
-    switch (task.status) {
-      case "done":
-        return <Badge variant="success">Done</Badge>;
-      case "inprogress":
-        return <Badge variant="warning">In Progress</Badge>;
-      default:
-        return <Badge variant="default">To Do</Badge>;
-    }
-  };
-
   return (
     <div
       ref={setNodeRef}
@@ -629,6 +626,12 @@ const ListRow = memo(function ListRow({
             >
               {task.title}
             </button>
+            {(task.id.startsWith("task-gmail-") || task.source === "gmail") && (
+              <span className="inline-flex items-center gap-0.5 ml-1 flex-shrink-0">
+                <Mail size={12} className="text-[#EA4335]" />
+                <Star size={10} className="text-amber-500 fill-amber-500" />
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -659,7 +662,6 @@ const ListRow = memo(function ListRow({
       >
         <Trash2 size={14} strokeWidth={1.5} />
       </button>
-      {statusBadge()}
     </div>
   );
 });
@@ -803,33 +805,6 @@ function TaskDetailPanel({
               onUpdate({ ...task, title, notes, due: due || null, status, priority: p, recurrence, labels: taskLabels });
             }}
           />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
-            Status
-          </label>
-          <div className="flex gap-2">
-            {(["todo", "inprogress", "done"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setStatus(s);
-                  onUpdate({ ...task, title, notes, due: due || null, status: s, priority, recurrence, labels: taskLabels });
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  status === s
-                    ? "bg-accent-500/10 text-accent-500 border border-accent-500/30"
-                    : "bg-[var(--surface-hover)] text-[var(--text-secondary)] border border-transparent hover:border-[var(--border)]"
-                }`}
-              >
-                {s === "todo"
-                  ? "To Do"
-                  : s === "inprogress"
-                  ? "In Progress"
-                  : "Done"}
-              </button>
-            ))}
-          </div>
         </div>
         <div>
           <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
@@ -2192,6 +2167,7 @@ function TasksPageContent() {
               due: null,
               subtasks: [],
               labels: [],
+              source: "gmail",
             };
             setTasks((prev) => [newTask, ...prev]);
           }}

@@ -213,7 +213,7 @@ export default function TopBar({
             onClick={onChatToggle}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`flex items-center justify-center rounded-lg p-2 border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-hover)] ${
+            className={`relative flex items-center justify-center rounded-lg p-2 border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-hover)] ${
               chatOpen
                 ? "text-accent-500"
                 : "text-[var(--text-secondary)]"
@@ -221,6 +221,9 @@ export default function TopBar({
             aria-label={chatOpen ? "Close AI chat" : "Open AI chat"}
           >
             <MessageCircle size={16} strokeWidth={1.5} />
+            <span className="absolute -top-1 -right-1 flex items-center justify-center h-3.5 w-3.5 rounded-full bg-accent-500/20">
+              <Sparkles size={8} className="text-accent-500" />
+            </span>
           </motion.button>
         )}
 

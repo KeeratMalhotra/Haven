@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix Tasks UX simplification, Chat panel overlap, Navbar star, and Gmail task indicators",
+  "status": "in_progress",
+  "steps": [
+    "TASKS UX SIMPLIFICATION (frontend/app/dashboard/tasks/page.tsx): In the board view (KanbanColumn/SortableTaskCard), the cards currently have no status-change buttons visible - it uses drag to move between columns. In the list view (ListRow component around line 350-440), there is a status badge shown per row that shows 'To Do', 'In Progress', 'Done'. The task detail panel (TaskDetailPanel around line 478) has explicit 'To Do', 'In Progress', 'Done' status selector buttons. SIMPLIFICATION: In the list view, replace the explicit status badge with a simple checkbox that toggles between done/not-done (the checkbox already exists - remove the statusBadge() at the end of the ListRow). In the task detail panel, simplify the status section - instead of 3 explicit buttons for 'todo/inprogress/done', use a simple checkbox for done/not-done and keep the drag-to-column mechanism for inprogress in board view. Remove the status section from TaskDetailPanel entirely since the checkbox toggle and drag-to-column already handle status changes adequately.",
+    "CHAT PANEL OVERLAP FIX (frontend/components/chat/AIChatPanel.tsx): The TopBar uses z-[100]. The AI Chat panel attached mode uses z-[80] for backdrop and z-[81] for the panel. The panel has 'fixed inset-0 md:inset-auto md:right-0 md:top-0' which means on mobile it covers the entire screen including the navbar. Fix: For the attached panel (non-detached mode), add a top offset so it does not overlap the navbar. Change the panel positioning to use 'fixed top-14 right-0 bottom-0' for desktop and 'fixed top-14 inset-x-0 bottom-0' for mobile (since the TopBar is h-14). This applies to the attached mode panel div (around the 'fixed inset-0 md:inset-auto md:right-0 md:top-0 z-[81]' class). Also ensure the backdrop starts below the TopBar.",
+    "STAR/SPARKLE ON CHAT BUTTON IN NAVBAR (frontend/components/layout/TopBar.tsx): The AI Chat toggle button currently shows only a MessageCircle icon. Add a small Sparkles icon or star overlay to indicate it is AI-powered. Use the Sparkles icon from lucide-react (already imported) as a small badge/overlay on the chat button. Add a tiny sparkle icon (size 8-10) positioned at the top-right of the button using absolute positioning.",
+    "GMAIL SYMBOL AND STAR ON SCAM MAIL TASKS (frontend/app/dashboard/tasks/page.tsx): Tasks created from Gmail scan have IDs starting with 'task-gmail-'. In both the SortableTaskCard (board view) and ListRow (list view), detect when a task.id starts with 'task-gmail-' and display a Gmail icon (use the Mail icon from lucide-react, already imported) and a small star/sparkle indicator next to the task title. Add a small Gmail-colored icon (red/multicolor) and a star mark to visually distinguish these tasks. Also add a 'source' field to the LocalTask interface that is set to 'gmail' for tasks created from the Gmail scan, so we can rely on that rather than just the ID prefix."
+  ],
+  "acceptance_criteria": [
+    "In list view, tasks no longer show explicit 'To Do'/'In Progress'/'Done' status badges - only the checkbox toggle is used for marking done",
+    "The TaskDetailPanel no longer has the 3-button status selector section",
+    "The AI chat panel does not visually overlap the TopBar navbar - it appears below the navbar (top-14)",
+    "The chat button in the TopBar has a small sparkle/star indicator showing it is AI-powered",
+    "Tasks created from Gmail scan show a Gmail icon (Mail) and a star mark next to their title in both board and list views",
+    "pnpm lint passes with no errors",
+    "pnpm build passes with no errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
