@@ -71,13 +71,8 @@ export default function TopBar({
         : "Connecting";
 
   const handleSearchClick = () => {
-    // Dispatch Cmd+K keyboard event to open the command palette
-    const event = new KeyboardEvent("keydown", {
-      key: "k",
-      metaKey: true,
-      bubbles: true,
-    });
-    document.dispatchEvent(event);
+    // Open the universal Quick Capture
+    window.dispatchEvent(new CustomEvent("chronai-open-quick-capture"));
   };
 
   // Close dropdown on click outside
@@ -114,7 +109,7 @@ export default function TopBar({
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="flex h-14 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg)]/90 px-4 backdrop-blur-sm md:px-6"
+      className="relative z-[100] flex h-14 items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg)]/90 px-4 backdrop-blur-sm md:px-6"
     >
       {/* Left section: mobile menu + page title */}
       <div className="flex items-center gap-3">

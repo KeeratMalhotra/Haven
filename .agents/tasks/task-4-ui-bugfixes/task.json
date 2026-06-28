@@ -1,0 +1,14 @@
+{
+  "task_id": "task-4-ui-bugfixes",
+  "task_description": "Fix 4 UI bugs: tasks revert on refresh (localStorage merge), Spotify widget drag-to-expand, settings integration status flash, and Calendar/Tasks connect banners.",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "npm run build passes (all routes compile). npm run lint passes (0 errors). All 4 fixes implemented in a single commit."
+  }
+}

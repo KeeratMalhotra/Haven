@@ -1,0 +1,5 @@
+{
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && npm run build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && npm run lint",
+  "verification_instructions": "Run npm run build and npm run lint in frontend directory. Both must pass with zero errors."
+}
