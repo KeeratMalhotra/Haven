@@ -76,6 +76,7 @@ import { GmailScanModal } from "@/components/gmail/GmailScanModal";
 import { SlidesGeneratorModal } from "@/components/slides/SlidesGeneratorModal";
 import { type GmailActionItem, researchTask } from "@/lib/api-extended";
 import TaskResearchPanel, { type ResearchResult } from "@/components/tasks/TaskResearchPanel";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // Recurrence config
 export interface RecurrenceConfig {
@@ -998,6 +999,10 @@ export default function TasksPage() {
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [showLabelCreator, setShowLabelCreator] = useState(false);
 
+  // Search state with debounce
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ position: ContextMenuPosition; task: LocalTask } | null>(null);
 
@@ -1082,13 +1087,22 @@ export default function TasksPage() {
     }
   }, [tasks]);
 
-  // Task helpers - apply label filter
-  const filteredTasks = useMemo(
-    () => labelFilter
-      ? tasks.filter((t) => t.labels?.some((l) => l.id === labelFilter))
-      : tasks,
-    [tasks, labelFilter]
-  );
+  // Task helpers - apply label filter and text search
+  const filteredTasks = useMemo(() => {
+    let result = tasks;
+    if (labelFilter) {
+      result = result.filter((t) => t.labels?.some((l) => l.id === labelFilter));
+    }
+    if (debouncedSearch.trim()) {
+      const query = debouncedSearch.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(query) ||
+          (t.notes && t.notes.toLowerCase().includes(query))
+      );
+    }
+    return result;
+  }, [tasks, labelFilter, debouncedSearch]);
   const todoTasks = useMemo(() => filteredTasks.filter((t) => t.status === "todo"), [filteredTasks]);
   const inProgressTasks = useMemo(() => filteredTasks.filter((t) => t.status === "inprogress"), [filteredTasks]);
   const doneTasks = useMemo(() => filteredTasks.filter((t) => t.status === "done"), [filteredTasks]);
@@ -1571,6 +1585,21 @@ export default function TasksPage() {
           />
         </div>
       )}
+
+      {/* Search Input */}
+      <div className="mb-4 relative">
+        <Search
+          size={15}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none"
+        />
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 transition-colors"
+        />
+      </div>
 
       {/* AI Suggestion Banner */}
       {(() => {

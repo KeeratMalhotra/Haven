@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
   Calendar,
@@ -126,6 +126,7 @@ const aiSuggestionChips = [
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
   const accessToken =
     ((session as Record<string, unknown> | null)?.accessToken as string) || "";
   const user = session?.user;
@@ -330,17 +331,33 @@ export default function DashboardPage() {
     },
   ];
 
+  const reducedContainerVariants = prefersReducedMotion
+    ? { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { staggerChildren: 0, delayChildren: 0 } } }
+    : containerVariants;
+
+  const reducedItemVariants = prefersReducedMotion
+    ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0, transition: { duration: 0.01 } } }
+    : itemVariants;
+
+  const reducedWelcomeContainerVariants = prefersReducedMotion
+    ? { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { staggerChildren: 0, delayChildren: 0 } } }
+    : welcomeContainerVariants;
+
+  const reducedWelcomeItemVariants = prefersReducedMotion
+    ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0, transition: { duration: 0.01 } } }
+    : welcomeItemVariants;
+
   return (
     <>
       <ErrorBoundary sectionName="your dashboard">
       <motion.div
-        variants={containerVariants}
+        variants={reducedContainerVariants}
         initial="hidden"
         animate="visible"
         className="space-y-10"
       >
         {/* Greeting */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={reducedItemVariants}>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
             {getGreeting()},{" "}
             <span className="bg-gradient-to-r from-accent-400 to-purple-400 bg-clip-text text-transparent">
@@ -355,14 +372,14 @@ export default function DashboardPage() {
         {isAllEmpty ? (
           /* ========== Welcome / Empty State ========== */
           <motion.div
-            variants={welcomeContainerVariants}
+            variants={reducedWelcomeContainerVariants}
             initial="hidden"
             animate="visible"
             className="space-y-8"
           >
             {/* Warm subheading */}
             <motion.p
-              variants={welcomeItemVariants}
+              variants={reducedWelcomeItemVariants}
               className="text-sm leading-relaxed text-[var(--text-secondary)]"
             >
               Let&apos;s get your day started. Here are some things you can do:
@@ -370,7 +387,7 @@ export default function DashboardPage() {
 
             {/* Quick Action Cards */}
             <motion.div
-              variants={welcomeItemVariants}
+              variants={reducedWelcomeItemVariants}
               className="grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
               {quickActions.map((action) => {
@@ -433,7 +450,7 @@ export default function DashboardPage() {
 
             {/* AI Suggestion Chips */}
             <motion.div
-              variants={welcomeItemVariants}
+              variants={reducedWelcomeItemVariants}
               className="flex flex-wrap gap-2"
             >
               {aiSuggestionChips.map((chip, index) => (
@@ -452,7 +469,7 @@ export default function DashboardPage() {
 
             {/* Onboarding Checklist */}
             {!checklistDismissed && (
-              <motion.div variants={welcomeItemVariants}>
+              <motion.div variants={reducedWelcomeItemVariants}>
                 <Card hover={false} className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -522,7 +539,7 @@ export default function DashboardPage() {
           <>
             {/* Quick Stats */}
             <motion.div
-              variants={itemVariants}
+              variants={reducedItemVariants}
               className="grid grid-cols-1 gap-4 sm:grid-cols-3"
             >
               {statsCards.map((stat, index) => {
@@ -567,7 +584,7 @@ export default function DashboardPage() {
             </motion.div>
 
             {/* Plan My Day - Auto-Pilot */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={reducedItemVariants}>
               <button
                 onClick={() => setAutopilotOpen(true)}
                 className="w-full group"
@@ -598,7 +615,7 @@ export default function DashboardPage() {
 
             {/* AI Suggestions */}
             {suggestions.length > 0 && (
-              <motion.section variants={itemVariants}>
+              <motion.section variants={reducedItemVariants}>
                 <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
                   <Sparkles size={16} className="text-accent-500" />
                   AI Suggestions
@@ -648,7 +665,7 @@ export default function DashboardPage() {
             )}
 
             {/* Today's Schedule */}
-            <motion.section variants={itemVariants}>
+            <motion.section variants={reducedItemVariants}>
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
                   Today&apos;s Schedule
@@ -714,7 +731,7 @@ export default function DashboardPage() {
             </motion.section>
 
             {/* Recent Tasks */}
-            <motion.section variants={itemVariants}>
+            <motion.section variants={reducedItemVariants}>
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
                   Recent Tasks

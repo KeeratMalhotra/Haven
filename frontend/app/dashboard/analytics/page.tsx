@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { BarChart3, TrendingUp, Target, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
@@ -181,6 +181,7 @@ function LineChart({
   labels: string[];
   maxValue: number;
 }) {
+  const gradientId = useId();
   const width = 100;
   const height = 50;
   const padding = { top: 6, bottom: 12, left: 4, right: 4 };
@@ -214,7 +215,7 @@ function LineChart({
       aria-label="Line chart showing focus hours over time"
     >
       <defs>
-        <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--color-accent-500, #6366f1)" stopOpacity="0.2" />
           <stop offset="100%" stopColor="var(--color-accent-500, #6366f1)" stopOpacity="0" />
         </linearGradient>
@@ -222,7 +223,7 @@ function LineChart({
 
       {/* Area fill */}
       {points.length > 1 && (
-        <path d={areaD} fill="url(#lineGradient)" />
+        <path d={areaD} fill={`url(#${gradientId})`} />
       )}
 
       {/* Line */}
@@ -405,6 +406,15 @@ function TimePeriodSelector({
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
+
+  const reducedContainerVariants = prefersReducedMotion
+    ? { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { staggerChildren: 0, delayChildren: 0 } } }
+    : containerVariants;
+
+  const reducedItemVariants = prefersReducedMotion
+    ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0, transition: { duration: 0.01 } } }
+    : itemVariants;
 
   const [period, setPeriod] = useState<TimePeriod>("week");
   const [loading, setLoading] = useState(true);
@@ -530,6 +540,13 @@ export default function AnalyticsPage() {
   const hasAnyData =
     tasksData.length > 0 || pomodoroStats !== null || habitsData.length > 0;
 
+  // Check if there's any data in the currently selected time period
+  const periodHasActivity = useMemo(() => {
+    const totalTasks = tasksPerDay.reduce((a, b) => a + b, 0);
+    const totalFocus = focusHoursPerDay.reduce((a, b) => a + b, 0);
+    return totalTasks > 0 || totalFocus > 0 || habitCompletionRate > 0;
+  }, [tasksPerDay, focusHoursPerDay, habitCompletionRate]);
+
   const maxTasksPerDay = Math.max(...tasksPerDay, 1);
   const maxFocusHours = Math.max(...focusHoursPerDay, 1);
 
@@ -612,14 +629,14 @@ export default function AnalyticsPage() {
 
   return (
     <motion.div
-      variants={containerVariants}
+      variants={reducedContainerVariants}
       initial="hidden"
       animate="visible"
       className="space-y-6"
     >
       {/* Header */}
       <motion.div
-        variants={itemVariants}
+        variants={reducedItemVariants}
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
@@ -628,10 +645,25 @@ export default function AnalyticsPage() {
         <TimePeriodSelector value={period} onChange={setPeriod} />
       </motion.div>
 
+      {/* No activity in period banner */}
+      {hasAnyData && !periodHasActivity && (
+        <motion.div
+          variants={reducedItemVariants}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-3 text-center"
+        >
+          <p className="text-sm text-[var(--text-secondary)]">
+            No activity in this period
+          </p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+            Try selecting a different time range to see your data.
+          </p>
+        </motion.div>
+      )}
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Bar Chart - Tasks Completed */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={reducedItemVariants}>
           <Card hover={false} className="p-5">
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500/10">
@@ -662,7 +694,7 @@ export default function AnalyticsPage() {
         </motion.div>
 
         {/* Line Chart - Focus Hours */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={reducedItemVariants}>
           <Card hover={false} className="p-5">
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500/10">
@@ -699,7 +731,7 @@ export default function AnalyticsPage() {
         </motion.div>
 
         {/* Ring Chart - Habit Completion */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={reducedItemVariants}>
           <Card hover={false} className="p-5">
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success-500/10">
@@ -725,7 +757,7 @@ export default function AnalyticsPage() {
         </motion.div>
 
         {/* Productivity Score */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={reducedItemVariants}>
           <Card hover={false} className="p-5">
             <div className="mb-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-500/10">
