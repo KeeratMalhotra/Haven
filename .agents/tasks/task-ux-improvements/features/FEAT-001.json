@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix Tasks UX simplification, Chat panel overlap, Navbar star, and Gmail task indicators",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "TASKS UX SIMPLIFICATION (frontend/app/dashboard/tasks/page.tsx): In the board view (KanbanColumn/SortableTaskCard), the cards currently have no status-change buttons visible - it uses drag to move between columns. In the list view (ListRow component around line 350-440), there is a status badge shown per row that shows 'To Do', 'In Progress', 'Done'. The task detail panel (TaskDetailPanel around line 478) has explicit 'To Do', 'In Progress', 'Done' status selector buttons. SIMPLIFICATION: In the list view, replace the explicit status badge with a simple checkbox that toggles between done/not-done (the checkbox already exists - remove the statusBadge() at the end of the ListRow). In the task detail panel, simplify the status section - instead of 3 explicit buttons for 'todo/inprogress/done', use a simple checkbox for done/not-done and keep the drag-to-column mechanism for inprogress in board view. Remove the status section from TaskDetailPanel entirely since the checkbox toggle and drag-to-column already handle status changes adequately.",
     "CHAT PANEL OVERLAP FIX (frontend/components/chat/AIChatPanel.tsx): The TopBar uses z-[100]. The AI Chat panel attached mode uses z-[80] for backdrop and z-[81] for the panel. The panel has 'fixed inset-0 md:inset-auto md:right-0 md:top-0' which means on mobile it covers the entire screen including the navbar. Fix: For the attached panel (non-detached mode), add a top offset so it does not overlap the navbar. Change the panel positioning to use 'fixed top-14 right-0 bottom-0' for desktop and 'fixed top-14 inset-x-0 bottom-0' for mobile (since the TopBar is h-14). This applies to the attached mode panel div (around the 'fixed inset-0 md:inset-auto md:right-0 md:top-0 z-[81]' class). Also ensure the backdrop starts below the TopBar.",
@@ -23,5 +23,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All changes verified with pnpm lint and pnpm build - both pass. Removed statusBadge function and its call from ListRow, removed Status section from TaskDetailPanel, fixed AIChatPanel attached mode to use top-14 instead of inset-0, added Sparkles badge to chat button in TopBar, added Mail+Star indicators for Gmail tasks in both board and list views, added source field to LocalTask interface."
 }
