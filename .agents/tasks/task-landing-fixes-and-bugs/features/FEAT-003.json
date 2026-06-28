@@ -1,0 +1,22 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Verify Spotify playlist URL from settings is used by the SpotifyMiniPlayer component",
+  "status": "completed",
+  "steps": [
+    "VERIFICATION: The SpotifyMiniPlayer (frontend/components/SpotifyMiniPlayer.tsx) already reads from localStorage key 'chronai-spotify-playlist-url' on mount and on storage/custom events. The Settings page (frontend/app/dashboard/settings/page.tsx) saves the playlist URL to the same localStorage key via handlePlaylistUrlChange(), which also dispatches a CustomEvent 'chronai-playlist-changed'. The SpotifyMiniPlayer listens for both 'storage' and 'chronai-playlist-changed' events. This connection appears to already work correctly - the player converts the Spotify playlist URL to an embed URL using toSpotifyEmbedUrl(). No code changes needed here - just confirm the wiring is correct.",
+    "Add a brief code comment at the top of SpotifyMiniPlayer.tsx documenting the data flow: 'Reads playlist URL from localStorage key PLAYLIST_URL_KEY, set via Settings page. Listens for chronai-playlist-changed custom event for live updates.' This is already effectively documented but lets make it explicit."
+  ],
+  "acceptance_criteria": [
+    "The SpotifyMiniPlayer reads the playlist URL from the same localStorage key that Settings writes to",
+    "When a user changes the playlist URL in settings, the player updates without needing a page refresh",
+    "pnpm lint passes without errors",
+    "pnpm build passes without errors"
+  ],
+  "verification": [
+    "Run cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "Run cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "VERIFIED: The SpotifyMiniPlayer correctly reads playlist URL from localStorage key 'chronai-spotify-playlist-url' (same key Settings writes to). It converts the URL to a Spotify embed URL and renders it in an iframe. The player listens for both 'storage' events and a custom 'chronai-playlist-changed' event dispatched by Settings, ensuring live updates without page refresh. The playlist the user enters in Settings will be played by the mini player. If the URL is invalid or empty, it falls back to a default Classical Focus playlist."
+}

@@ -1,0 +1,14 @@
+{
+  "task_id": "task-landing-fixes-and-bugs",
+  "task_description": "Fix multiple issues: add dark/light mode toggle to landing page nav, fix card text visibility in dark mode, fix Pomodoro start button not working from non-dashboard pages, fix task tripling bug, improve Spotify music button UI, verify Spotify playlist URL wiring from settings",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "pnpm lint passes with no warnings/errors. pnpm build succeeds, all pages compile. No test failures (pnpm test runs with --passWithNoTests). Semantic review (v1) identified 4 latent edge cases (title collision for same-named tasks, unused focusTask state, prefix heuristic, multi-tab race) - none are regressions and all are acceptable for the user's reported scenario."
+  }
+}

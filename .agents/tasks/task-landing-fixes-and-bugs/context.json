@@ -1,0 +1,31 @@
+{
+  "project_type": "Next.js 15 App Router frontend with Tailwind CSS, Framer Motion",
+  "language": "TypeScript/React",
+  "build_system": "pnpm with Next.js",
+  "test_framework": "Jest with @testing-library/react (tests in __tests__/)",
+  "build_command": "pnpm build",
+  "test_command": "pnpm test",
+  "verification_instructions": "Run pnpm lint then pnpm build from the frontend directory to verify no compile/lint errors",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd /projects/sandbox/ChronAI/frontend && pnpm install",
+  "environment_constraints": "OPEN_INTERNET - full network. Node 22, pnpm available. No backend server running (API calls will fail, but that's fine for build/lint verification)",
+  "contribution_requirements": "No pixel fonts inside the app (only landing page). Follow warm/minimalistic theme for in-app components. Commit all changes.",
+  "key_patterns": "CSS variables for theming (--text-primary, --text-secondary, --bg, --surface, etc). ThemeProvider in components/ui/theme-provider.tsx uses localStorage key 'chronai-theme'. Dark class on html element. Landing page uses pixel art style (font-pixel, pixel-corners). Dashboard uses clean non-pixel style.",
+  "relevant_files": [
+    "frontend/app/page.tsx",
+    "frontend/app/globals.css",
+    "frontend/app/layout.tsx",
+    "frontend/app/dashboard/layout.tsx",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/app/dashboard/tasks/page.tsx",
+    "frontend/components/ui/theme-provider.tsx",
+    "frontend/components/PomodoroTimer.tsx",
+    "frontend/components/SpotifyMiniPlayer.tsx",
+    "frontend/components/layout/Sidebar.tsx",
+    "frontend/components/layout/TopBar.tsx",
+    "frontend/components/layout/AppShell.tsx",
+    "frontend/app/dashboard/settings/page.tsx",
+    "frontend/lib/api.ts"
+  ],
+  "directory_structure": "frontend/app/ - Next.js pages (App Router), frontend/components/ - shared components, frontend/lib/ - API helpers and utilities, frontend/components/ui/ - base UI components including theme-provider, frontend/components/layout/ - AppShell, Sidebar, TopBar"
+}
