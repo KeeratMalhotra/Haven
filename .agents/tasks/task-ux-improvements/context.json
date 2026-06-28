@@ -1,0 +1,26 @@
+{
+  "project_type": "Next.js 15 App Router dashboard application with Tailwind CSS and Framer Motion",
+  "language": "TypeScript/React",
+  "build_system": "pnpm with Next.js",
+  "test_framework": "Jest with @testing-library/react, tests in __tests__/ directory",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && pnpm build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && pnpm test",
+  "verification_instructions": "Run pnpm lint and pnpm build from the frontend directory. Both must pass without errors.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd /projects/sandbox/ChronAI/frontend && pnpm install",
+  "environment_constraints": "OPEN_INTERNET mode. Node 22, pnpm available. No Docker needed.",
+  "contribution_requirements": "Must work in both dark and light mode. Follow the existing warm/minimalistic theme. NO pixel fonts inside the app. Commit changes but do NOT push.",
+  "key_patterns": "Components use CSS variables like var(--text-primary), var(--surface-hover), var(--border). Framer Motion AnimatePresence for transitions. lucide-react for icons. Local state stored in localStorage with chronai- prefix. Tasks use LocalTask interface with id, status, priority, labels, recurrence fields. Gmail tasks have ids starting with task-gmail-. The TopBar z-index is z-[100]. The AI chat panel attached mode uses z-[80] for backdrop and z-[81] for panel.",
+  "relevant_files": [
+    "frontend/app/dashboard/tasks/page.tsx",
+    "frontend/app/dashboard/analytics/page.tsx",
+    "frontend/components/PomodoroTimer.tsx",
+    "frontend/components/chat/AIChatPanel.tsx",
+    "frontend/components/layout/TopBar.tsx",
+    "frontend/components/layout/AppShell.tsx",
+    "frontend/app/dashboard/layout.tsx",
+    "frontend/components/gmail/GmailScanModal.tsx",
+    "frontend/lib/api-extended.ts"
+  ],
+  "directory_structure": "frontend/app/dashboard/ - page routes (tasks, analytics, calendar, habits, planner, settings). frontend/components/ - shared components (PomodoroTimer, SpotifyMiniPlayer, etc). frontend/components/layout/ - AppShell, TopBar, Sidebar. frontend/components/chat/ - AIChatPanel, ChatExperience. frontend/components/ui/ - reusable UI primitives (Card, Button, Badge, Modal, etc). frontend/lib/ - API functions and utilities."
+}

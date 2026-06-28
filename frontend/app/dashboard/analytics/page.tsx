@@ -42,14 +42,13 @@ type TimePeriod = "week" | "month" | "30days";
 interface TaskData {
   id?: string;
   completed?: boolean;
+  status?: string;
   completedAt?: string;
   updatedAt?: string;
 }
 
-interface PomodoroStats {
-  sessions?: { date: string; minutes: number }[];
-  totalMinutes?: number;
-}
+// PomodoroTimer stores stats as Record<string, number>: { "YYYY-MM-DD": completedCount }
+type PomodoroStatsRecord = Record<string, number>;
 
 interface HabitData {
   id?: string;
@@ -419,7 +418,7 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<TimePeriod>("week");
   const [loading, setLoading] = useState(true);
   const [tasksData, setTasksData] = useState<TaskData[]>([]);
-  const [pomodoroStats, setPomodoroStats] = useState<PomodoroStats | null>(
+  const [pomodoroStats, setPomodoroStats] = useState<PomodoroStatsRecord | null>(
     null
   );
   const [habitsData, setHabitsData] = useState<HabitData[]>([]);
@@ -441,7 +440,10 @@ export default function AnalyticsPage() {
       const pomodoroRaw = localStorage.getItem("chronai-pomodoro-stats");
       if (pomodoroRaw) {
         const parsed = JSON.parse(pomodoroRaw);
-        setPomodoroStats(parsed && typeof parsed === "object" ? parsed : null);
+        // PomodoroTimer stores stats as { "YYYY-MM-DD": count, ... }
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          setPomodoroStats(parsed as PomodoroStatsRecord);
+        }
       }
     } catch {
       // silently fail
@@ -471,12 +473,14 @@ export default function AnalyticsPage() {
     dateKeys.forEach((key) => (counts[key] = 0));
 
     tasksData.forEach((task) => {
-      if (task.completed) {
+      // Check both completed boolean and status === "done"
+      if (task.completed || task.status === "done") {
         const dateStr =
           task.completedAt?.split("T")[0] || task.updatedAt?.split("T")[0];
         if (dateStr && counts[dateStr] !== undefined) {
           counts[dateStr]++;
         }
+        // If no date info available, skip this task in per-day stats
       }
     });
 
@@ -487,13 +491,14 @@ export default function AnalyticsPage() {
     const hours: Record<string, number> = {};
     dateKeys.forEach((key) => (hours[key] = 0));
 
-    if (pomodoroStats?.sessions) {
-      pomodoroStats.sessions.forEach((session) => {
-        const dateStr = session.date?.split("T")[0];
-        if (dateStr && hours[dateStr] !== undefined) {
-          hours[dateStr] += session.minutes / 60;
+    if (pomodoroStats) {
+      // pomodoroStats is Record<string, number> where value = number of completed pomodoros
+      // Each pomodoro is 25 minutes by default
+      for (const [dateKey, count] of Object.entries(pomodoroStats)) {
+        if (typeof count === "number" && hours[dateKey] !== undefined) {
+          hours[dateKey] += (count * 25) / 60;
         }
-      });
+      }
     }
 
     return dateKeys.map((key) => Math.round((hours[key] || 0) * 10) / 10);

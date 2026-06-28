@@ -1336,6 +1336,7 @@ function TasksPageContent() {
               ...t,
               status: (t.status === "done" ? "todo" : "done") as LocalTask["status"],
               completed: t.status !== "done",
+              completedAt: t.status !== "done" ? new Date().toISOString() : undefined,
             }
           : t
       );

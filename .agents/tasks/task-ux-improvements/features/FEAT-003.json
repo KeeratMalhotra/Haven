@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Fix Analytics page - investigate why it is not working and fix the data loading/display issues",
+  "status": "in_progress",
+  "steps": [
+    "INVESTIGATE ANALYTICS PAGE (frontend/app/dashboard/analytics/page.tsx): The analytics page reads from localStorage keys: 'chronai-tasks', 'chronai-pomodoro-stats', and 'chronai-habits'. It expects pomodoro-stats to have a 'sessions' array with {date, minutes} objects. However, the PomodoroTimer (frontend/components/PomodoroTimer.tsx) stores stats in a different format - it stores a simple object with date keys mapping to counts (e.g. {'2025-01-15': 3}), not the {sessions: [{date, minutes}]} format the analytics page expects. This mismatch means the Focus Hours chart will always show 0. Fix the analytics page to read the actual localStorage format used by PomodoroTimer.",
+    "FIX POMODORO STATS DATA FORMAT: The PomodoroTimer stores stats as {[dateKey: string]: number} counting completed pomodoros per day (under key 'chronai-pomodoro-stats'). The analytics page expects {sessions: [{date, minutes}], totalMinutes: number}. Fix the analytics page's useEffect that reads pomodoroStats to properly parse the actual format: iterate over the date keys, convert each to {date, minutes: count * focusMinutes}. Since we don't know the exact focus duration used, assume the default 25 minutes per pomodoro. Update the focusHoursPerDay useMemo to work with the corrected data structure.",
+    "VERIFY TASKS DATA FORMAT: The tasks page stores tasks as an array of LocalTask objects under 'chronai-tasks'. The analytics page reads these and looks for task.completed and task.completedAt or task.updatedAt. The LocalTask interface has 'completed' as a boolean and uses 'status' for state. There is no 'completedAt' field being set anywhere in the tasks page when a task is completed. Fix: When marking a task as done in the tasks page (handleToggleTask), set a completedAt timestamp. Also update the analytics to fall back to checking status === 'done' if completedAt is not available."
+  ],
+  "acceptance_criteria": [
+    "The Analytics page loads without errors and displays charts even when there is data in localStorage",
+    "The Focus Hours chart correctly reads the pomodoro stats from the actual localStorage format ({dateKey: count})",
+    "The Tasks Completed chart correctly counts tasks that are marked as done",
+    "pnpm lint passes with no errors",
+    "pnpm build passes with no errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
