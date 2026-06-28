@@ -207,36 +207,34 @@ function Glow({
   return (
     <span
       className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full mix-blend-screen blur-xl ${className}`}
-      style={{ left: x, top: y, width: size, height: size, backgroundColor: color, opacity, ...style }}
+      style={{ left: x, top: y, width: size, aspectRatio: "1 / 1", backgroundColor: color, opacity, ...style }}
     />
   );
 }
 
-function HeroBackdrop() {
+function HeroArt() {
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* the artwork as full-bleed background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/hero-cabin.jpg')" }}
-      />
+    <div
+      className="pixel-corners relative w-full overflow-hidden border-[5px] border-[#3a2418] shadow-pixel-lg"
+      style={{ aspectRatio: "1408 / 768" }}
+      role="img"
+      aria-label="A cozy log cabin glowing in a jungle clearing at night, with a campfire and a dog asleep on a rug under a crescent moon."
+    >
+      {/* the artwork at its natural aspect ratio (no cropping) */}
+      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/hero-cabin.jpg')" }} />
 
-      {/* readability scrims (kept gentle so the art still shows) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#08111a]/75 via-[#08111a]/25 to-[#08111a]/70" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_42%,rgba(8,17,26,0.55),transparent_75%)]" />
-
-      {/* ---- animated firelight & life over the art ---- */}
-      {/* warm window glows (left-of-centre cabin) */}
-      <Glow x="25%" y="44%" size="7vw" color="#ffce6b" opacity={0.4} className="animate-pixel-flicker" />
-      <Glow x="34%" y="43%" size="6vw" color="#ffd27a" opacity={0.35} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
-      <Glow x="47%" y="42%" size="6vw" color="#ffce6b" opacity={0.35} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
+      {/* ---- animated firelight & life, aligned to the art ---- */}
+      {/* warm window glows */}
+      <Glow x="25%" y="44%" size="14%" color="#ffce6b" opacity={0.42} className="animate-pixel-flicker" />
+      <Glow x="34%" y="43%" size="12%" color="#ffd27a" opacity={0.36} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
+      <Glow x="47%" y="42%" size="12%" color="#ffce6b" opacity={0.36} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
 
       {/* crescent-moon shimmer */}
-      <Glow x="74%" y="11%" size="5vw" color="#ffeccb" opacity={0.3} className="animate-pixel-glow" />
+      <Glow x="74%" y="11%" size="10%" color="#ffeccb" opacity={0.3} className="animate-pixel-glow" />
 
-      {/* campfire glow (right-of-centre) */}
-      <Glow x="66%" y="69%" size="14vw" color="#ff7a2e" opacity={0.45} className="animate-pixel-fire" />
-      <Glow x="66%" y="67%" size="7vw" color="#ffc23a" opacity={0.5} className="animate-pixel-flicker" />
+      {/* campfire glow */}
+      <Glow x="66%" y="69%" size="26%" color="#ff7a2e" opacity={0.45} className="animate-pixel-fire" />
+      <Glow x="66%" y="67%" size="13%" color="#ffc23a" opacity={0.5} className="animate-pixel-flicker" />
 
       {/* rising embers from the fire */}
       {[
@@ -248,7 +246,19 @@ function HeroBackdrop() {
         <span
           key={i}
           className="pointer-events-none absolute animate-pixel-ember rounded-full bg-[#ffce6b] shadow-[0_0_5px_1px_rgba(255,138,58,0.7)]"
-          style={{ left: e.l, top: e.t, width: "0.4vw", height: "0.4vw", animationDelay: e.d }}
+          style={{ left: e.l, top: e.t, width: "0.9%", aspectRatio: "1 / 1", animationDelay: e.d }}
+        />
+      ))}
+
+      {/* steam off the coffee on the porch */}
+      {[
+        { l: "37%", t: "58%", d: "0s" },
+        { l: "38%", t: "56%", d: "1.6s" },
+      ].map((s, i) => (
+        <span
+          key={i}
+          className="pointer-events-none absolute animate-pixel-smoke rounded-full bg-white/70 blur-[1px]"
+          style={{ left: s.l, top: s.t, width: "0.8%", height: "2.4%", animationDelay: s.d }}
         />
       ))}
 
@@ -264,12 +274,9 @@ function HeroBackdrop() {
         <span
           key={i}
           className="pointer-events-none absolute animate-pixel-firefly rounded-full bg-[#ffe98a] shadow-[0_0_6px_2px_rgba(255,233,138,0.55)]"
-          style={{ left: f.l, top: f.t, width: "0.45vw", height: "0.45vw", animationDelay: f.d }}
+          style={{ left: f.l, top: f.t, width: "1%", aspectRatio: "1 / 1", animationDelay: f.d }}
         />
       ))}
-
-      {/* fade the bottom into the page */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-[var(--bg)]" />
     </div>
   );
 }
@@ -420,7 +427,7 @@ const steps = [
   { icon: "leaf" as const, n: "03", title: "Come home to calm", body: "Open Haven to a day that already makes sense. Less managing, more living — the home has the rest handled." },
 ];
 
-const integrations = ["Google Calendar", "Gmail", "Notion", "Slack", "Spotify", "Todoist"];
+const integrations = ["Gmail", "Google Slides", "Spotify", "Google Calendar", "Tasks"];
 
 const featureDepth = [
   { eyebrow: "TASKS", title: "Everything on your mind, gently organised", body: "Drop in a thought in plain language and Haven turns it into the right task, on the right day, with the right priority. No forms, no friction — just a clear head.", art: "tasks" as const },
@@ -429,17 +436,11 @@ const featureDepth = [
   { eyebrow: "WATCHING OVER YOU", title: "Handled while you sleep", body: "Haven watches the edges of your day so you don't have to. It remembers what you tend to forget and steps in right before things slip — quietly, in the background.", art: "night" as const },
 ];
 
-const testimonials = [
-  { quote: "It feels less like an app and more like a calm friend who keeps my day from falling apart. I finally stopped dreading my mornings.", name: "Maya R.", role: "Product Designer" },
-  { quote: "Haven quietly handles the planning I used to spend an hour on. I just show up and the day already makes sense.", name: "Daniel K.", role: "Founder" },
-  { quote: "The nudges are never annoying — they arrive exactly when I need them. It's the first tool that actually respects my attention.", name: "Priya S.", role: "Researcher" },
-];
-
 const faqs = [
   { q: "Is my data private?", a: "Yes. Your tasks, calendar, and habits stay yours. Haven uses them only to plan and protect your day — never sold, never shared. Private by design." },
   { q: "Do I have to set everything up manually?", a: "No. Connect your calendar and tasks once and Haven settles in on its own — learning your rhythm and organising your days without endless configuration." },
   { q: "What does Haven actually do?", a: "It plans your day around what matters, reshuffles when life changes, watches for slipping deadlines, and gently nudges you only when it's truly worth it." },
-  { q: "What can Haven connect to?", a: "Google Calendar, Gmail, Notion, Slack, Spotify, Todoist and more — so Haven works inside the tools you already live in, not beside them." },
+  { q: "What can Haven connect to?", a: "Gmail, Google Slides, Spotify, your Google Calendar and tasks — and more. Haven runs the apps you already use as one calm, coordinated home, instead of beside them." },
   { q: "Is it free to start?", a: "Yep. You can move into Haven for free, no credit card needed. Stay as long as it feels like home." },
 ];
 
@@ -469,15 +470,41 @@ function FeatureArt({ art }: { art: "tasks" | "calendar" | "focus" | "night" }) 
         )}
 
         {art === "calendar" && (
-          <div className="grid w-full grid-cols-5 gap-1.5">
-            {Array.from({ length: 20 }).map((_, i) => {
-              const busy = [3, 6, 7, 12, 16, 17].includes(i);
-              const focus = [8, 13].includes(i);
+          <div className="grid w-full max-w-[210px] grid-cols-7 gap-1">
+            {Array.from({ length: 31 }).map((_, i) => {
+              const day = i + 1;
+              const crossed = day === 17;
+              const event = [4, 9, 22, 27].includes(day);
               return (
                 <span
                   key={i}
-                  className={`pixelated aspect-square border ${focus ? "border-accent-400 bg-accent-500/50" : busy ? "border-warm-400/50 bg-warm-400/40" : "border-[#3a342d] bg-[#221f1b]"}`}
-                />
+                  className="pixelated relative grid aspect-square place-items-center border border-[#3a342d] bg-[#221f1b]"
+                >
+                  {event && <span className="h-1.5 w-1.5 bg-warm-400" />}
+                  {crossed && (
+                    <svg
+                      viewBox="0 0 8 8"
+                      className="absolute inset-0 h-full w-full"
+                      shapeRendering="crispEdges"
+                      aria-hidden="true"
+                    >
+                      <g fill="#ef4444">
+                        <rect x="1" y="1" width="1" height="1" />
+                        <rect x="2" y="2" width="1" height="1" />
+                        <rect x="3" y="3" width="1" height="1" />
+                        <rect x="4" y="4" width="1" height="1" />
+                        <rect x="5" y="5" width="1" height="1" />
+                        <rect x="6" y="6" width="1" height="1" />
+                        <rect x="6" y="1" width="1" height="1" />
+                        <rect x="5" y="2" width="1" height="1" />
+                        <rect x="4" y="3" width="1" height="1" />
+                        <rect x="3" y="4" width="1" height="1" />
+                        <rect x="2" y="5" width="1" height="1" />
+                        <rect x="1" y="6" width="1" height="1" />
+                      </g>
+                    </svg>
+                  )}
+                </span>
               );
             })}
           </div>
@@ -565,12 +592,17 @@ function CalmReassurance() {
 
 function IntegrationsStrip() {
   return (
-    <section className="relative z-10 mx-auto mt-20 w-full max-w-4xl px-6">
-      <Reveal className="text-center">
-        <p className="font-terminal text-xl tracking-[0.15em] text-[var(--text-tertiary)]">
-          works inside the tools you already live in
+    <section className="relative z-10 mx-auto mt-24 w-full max-w-4xl px-6 text-center">
+      <Reveal>
+        <SectionLabel>{"// all in one place"}</SectionLabel>
+        <h2 className="font-pixel mx-auto max-w-2xl text-2xl font-semibold text-[var(--text-primary)] sm:text-3xl">
+          Your Gmail, calendar, tasks &amp; more — handled together
+        </h2>
+        <p className="mx-auto mt-3 max-w-lg text-[15px] leading-[1.7] text-[var(--text-secondary)]">
+          Connect the apps you already use and let Haven run them as one calm,
+          coordinated home — no tab-hopping, no juggling, all at once.
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           {integrations.map((name) => (
             <span
               key={name}
@@ -715,43 +747,18 @@ function CozyBand() {
 
 function SocialProof() {
   return (
-    <section className="relative z-10 mx-auto w-full max-w-5xl px-6 py-28">
-      <Reveal className="mb-12 flex flex-col items-center text-center">
+    <section className="relative z-10 mx-auto w-full max-w-3xl px-6 py-28 text-center">
+      <Reveal className="flex flex-col items-center">
         <div className="flex items-end gap-3">
-          <PixelNumber value="45" scale={9} color="#e8893f" />
+          <PixelNumber value="45" scale={10} color="#e8893f" />
           <span className="font-pixel pb-1 text-3xl font-bold text-warm-500">min / day</span>
         </div>
-        <p className="mt-5 max-w-md text-base text-[var(--text-secondary)]">
-          That&apos;s how much planning and second-guessing Haven quietly takes
-          off your plate.
+        <p className="mt-5 max-w-md text-base leading-[1.7] text-[var(--text-secondary)]">
+          That&apos;s roughly how much planning and second-guessing Haven
+          quietly takes off your plate — time you get back for the things that
+          actually matter.
         </p>
       </Reveal>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {testimonials.map((t, i) => (
-          <Reveal key={t.name} delay={i * 0.08}>
-            <figure className="pixel-corners relative h-full border-[3px] border-[#3a342d] bg-[var(--surface)] p-6 shadow-pixel">
-              <div className="mb-3 flex gap-0.5 text-warm-400">
-                {Array.from({ length: 5 }).map((_, s) => (
-                  <span key={s} className="h-3 w-3 bg-warm-400" />
-                ))}
-              </div>
-              <blockquote className="text-[15px] leading-[1.75] text-[var(--text-primary)]">
-                &ldquo;{t.quote}&rdquo;
-              </blockquote>
-              <figcaption className="mt-6 flex items-center gap-3">
-                <span className="pixelated grid h-9 w-9 place-items-center border-2 border-[#3a2418] bg-gradient-to-br from-warm-300 to-warm-500 font-pixel text-sm font-bold text-[#3a2418]">
-                  {t.name.charAt(0)}
-                </span>
-                <span className="text-sm">
-                  <span className="block font-medium text-[var(--text-primary)]">{t.name}</span>
-                  <span className="block text-[var(--text-tertiary)]">{t.role}</span>
-                </span>
-              </figcaption>
-            </figure>
-          </Reveal>
-        ))}
-      </div>
     </section>
   );
 }
@@ -797,33 +804,6 @@ function Faq() {
   );
 }
 
-function EmotionalClose() {
-  return (
-    <section className="relative z-10 mx-auto w-full max-w-3xl px-6 py-28 text-center">
-      <Reveal>
-        <div className="mb-8 flex justify-center">
-          <MiniMoon size={68} />
-        </div>
-        <h2 className="font-pixel text-3xl font-bold text-[var(--text-primary)] sm:text-5xl">
-          Stop managing your life.
-          <br />
-          <span className="gradient-text-pixel">Start living it.</span>
-        </h2>
-        <p className="mx-auto mt-6 max-w-lg text-base leading-[1.75] text-[var(--text-secondary)]">
-          Let Haven hold the logistics of your days, so you can spend your
-          attention on the things that actually matter.
-        </p>
-        <div className="mt-10 flex flex-col items-center gap-4">
-          <GetStartedButton />
-          <p className="font-terminal text-lg tracking-wide text-[var(--text-tertiary)]">
-            free to start &middot; private by design
-          </p>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Nav                                                                 */
 /* ------------------------------------------------------------------ */
@@ -848,7 +828,7 @@ function Nav() {
       >
         <a href="#top" className="flex items-center gap-2.5">
           <PixelLogo size={26} />
-          <span className={`font-pixel text-lg font-semibold tracking-tight ${scrolled ? "text-[var(--text-primary)]" : "text-warm-50"}`}>
+          <span className="font-pixel text-lg font-semibold tracking-tight text-[var(--text-primary)]">
             Haven
           </span>
         </a>
@@ -862,7 +842,7 @@ function Nav() {
             <a
               key={l.href}
               href={l.href}
-              className={`font-terminal text-xl transition-colors hover:text-warm-400 ${scrolled ? "text-[var(--text-secondary)]" : "text-warm-100/90"}`}
+              className="font-terminal text-xl text-[var(--text-secondary)] transition-colors hover:text-warm-400"
             >
               {l.label}
             </a>
@@ -872,7 +852,7 @@ function Nav() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-            className={`hidden font-terminal text-xl transition-colors hover:text-warm-400 sm:block ${scrolled ? "text-[var(--text-secondary)]" : "text-warm-100/90"}`}
+            className="hidden font-terminal text-xl text-[var(--text-secondary)] transition-colors hover:text-warm-400 sm:block"
           >
             sign in &gt;
           </button>
@@ -922,55 +902,61 @@ export default function LandingPage() {
       <Nav />
 
       {/* ===================== HERO ===================== */}
-      <section className="relative flex min-h-[100svh] w-full flex-col items-center justify-center overflow-hidden bg-[#0e1c26]">
-        {/* full-bleed artwork + animated firelight */}
-        <HeroBackdrop />
-
-        {/* hero copy, overlaid on the art */}
-        <motion.div
-          initial={reduce ? undefined : "hidden"}
-          animate={reduce ? undefined : "visible"}
-          variants={reduce ? undefined : stagger}
-          className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center px-6 pb-20 pt-28 text-center"
-        >
+      <section className="relative mx-auto w-full max-w-6xl px-6 pb-20 pt-32">
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          {/* copy */}
           <motion.div
-            variants={reduce ? undefined : fadeUp}
-            className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-300/40 bg-[#0c1a24]/55 px-3 py-1.5 backdrop-blur-sm"
+            initial={reduce ? undefined : "hidden"}
+            animate={reduce ? undefined : "visible"}
+            variants={reduce ? undefined : stagger}
+            className="flex flex-col items-center text-center lg:items-start lg:text-left"
           >
-            <span className="h-2 w-2 bg-success-400 animate-pixel-twinkle" />
-            <span className="font-terminal text-lg leading-none text-warm-100">
-              pull up a chair — you&apos;re home
-            </span>
+            <motion.div
+              variants={reduce ? undefined : fadeUp}
+              className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-400/40 bg-warm-400/10 px-3 py-1.5"
+            >
+              <span className="h-2 w-2 bg-success-500 animate-pixel-twinkle" />
+              <span className="font-terminal text-lg leading-none text-warm-600 dark:text-warm-300">
+                pull up a chair — you&apos;re home
+              </span>
+            </motion.div>
+
+            <motion.h1
+              variants={reduce ? undefined : fadeUp}
+              className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-[var(--text-primary)] sm:text-5xl md:text-6xl"
+            >
+              Come home to a{" "}
+              <span className="gradient-text-pixel">calmer way to work</span>
+            </motion.h1>
+
+            <motion.p
+              variants={reduce ? undefined : fadeUp}
+              className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-[var(--text-secondary)]"
+            >
+              Haven is your cozy AI home. It plans your day, guards your time,
+              and quietly handles every task and deadline — so you can put the
+              noise down, breathe, and feel taken care of.
+            </motion.p>
+
+            <motion.div
+              variants={reduce ? undefined : fadeUp}
+              className="mt-9 flex flex-col items-center gap-4 lg:items-start"
+            >
+              <GetStartedButton />
+              <p className="font-terminal text-lg tracking-wide text-[var(--text-tertiary)]">
+                calm in the chaos &middot; no credit card needed
+              </p>
+            </motion.div>
           </motion.div>
 
-          <motion.h1
-            variants={reduce ? undefined : fadeUp}
-            className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-warm-50 [text-shadow:3px_3px_0_rgba(5,12,18,0.95),0_0_24px_rgba(5,12,18,0.7)] sm:text-5xl md:text-6xl"
+          {/* artwork (shown at its natural aspect, full quality) */}
+          <motion.div
+            initial={reduce ? undefined : { opacity: 0, y: 24 }}
+            animate={reduce ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: EASE_CALM, delay: 0.15 }}
           >
-            Come home to a{" "}
-            <span className="gradient-text-pixel">calmer way to work</span>
-          </motion.h1>
-
-          <motion.p
-            variants={reduce ? undefined : fadeUp}
-            className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-warm-50/95 [text-shadow:1px_1px_0_rgba(5,12,18,0.95),0_0_18px_rgba(5,12,18,0.8)]"
-          >
-            Haven is your cozy AI home. It plans your day, guards your time, and
-            quietly handles every task and deadline — so you can put the noise
-            down, breathe, and feel taken care of.
-          </motion.p>
-
-          <motion.div variants={reduce ? undefined : fadeUp} className="mt-9 flex flex-col items-center gap-4">
-            <GetStartedButton />
-            <p className="font-terminal text-lg tracking-wide text-warm-100/90 [text-shadow:1px_1px_0_rgba(5,12,18,0.9)]">
-              calm in the chaos &middot; no credit card needed
-            </p>
+            <HeroArt />
           </motion.div>
-        </motion.div>
-
-        {/* welcome-home placard */}
-        <div className="pixel-corners absolute bottom-10 left-1/2 z-10 -translate-x-1/2 border-2 border-[#5e3a26] bg-warm-100 px-4 py-1 shadow-pixel-sm">
-          <span className="font-pixel text-sm font-semibold text-[#5e3a26]">welcome home</span>
         </div>
       </section>
 
@@ -999,8 +985,6 @@ export default function LandingPage() {
       <Band tint="bg-accent-500/[0.05]">
         <Faq />
       </Band>
-
-      <EmotionalClose />
 
       {/* Footer */}
       <footer className="relative z-10 border-t-2 border-[var(--border)] bg-[var(--bg-secondary)] pb-14 pt-14">
