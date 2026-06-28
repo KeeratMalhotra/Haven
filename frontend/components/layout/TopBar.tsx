@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Menu, MessageCircle, Plus, CheckSquare, Calendar, Timer, Zap } from "lucide-react";
+import { Search, Menu, MessageCircle, Plus, CheckSquare, Calendar, Timer, Zap, Sparkles } from "lucide-react";
 import Image from "next/image";
 import NotificationBell from "./NotificationBell";
 
@@ -102,6 +102,13 @@ export default function TopBar({
     }
   };
 
+  const handleQuickCapture = () => {
+    setActionsOpen(false);
+    // QuickCapture lives inside AIContextProvider (TopBar is outside it), so
+    // bridge the open request via a window CustomEvent like chronai-open-chat.
+    window.dispatchEvent(new CustomEvent("chronai-open-quick-capture"));
+  };
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -6 }}
@@ -158,8 +165,24 @@ export default function TopBar({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.95 }}
                 transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute right-0 top-full mt-2 z-50 border border-[var(--border)] bg-[var(--surface)] rounded-xl shadow-lg p-2 min-w-[180px]"
+                className="absolute right-0 top-full mt-2 z-50 border border-[var(--border)] bg-[var(--surface)] rounded-xl shadow-lg p-2 min-w-[200px]"
               >
+                {/* Universal Quick Capture — primary, frictionless capture */}
+                <button
+                  onClick={handleQuickCapture}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-[var(--surface-hover)]"
+                >
+                  <Sparkles size={16} strokeWidth={1.5} className="text-accent-500 shrink-0" />
+                  <span className="flex-1 text-sm font-medium text-[var(--text-primary)] whitespace-nowrap">
+                    Quick Capture
+                  </span>
+                  <kbd className="rounded-md bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-tertiary)] border border-[var(--border-subtle)]">
+                    n
+                  </kbd>
+                </button>
+
+                <div className="my-1 h-px bg-[var(--border-subtle)]" />
+
                 {quickActions.map((action) => {
                   const Icon = action.icon;
                   return (

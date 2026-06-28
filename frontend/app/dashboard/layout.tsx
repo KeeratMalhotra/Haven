@@ -11,6 +11,7 @@ import {
 } from "@/components/chat/ConnectionContext";
 import { AIContextProvider } from "@/components/ai/AIContextProvider";
 import AIToast from "@/components/ai/AIToast";
+import QuickCapture from "@/components/layout/QuickCapture";
 import AIChatPanel from "@/components/chat/AIChatPanel";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import ProactiveListener from "@/components/notifications/ProactiveListener";
@@ -82,6 +83,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             </AnimatePresence>
           )}
           <AIToast />
+          <QuickCapture />
 
           {/* AI Chat Panel */}
           <AIChatPanel
