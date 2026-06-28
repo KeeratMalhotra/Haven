@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Check, CheckCheck, Trash2, X, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -129,13 +130,52 @@ export default function NotificationBell() {
     refresh,
   } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; right: number }>({
+    top: 0,
+    right: 0,
+  });
+
+  // Track client-side mount for portal rendering.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Calculate position from the bell button's bounding rect when opening.
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPanelPos({
+      top: rect.bottom + 8, // 8px gap below the button
+      right: window.innerWidth - rect.right, // align right edge with the button
+    });
+  }, []);
+
+  // Recalculate position on scroll/resize while open.
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
 
   // Close on click outside.
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -153,15 +193,23 @@ export default function NotificationBell() {
     setOpen(false);
   };
 
+  const handleToggle = () => {
+    if (!open) {
+      updatePosition();
+    }
+    setOpen((o) => !o);
+  };
+
   const todays = notifications.filter((n) => isToday(n.created_at));
   const earlier = notifications.filter((n) => !isToday(n.created_at));
 
   const badge = unreadCount > 9 ? "9+" : String(unreadCount);
 
   return (
-    <div className="relative" ref={panelRef}>
+    <div className="relative">
       <motion.button
-        onClick={() => setOpen((o) => !o)}
+        ref={buttonRef}
+        onClick={handleToggle}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className={`relative flex items-center justify-center rounded-lg p-2 border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-hover)] ${
@@ -186,111 +234,122 @@ export default function NotificationBell() {
         )}
       </motion.button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 top-full z-[999] mt-2 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                  Notifications
-                </h3>
-                {unreadCount > 0 && (
-                  <span className="rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-medium text-accent-500">
-                    {unreadCount} new
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                {unreadCount > 0 && (
-                  <button
-                    onClick={markAllRead}
-                    title="Mark all read"
-                    className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
-                  >
-                    <CheckCheck size={13} strokeWidth={1.5} />
-                  </button>
-                )}
-                {notifications.length > 0 && (
-                  <button
-                    onClick={clearAll}
-                    title="Clear all"
-                    className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
-                  >
-                    <Trash2 size={13} strokeWidth={1.5} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="max-h-[420px] overflow-y-auto p-2.5">
-              {notifications.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-hover)]">
-                    <Check
-                      size={18}
-                      strokeWidth={1.5}
-                      className="text-[var(--text-tertiary)]"
-                    />
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                ref={panelRef}
+                initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                style={{
+                  position: "fixed",
+                  top: panelPos.top,
+                  right: panelPos.right,
+                  zIndex: 9999,
+                }}
+                className="w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                      Notifications
+                    </h3>
+                    {unreadCount > 0 && (
+                      <span className="rounded-full bg-accent-500/15 px-1.5 py-0.5 text-[10px] font-medium text-accent-500">
+                        {unreadCount} new
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    You&apos;re all caught up
-                  </p>
-                  <p className="text-xs text-[var(--text-tertiary)]">
-                    I&apos;ll let you know if anything needs you.
-                  </p>
+                  <div className="flex items-center gap-1">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllRead}
+                        title="Mark all read"
+                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+                      >
+                        <CheckCheck size={13} strokeWidth={1.5} />
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={clearAll}
+                        title="Clear all"
+                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+                      >
+                        <Trash2 size={13} strokeWidth={1.5} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {todays.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
-                        Today
+
+                {/* Body */}
+                <div className="max-h-[420px] overflow-y-auto p-2.5">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-hover)]">
+                        <Check
+                          size={18}
+                          strokeWidth={1.5}
+                          className="text-[var(--text-tertiary)]"
+                        />
+                      </div>
+                      <p className="text-sm text-[var(--text-secondary)]">
+                        You&apos;re all caught up
                       </p>
-                      <AnimatePresence mode="popLayout">
-                        {todays.map((n) => (
-                          <NotificationRow
-                            key={n.id}
-                            notification={n}
-                            onAction={handleAction}
-                            onRemove={remove}
-                            onMarkRead={markRead}
-                          />
-                        ))}
-                      </AnimatePresence>
+                      <p className="text-xs text-[var(--text-tertiary)]">
+                        I&apos;ll let you know if anything needs you.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {todays.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+                            Today
+                          </p>
+                          <AnimatePresence mode="popLayout">
+                            {todays.map((n) => (
+                              <NotificationRow
+                                key={n.id}
+                                notification={n}
+                                onAction={handleAction}
+                                onRemove={remove}
+                                onMarkRead={markRead}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      )}
+                      {earlier.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+                            Earlier
+                          </p>
+                          <AnimatePresence mode="popLayout">
+                            {earlier.map((n) => (
+                              <NotificationRow
+                                key={n.id}
+                                notification={n}
+                                onAction={handleAction}
+                                onRemove={remove}
+                                onMarkRead={markRead}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      )}
                     </div>
                   )}
-                  {earlier.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
-                        Earlier
-                      </p>
-                      <AnimatePresence mode="popLayout">
-                        {earlier.map((n) => (
-                          <NotificationRow
-                            key={n.id}
-                            notification={n}
-                            onAction={handleAction}
-                            onRemove={remove}
-                            onMarkRead={markRead}
-                          />
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  )}
                 </div>
-              )}
-            </div>
-          </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }
