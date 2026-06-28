@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Fix the notification panel layering issue. The NotificationBell dropdown panel uses z-[999] and is positioned absolutely relative to its parent div in the TopBar. The TopBar itself has z-[100]. The issue is that the main content area (the <main> element in AppShell.tsx) has overflow-y-auto which creates a new stacking context. The notification panel is rendered inside the TopBar which is inside the flex layout, so the dropdown can get clipped or hidden behind the scrollable main content area. The panel needs to either portal out of the current stacking context or ensure its parent container does not clip it.",
+  "status": "pending",
+  "steps": [
+    "In frontend/components/layout/AppShell.tsx, check the main content div's overflow setting. The `<main className='flex-1 overflow-y-auto scroll-smooth'>` creates a stacking context that can interfere with dropdowns in the TopBar.",
+    "The real issue: the TopBar has `z-[100]` but the notification panel is absolutely positioned within the TopBar's relative container. Since the TopBar already has z-[100], the notification panel's z-[999] should work. The likely issue is that the `overflow-hidden` on the root `<div className='flex h-screen w-screen overflow-hidden'>` in AppShell.tsx is clipping the dropdown.",
+    "Fix by ensuring the notification panel uses a portal (React createPortal to document.body) OR by removing overflow-hidden from the root container and instead applying it only to the main content area, OR by positioning the notification panel as fixed instead of absolute.",
+    "The simplest fix: In NotificationBell.tsx, change the panel from `absolute right-0 top-full` positioning to `fixed` positioning calculated from the button's bounding rect. This ensures the panel renders in the viewport coordinate space and is not clipped by any parent overflow.",
+    "Verify with pnpm build."
+  ],
+  "acceptance_criteria": [
+    "The notification dropdown panel is fully visible when opened, not clipped by parent containers",
+    "The panel is positioned correctly relative to the bell icon",
+    "pnpm build succeeds with no errors"
+  ],
+  "verification": ["cd frontend && pnpm build"],
+  "blocked_reason": null,
+  "findings": ""
+}

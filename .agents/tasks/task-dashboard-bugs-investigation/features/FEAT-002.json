@@ -1,0 +1,20 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Fix the Spotify button not showing on the dashboard. The SpotifyMiniPlayer component is rendered in dashboard/layout.tsx, but it early-returns null when !hasPlaylist (i.e., when localStorage key 'chronai-spotify-playlist-url' is not set). The button should show regardless of whether a playlist URL is saved - it should at minimum show the collapsed button so users can interact with it. The component currently requires hasPlaylist to be true, which only happens if the user previously saved a custom playlist URL in settings. This means for users who have not configured it yet or who expected a default experience, the Spotify button is invisible.",
+  "status": "pending",
+  "steps": [
+    "In frontend/components/SpotifyMiniPlayer.tsx, modify the early return condition: the collapsed button (the little music icon on the right edge) should always be visible once the component is mounted, regardless of whether hasPlaylist is true. Only the expanded player needs a valid embed URL.",
+    "When the user clicks the collapsed button without a playlist URL configured, show a helpful state (e.g., expand with a message to configure in settings, or use the DEFAULT_EMBED_URL as a fallback).",
+    "The simplest fix: change `if (!mounted || !hasPlaylist) return null;` to `if (!mounted) return null;` and use the DEFAULT_EMBED_URL when no custom playlist is set. The component already has DEFAULT_EMBED_URL defined, it just never gets used because of the early return.",
+    "Verify with pnpm build."
+  ],
+  "acceptance_criteria": [
+    "The SpotifyMiniPlayer collapsed button (Music icon on right edge) is always visible on the dashboard when the component is mounted",
+    "Clicking the button expands the player with either the custom playlist URL or the default embed URL",
+    "pnpm build succeeds with no errors"
+  ],
+  "verification": ["cd frontend && pnpm build"],
+  "blocked_reason": null,
+  "findings": ""
+}

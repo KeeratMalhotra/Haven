@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix the task tripling/duplication bug that occurs when clicking on tasks or changing their state (done/in-progress). Root cause: the handleToggleTask callback depends on `tasks` in its dependency array and closes over a stale copy. When state updates trigger React re-renders, duplicate entries are produced. Additionally, the load() function in the useEffect merges API tasks incorrectly - if API returns tasks that are already in localStorage, they could get duplicated due to timing issues with the non-atomic state updates (setTasks is called multiple times within the same effect).",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/app/dashboard/tasks/page.tsx, fix handleToggleTask: remove `tasks` from the useCallback dependency array. Instead of reading `tasks` directly to find the task before updating, use a functional state update pattern or useRef to always have access to the latest tasks without causing the callback identity to change.",
+    "Fix handleDeleteTask similarly - it reads `tasks` to find the task title for reportAction, which also creates stale closure issues and causes the function identity to change on every render, which can trigger extra effects.",
+    "Fix the load() function inside the useEffect that fetches tasks: prevent the multiple calls to setTasks from causing race conditions. The pattern of calling setTasks(localTasks) then later setTasks(prev => [...newTasksFromApi, ...prev]) can produce duplicates if the component re-renders between these calls. Consolidate into a single state update.",
+    "Ensure the dedupe() function inside load() correctly handles the case where API returns tasks that already exist in localStorage by doing a proper ID-based merge in a single pass.",
+    "Verify the fix by running pnpm build from frontend/ to confirm no TypeScript errors."
+  ],
+  "acceptance_criteria": [
+    "handleToggleTask does not close over the full `tasks` array - it uses a ref or functional updates to avoid stale closures",
+    "The load() effect only calls setTasks once with the final merged result rather than calling it multiple times",
+    "pnpm build succeeds with no errors"
+  ],
+  "verification": ["cd frontend && pnpm build"],
+  "blocked_reason": null,
+  "findings": ""
+}

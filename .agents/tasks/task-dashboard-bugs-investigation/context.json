@@ -1,0 +1,28 @@
+{
+  "project_type": "Full-stack app: Next.js 15 frontend + FastAPI backend with MCP servers",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_system": "pnpm (frontend), pip (backend)",
+  "test_framework": "Next.js built-in (frontend), pytest (backend)",
+  "build_command": "cd frontend && pnpm build",
+  "test_command": "cd frontend && pnpm lint",
+  "verification_instructions": "Run pnpm build from frontend/ to verify no TypeScript/compilation errors",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd frontend && pnpm install",
+  "environment_constraints": "OPEN_INTERNET - full network access available",
+  "contribution_requirements": "No explicit CONTRIBUTING.md found",
+  "key_patterns": "React state with useState/useEffect, localStorage as source of truth for tasks, optimistic updates with fire-and-forget API calls, Framer Motion animations, CSS variables for theming, z-index layering with z-[N] notation",
+  "relevant_files": [
+    "frontend/app/dashboard/tasks/page.tsx",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/app/dashboard/layout.tsx",
+    "frontend/components/layout/AppShell.tsx",
+    "frontend/components/layout/TopBar.tsx",
+    "frontend/components/layout/NotificationBell.tsx",
+    "frontend/components/SpotifyMiniPlayer.tsx",
+    "frontend/components/notifications/NotificationProvider.tsx",
+    "frontend/lib/api.ts",
+    "frontend/lib/api-extended.ts",
+    "backend/app/main.py"
+  ],
+  "directory_structure": "frontend/app/dashboard/ - dashboard pages, frontend/components/ - shared components, frontend/lib/ - API helpers, backend/app/ - FastAPI server with agents and API routers"
+}

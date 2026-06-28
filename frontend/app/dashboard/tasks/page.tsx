@@ -1012,6 +1012,10 @@ function TasksPageContent() {
   const [aiPrioritized, setAiPrioritized] = useState(false);
   const isHydrated = useRef(false);
 
+  // Ref to track latest tasks for use in callbacks without stale closures
+  const tasksRef = useRef<LocalTask[]>(tasks);
+  tasksRef.current = tasks;
+
   // Labels system
   const { labels: allLabels, addLabel } = useLabels();
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
@@ -1132,8 +1136,6 @@ function TasksPageContent() {
           const parsed = JSON.parse(stored) as LocalTask[];
           if (Array.isArray(parsed) && parsed.length > 0) {
             localTasks = dedupe(parsed);
-            setTasks(localTasks);
-            isHydrated.current = true;
           }
         }
       } catch {
@@ -1141,6 +1143,7 @@ function TasksPageContent() {
       }
 
       // Always attempt API fetch to merge in new tasks
+      let finalTasks: LocalTask[] = localTasks;
       try {
         const fetched = await fetchTasks(accessToken);
         const localTaskMap = new Map<string, LocalTask>();
@@ -1169,24 +1172,23 @@ function TasksPageContent() {
         }
 
         if (newTasksFromApi.length > 0) {
-          setTasks((prev) => [...newTasksFromApi, ...prev]);
+          finalTasks = [...newTasksFromApi, ...localTasks];
         } else if (localTasks.length === 0) {
           // No local tasks and no new API tasks - use full API response
-          const mapped: LocalTask[] = fetched.map((t, i) => ({
+          finalTasks = fetched.map((t, i) => ({
             ...t,
             id: t.id || `task-${i}-${Date.now()}`,
             status: t.completed ? "done" : ("todo" as const),
             priority: "none" as const,
           }));
-          setTasks(mapped);
         }
-        isHydrated.current = true;
       } catch {
-        if (localTasks.length === 0) {
-          setTasks([]);
-        }
-        isHydrated.current = true;
+        // API failed - keep localTasks (or empty if none)
       }
+
+      // Single consolidated state update
+      setTasks(finalTasks);
+      isHydrated.current = true;
       setLoading(false);
     }
     load();
@@ -1303,8 +1305,8 @@ function TasksPageContent() {
   };
 
   const handleToggleTask = useCallback((taskId: string) => {
-    // Find the task before updating state so we can report action outside updater
-    const task = tasks.find((t) => t.id === taskId);
+    // Use tasksRef to access current tasks without stale closure
+    const task = tasksRef.current.find((t) => t.id === taskId);
     const newCompleted = task ? task.status !== "done" : false;
 
     // Report action outside setTasks updater to avoid stale closure issues
@@ -1329,6 +1331,7 @@ function TasksPageContent() {
     }
 
     setTasks((prev) => {
+      const currentTask = prev.find((t) => t.id === taskId);
       const updated = prev.map((t) =>
         t.id === taskId
           ? {
@@ -1340,10 +1343,10 @@ function TasksPageContent() {
       );
 
       // If marking as done and it is a recurring task, create next occurrence
-      if (newCompleted && task?.recurrence) {
-        const nextDue = getNextDueDate(task.due, task.recurrence);
+      if (currentTask && currentTask.status !== "done" && currentTask.recurrence) {
+        const nextDue = getNextDueDate(currentTask.due, currentTask.recurrence);
         const nextTask: LocalTask = {
-          ...task,
+          ...currentTask,
           id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           status: "todo",
           completed: false,
@@ -1354,7 +1357,7 @@ function TasksPageContent() {
 
       return updated;
     });
-  }, [accessToken, reportAction, tasks, tasksDisconnected, enqueueTaskOperation]);
+  }, [accessToken, reportAction, tasksDisconnected, enqueueTaskOperation]);
 
   const handleUpdateTask = useCallback((updated: LocalTask) => {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -1368,8 +1371,8 @@ function TasksPageContent() {
   }, []);
 
   const handleDeleteTask = useCallback((taskId: string) => {
-    // Find task and report action outside the updater to avoid stale closure
-    const task = tasks.find((t) => t.id === taskId);
+    // Use tasksRef to access current tasks without stale closure
+    const task = tasksRef.current.find((t) => t.id === taskId);
     if (task) {
       reportAction("task_deleted", { taskId, title: task.title });
     }
@@ -1391,7 +1394,7 @@ function TasksPageContent() {
         }
       });
     }
-  }, [accessToken, reportAction, tasks, tasksDisconnected, enqueueTaskOperation]);
+  }, [accessToken, reportAction, tasksDisconnected, enqueueTaskOperation]);
 
   const [aiLoading, setAiLoading] = useState(false);
 

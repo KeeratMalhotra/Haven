@@ -1,0 +1,7 @@
+{
+  "task_id": "task-dashboard-bugs-investigation",
+  "task_description": "Fix three dashboard bugs: 1) Task tripling when clicking/changing state, 2) Missing Spotify button, 3) Notification panel layering issue. Then provide ideas for dashboard UI rebuild.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}
