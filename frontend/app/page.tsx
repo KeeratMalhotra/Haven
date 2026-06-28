@@ -206,7 +206,7 @@ function Glow({
 }) {
   return (
     <span
-      className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full mix-blend-screen blur-xl ${className}`}
+      className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full mix-blend-screen blur-lg ${className}`}
       style={{ left: x, top: y, width: size, aspectRatio: "1 / 1", backgroundColor: color, opacity, ...style }}
     />
   );
@@ -224,29 +224,29 @@ function HeroArt() {
       <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/hero-cabin.jpg')" }} />
 
       {/* ---- animated firelight & life, aligned to the art ---- */}
-      {/* warm window glows */}
-      <Glow x="25%" y="44%" size="14%" color="#ffce6b" opacity={0.42} className="animate-pixel-flicker" />
-      <Glow x="34%" y="43%" size="12%" color="#ffd27a" opacity={0.36} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
-      <Glow x="47%" y="42%" size="12%" color="#ffce6b" opacity={0.36} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
+      {/* warm window glows — small and precise */}
+      <Glow x="25%" y="44%" size="4%" color="#ffce6b" opacity={0.5} className="animate-pixel-flicker" />
+      <Glow x="34%" y="43%" size="3.5%" color="#ffd27a" opacity={0.45} className="animate-pixel-flicker" style={{ animationDelay: "0.5s" }} />
+      <Glow x="47%" y="42%" size="3.5%" color="#ffce6b" opacity={0.45} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
 
       {/* crescent-moon shimmer */}
-      <Glow x="74%" y="11%" size="10%" color="#ffeccb" opacity={0.3} className="animate-pixel-glow" />
+      <Glow x="74%" y="11%" size="3%" color="#ffeccb" opacity={0.4} className="animate-pixel-glow" />
 
-      {/* campfire glow */}
-      <Glow x="66%" y="69%" size="26%" color="#ff7a2e" opacity={0.45} className="animate-pixel-fire" />
-      <Glow x="66%" y="67%" size="13%" color="#ffc23a" opacity={0.5} className="animate-pixel-flicker" />
+      {/* campfire glow — moderate */}
+      <Glow x="66%" y="72%" size="7%" color="#ff7a2e" opacity={0.5} className="animate-pixel-fire" />
+      <Glow x="66%" y="70%" size="4%" color="#ffc23a" opacity={0.55} className="animate-pixel-flicker" />
 
       {/* rising embers from the fire */}
       {[
-        { l: "63%", t: "62%", d: "0s" },
-        { l: "67%", t: "60%", d: "1s" },
-        { l: "65%", t: "64%", d: "1.8s" },
-        { l: "69%", t: "63%", d: "2.6s" },
+        { l: "64%", t: "65%", d: "0s" },
+        { l: "67%", t: "63%", d: "1s" },
+        { l: "65%", t: "67%", d: "1.8s" },
+        { l: "68%", t: "64%", d: "2.6s" },
       ].map((e, i) => (
         <span
           key={i}
           className="pointer-events-none absolute animate-pixel-ember rounded-full bg-[#ffce6b] shadow-[0_0_5px_1px_rgba(255,138,58,0.7)]"
-          style={{ left: e.l, top: e.t, width: "0.9%", aspectRatio: "1 / 1", animationDelay: e.d }}
+          style={{ left: e.l, top: e.t, width: "0.7%", aspectRatio: "1 / 1", animationDelay: e.d }}
         />
       ))}
 
@@ -258,7 +258,7 @@ function HeroArt() {
         <span
           key={i}
           className="pointer-events-none absolute animate-pixel-smoke rounded-full bg-white/70 blur-[1px]"
-          style={{ left: s.l, top: s.t, width: "0.8%", height: "2.4%", animationDelay: s.d }}
+          style={{ left: s.l, top: s.t, width: "0.6%", height: "1.8%", animationDelay: s.d }}
         />
       ))}
 
@@ -274,7 +274,7 @@ function HeroArt() {
         <span
           key={i}
           className="pointer-events-none absolute animate-pixel-firefly rounded-full bg-[#ffe98a] shadow-[0_0_6px_2px_rgba(255,233,138,0.55)]"
-          style={{ left: f.l, top: f.t, width: "1%", aspectRatio: "1 / 1", animationDelay: f.d }}
+          style={{ left: f.l, top: f.t, width: "0.8%", aspectRatio: "1 / 1", animationDelay: f.d }}
         />
       ))}
     </div>
@@ -572,7 +572,7 @@ function CalmReassurance() {
     <section className="relative z-10 mx-auto w-full max-w-3xl px-6 py-24 text-center">
       <Reveal>
         <SectionLabel>{"// breathe out"}</SectionLabel>
-        <h2 className="font-pixel mx-auto max-w-2xl text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">
+        <h2 className="font-pixel mx-auto max-w-2xl text-4xl font-bold text-[var(--text-primary)] sm:text-5xl">
           Let the house take it from here
         </h2>
         <div className="mx-auto mt-9 flex max-w-xl flex-col gap-5">
@@ -580,7 +580,7 @@ function CalmReassurance() {
             <Reveal key={i} delay={i * 0.08}>
               <div className="flex items-start gap-3 text-left">
                 <span className="mt-2 h-3 w-3 flex-shrink-0 bg-warm-400" />
-                <p className="text-lg leading-[1.7] text-[var(--text-secondary)]">{line}</p>
+                <p className="text-xl leading-[1.7] text-[var(--text-secondary)]">{line}</p>
               </div>
             </Reveal>
           ))}
@@ -595,10 +595,10 @@ function IntegrationsStrip() {
     <section className="relative z-10 mx-auto mt-24 w-full max-w-4xl px-6 text-center">
       <Reveal>
         <SectionLabel>{"// all in one place"}</SectionLabel>
-        <h2 className="font-pixel mx-auto max-w-2xl text-2xl font-semibold text-[var(--text-primary)] sm:text-3xl">
+        <h2 className="font-pixel mx-auto max-w-2xl text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
           Your Gmail, calendar, tasks &amp; more — handled together
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-[15px] leading-[1.7] text-[var(--text-secondary)]">
+        <p className="mx-auto mt-3 max-w-lg text-lg leading-[1.7] text-[var(--text-secondary)]">
           Connect the apps you already use and let Haven run them as one calm,
           coordinated home — no tab-hopping, no juggling, all at once.
         </p>
@@ -606,7 +606,7 @@ function IntegrationsStrip() {
           {integrations.map((name) => (
             <span
               key={name}
-              className="pixel-corners flex items-center gap-2 border-2 border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-sm text-[var(--text-secondary)] shadow-pixel-sm"
+              className="pixel-corners flex items-center gap-2 border-2 border-warm-400/30 bg-warm-400/5 px-3.5 py-2 text-base text-[var(--text-secondary)] shadow-pixel-sm"
             >
               <span className="h-2.5 w-2.5 bg-warm-400" />
               {name}
@@ -624,7 +624,7 @@ function Pillars() {
     <section id="features" className="relative z-10 mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-28">
       <Reveal className="mb-12 text-center">
         <SectionLabel>{"// why haven"}</SectionLabel>
-        <h2 className="font-pixel mx-auto max-w-2xl text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
+        <h2 className="font-pixel mx-auto max-w-2xl text-4xl font-semibold text-[var(--text-primary)] sm:text-5xl">
           A quieter way to stay on top of everything
         </h2>
       </Reveal>
@@ -648,8 +648,8 @@ function Pillars() {
               <div className={`pixelated mb-5 grid h-12 w-12 place-items-center border-[3px] ${borders[i]} ${tints[i]}`}>
                 <PixelIcon kind={p.icon} />
               </div>
-              <h3 className="font-pixel mb-2.5 text-xl font-semibold text-[var(--text-primary)]">{p.title}</h3>
-              <p className="text-[15px] leading-[1.75] text-[var(--text-secondary)]">{p.body}</p>
+              <h3 className="font-pixel mb-2.5 text-2xl font-semibold text-[var(--text-primary)]">{p.title}</h3>
+              <p className="text-base leading-[1.75] text-[var(--text-secondary)]">{p.body}</p>
             </motion.div>
           );
         })}
@@ -664,7 +664,7 @@ function HowItWorks() {
     <section id="how" className="relative z-10 mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-28">
       <Reveal className="mb-12 text-center">
         <SectionLabel>{"// moving in"}</SectionLabel>
-        <h2 className="font-pixel mx-auto max-w-2xl text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
+        <h2 className="font-pixel mx-auto max-w-2xl text-4xl font-semibold text-[var(--text-primary)] sm:text-5xl">
           From chaos to calm in three steps
         </h2>
       </Reveal>
@@ -688,8 +688,8 @@ function HowItWorks() {
             <div className="pixelated mb-5 grid h-12 w-12 place-items-center border-[3px] border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <PixelIcon kind={s.icon} />
             </div>
-            <h3 className="font-pixel mb-2.5 text-xl font-semibold text-[var(--text-primary)]">{s.title}</h3>
-            <p className="text-[15px] leading-[1.75] text-[var(--text-secondary)]">{s.body}</p>
+            <h3 className="font-pixel mb-2.5 text-2xl font-semibold text-[var(--text-primary)]">{s.title}</h3>
+            <p className="text-base leading-[1.75] text-[var(--text-secondary)]">{s.body}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -708,8 +708,8 @@ function FeatureDepth() {
                 <p className="mb-3 font-terminal text-xl uppercase tracking-[0.2em] text-warm-400">
                   [ {f.eyebrow} ]
                 </p>
-                <h3 className="font-pixel mb-4 text-2xl font-semibold text-[var(--text-primary)] sm:text-3xl">{f.title}</h3>
-                <p className="mx-auto max-w-md text-[15px] leading-[1.75] text-[var(--text-secondary)] md:mx-0">{f.body}</p>
+                <h3 className="font-pixel mb-4 text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">{f.title}</h3>
+                <p className="mx-auto max-w-md text-base leading-[1.75] text-[var(--text-secondary)] md:mx-0">{f.body}</p>
               </div>
               <div className="flex-1">
                 <FeatureArt art={f.art} />
@@ -730,10 +730,10 @@ function CozyBand() {
           <div className="mb-6 flex justify-center">
             <MiniCampfire size={56} />
           </div>
-          <h2 className="font-pixel mx-auto max-w-2xl text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">
+          <h2 className="font-pixel mx-auto max-w-2xl text-4xl font-bold text-[var(--text-primary)] sm:text-5xl">
             The home that has your back
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-[1.8] text-[var(--text-secondary)]">
+          <p className="mx-auto mt-5 max-w-xl text-lg leading-[1.8] text-[var(--text-secondary)]">
             Haven isn&apos;t another dashboard to manage. It&apos;s a warm,
             lamp-lit place that notices everything — every task, every
             reschedule, every late night — and quietly keeps things in order, so
@@ -745,31 +745,13 @@ function CozyBand() {
   );
 }
 
-function SocialProof() {
-  return (
-    <section className="relative z-10 mx-auto w-full max-w-3xl px-6 py-28 text-center">
-      <Reveal className="flex flex-col items-center">
-        <div className="flex items-end gap-3">
-          <PixelNumber value="45" scale={10} color="#e8893f" />
-          <span className="font-pixel pb-1 text-3xl font-bold text-warm-500">min / day</span>
-        </div>
-        <p className="mt-5 max-w-md text-base leading-[1.7] text-[var(--text-secondary)]">
-          That&apos;s roughly how much planning and second-guessing Haven
-          quietly takes off your plate — time you get back for the things that
-          actually matter.
-        </p>
-      </Reveal>
-    </section>
-  );
-}
-
 function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
     <section id="faq" className="relative z-10 mx-auto w-full max-w-3xl scroll-mt-24 px-6 py-28">
       <Reveal className="mb-10 text-center">
         <SectionLabel>{"// before you move in"}</SectionLabel>
-        <h2 className="font-pixel text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
+        <h2 className="font-pixel text-4xl font-semibold text-[var(--text-primary)] sm:text-5xl">
           Questions, answered
         </h2>
       </Reveal>
@@ -785,13 +767,13 @@ function Faq() {
                   className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
                   aria-expanded={isOpen}
                 >
-                  <span className="font-pixel text-lg font-semibold text-[var(--text-primary)]">{f.q}</span>
+                  <span className="font-pixel text-xl font-semibold text-[var(--text-primary)]">{f.q}</span>
                   <span className={`pixelated grid h-6 w-6 flex-shrink-0 place-items-center border-2 border-warm-400/60 font-pixel text-warm-400 transition-transform duration-150 ${isOpen ? "rotate-45" : ""}`}>
                     +
                   </span>
                 </button>
                 {isOpen && (
-                  <p className="border-t-2 border-[var(--border)] px-5 py-4 text-[15px] leading-[1.75] text-[var(--text-secondary)]">
+                  <p className="border-t-2 border-[var(--border)] px-5 py-4 text-base leading-[1.75] text-[var(--text-secondary)]">
                     {f.a}
                   </p>
                 )}
@@ -893,37 +875,152 @@ export default function LandingPage() {
 
   return (
     <div id="top" className="relative w-full bg-[var(--bg)]">
+      {/* Ambient color blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-[40%] -right-[8%] h-[520px] w-[520px] rounded-full bg-clay-400/[0.1] blur-[120px] animate-aurora" />
-        <div className="absolute bottom-[8%] left-[26%] h-[460px] w-[460px] rounded-full bg-accent-500/[0.07] blur-[110px] animate-float-slow" />
-        <div className="absolute top-[68%] left-[2%] h-[420px] w-[420px] rounded-full bg-warm-400/[0.1] blur-[120px] animate-drift" />
+        <div className="absolute top-[40%] -right-[8%] h-[520px] w-[520px] rounded-full bg-clay-400/[0.12] blur-[120px] animate-aurora" />
+        <div className="absolute bottom-[8%] left-[26%] h-[460px] w-[460px] rounded-full bg-accent-500/[0.09] blur-[110px] animate-float-slow" />
+        <div className="absolute top-[68%] left-[2%] h-[420px] w-[420px] rounded-full bg-warm-400/[0.12] blur-[120px] animate-drift" />
+        <div className="absolute top-[10%] left-[50%] h-[380px] w-[380px] rounded-full bg-emerald-500/[0.07] blur-[100px] animate-aurora" style={{ animationDelay: "8s" }} />
+        <div className="absolute top-[85%] right-[15%] h-[300px] w-[300px] rounded-full bg-warm-500/[0.1] blur-[90px] animate-drift" style={{ animationDelay: "12s" }} />
+      </div>
+
+      {/* Floating animated SVG elements scattered across the page */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* Pixel stars */}
+        {[
+          { x: "8%", y: "15%", delay: "0s", color: "#ffce6b", anim: "animate-pixel-twinkle" },
+          { x: "92%", y: "22%", delay: "1.2s", color: "#ffe98a", anim: "animate-pixel-twinkle" },
+          { x: "18%", y: "45%", delay: "2.5s", color: "#e8a87c", anim: "animate-pixel-twinkle" },
+          { x: "85%", y: "55%", delay: "0.8s", color: "#ffce6b", anim: "animate-pixel-twinkle" },
+          { x: "5%", y: "72%", delay: "3.2s", color: "#ffe98a", anim: "animate-pixel-twinkle" },
+          { x: "75%", y: "82%", delay: "1.8s", color: "#e8a87c", anim: "animate-pixel-twinkle" },
+          { x: "45%", y: "12%", delay: "4s", color: "#c89bd4", anim: "animate-pixel-twinkle" },
+          { x: "60%", y: "90%", delay: "2.8s", color: "#ffce6b", anim: "animate-pixel-twinkle" },
+        ].map((star, i) => (
+          <svg
+            key={`star-${i}`}
+            className={`absolute ${star.anim}`}
+            style={{ left: star.x, top: star.y, animationDelay: star.delay }}
+            width="10" height="10" viewBox="0 0 6 6" shapeRendering="crispEdges"
+          >
+            <rect x="2" y="0" width="2" height="2" fill={star.color} />
+            <rect x="0" y="2" width="2" height="2" fill={star.color} />
+            <rect x="4" y="2" width="2" height="2" fill={star.color} />
+            <rect x="2" y="4" width="2" height="2" fill={star.color} />
+          </svg>
+        ))}
+
+        {/* Floating diamond shapes */}
+        {[
+          { x: "12%", y: "30%", delay: "0s", color: "#818cf8", size: 12 },
+          { x: "88%", y: "40%", delay: "3s", color: "#34d399", size: 10 },
+          { x: "25%", y: "85%", delay: "6s", color: "#c89bd4", size: 14 },
+          { x: "70%", y: "15%", delay: "2s", color: "#e8a87c", size: 11 },
+          { x: "50%", y: "65%", delay: "4.5s", color: "#818cf8", size: 9 },
+        ].map((d, i) => (
+          <svg
+            key={`diamond-${i}`}
+            className="absolute animate-float-slow"
+            style={{ left: d.x, top: d.y, animationDelay: d.delay, opacity: 0.4 }}
+            width={d.size} height={d.size} viewBox="0 0 8 8" shapeRendering="crispEdges"
+          >
+            <rect x="3" y="0" width="2" height="2" fill={d.color} />
+            <rect x="1" y="2" width="2" height="2" fill={d.color} />
+            <rect x="5" y="2" width="2" height="2" fill={d.color} />
+            <rect x="3" y="4" width="2" height="2" fill={d.color} />
+          </svg>
+        ))}
+
+        {/* Drifting tiny leaves */}
+        {[
+          { x: "15%", y: "50%", delay: "0s", color: "#34d399" },
+          { x: "80%", y: "70%", delay: "5s", color: "#6ee7b7" },
+          { x: "35%", y: "25%", delay: "8s", color: "#34d399" },
+          { x: "65%", y: "42%", delay: "3s", color: "#6ee7b7" },
+          { x: "95%", y: "88%", delay: "7s", color: "#34d399" },
+        ].map((leaf, i) => (
+          <svg
+            key={`leaf-${i}`}
+            className="absolute animate-drift"
+            style={{ left: leaf.x, top: leaf.y, animationDelay: leaf.delay, opacity: 0.35 }}
+            width="12" height="12" viewBox="0 0 8 8" shapeRendering="crispEdges"
+          >
+            <rect x="4" y="0" width="2" height="2" fill={leaf.color} />
+            <rect x="2" y="2" width="4" height="2" fill={leaf.color} />
+            <rect x="0" y="4" width="4" height="2" fill={leaf.color} />
+            <rect x="2" y="6" width="2" height="2" fill={leaf.color} />
+          </svg>
+        ))}
+
+        {/* Glowing orbs (soft circles) */}
+        {[
+          { x: "20%", y: "20%", delay: "0s", color: "rgba(232,168,124,0.3)", size: 18 },
+          { x: "78%", y: "35%", delay: "4s", color: "rgba(129,140,248,0.25)", size: 14 },
+          { x: "40%", y: "75%", delay: "2s", color: "rgba(200,155,212,0.3)", size: 16 },
+          { x: "90%", y: "60%", delay: "6s", color: "rgba(52,211,153,0.25)", size: 12 },
+          { x: "55%", y: "8%", delay: "3.5s", color: "rgba(255,206,107,0.3)", size: 15 },
+          { x: "10%", y: "90%", delay: "7.5s", color: "rgba(232,168,124,0.25)", size: 13 },
+        ].map((orb, i) => (
+          <span
+            key={`orb-${i}`}
+            className="absolute rounded-full animate-pixel-firefly"
+            style={{
+              left: orb.x,
+              top: orb.y,
+              width: orb.size,
+              height: orb.size,
+              backgroundColor: orb.color,
+              animationDelay: orb.delay,
+              filter: "blur(1px)",
+            }}
+          />
+        ))}
+
+        {/* Small pixel circles */}
+        {[
+          { x: "30%", y: "38%", delay: "1s", color: "#dd8a5a" },
+          { x: "72%", y: "48%", delay: "4.2s", color: "#818cf8" },
+          { x: "48%", y: "92%", delay: "2.8s", color: "#c89bd4" },
+          { x: "3%", y: "58%", delay: "5.5s", color: "#34d399" },
+        ].map((c, i) => (
+          <svg
+            key={`circle-${i}`}
+            className="absolute animate-pixel-firefly"
+            style={{ left: c.x, top: c.y, animationDelay: c.delay, opacity: 0.45 }}
+            width="8" height="8" viewBox="0 0 6 6" shapeRendering="crispEdges"
+          >
+            <rect x="1" y="0" width="4" height="1" fill={c.color} />
+            <rect x="0" y="1" width="6" height="4" fill={c.color} />
+            <rect x="1" y="5" width="4" height="1" fill={c.color} />
+          </svg>
+        ))}
       </div>
 
       <Nav />
 
       {/* ===================== HERO ===================== */}
-      <section className="relative mx-auto w-full max-w-6xl px-6 pb-20 pt-32">
-        <div className="grid items-center gap-12 lg:grid-cols-2">
+      <section className="relative mx-auto w-full max-w-7xl px-6 pb-20 pt-32">
+        <div className="grid items-center gap-10 lg:grid-cols-12">
           {/* copy */}
           <motion.div
             initial={reduce ? undefined : "hidden"}
             animate={reduce ? undefined : "visible"}
             variants={reduce ? undefined : stagger}
-            className="flex flex-col items-center text-center lg:items-start lg:text-left"
+            className="flex flex-col items-center text-center lg:col-span-5 lg:items-start lg:text-left"
           >
             <motion.div
               variants={reduce ? undefined : fadeUp}
               className="pixel-corners mb-7 inline-flex items-center gap-2 border-2 border-warm-400/40 bg-warm-400/10 px-3 py-1.5"
             >
               <span className="h-2 w-2 bg-success-500 animate-pixel-twinkle" />
-              <span className="font-terminal text-lg leading-none text-warm-600 dark:text-warm-300">
+              <span className="font-terminal text-xl leading-none text-warm-600 dark:text-warm-300">
                 pull up a chair — you&apos;re home
               </span>
             </motion.div>
 
             <motion.h1
               variants={reduce ? undefined : fadeUp}
-              className="font-pixel text-balance text-4xl font-bold leading-[1.15] text-[var(--text-primary)] sm:text-5xl md:text-6xl"
+              className="font-pixel text-balance text-5xl font-bold leading-[1.1] text-[var(--text-primary)] sm:text-6xl md:text-7xl"
             >
               Come home to a{" "}
               <span className="gradient-text-pixel">calmer way to work</span>
@@ -931,7 +1028,7 @@ export default function LandingPage() {
 
             <motion.p
               variants={reduce ? undefined : fadeUp}
-              className="mt-6 max-w-xl text-balance text-lg leading-[1.7] text-[var(--text-secondary)]"
+              className="mt-6 max-w-xl text-balance text-xl leading-[1.7] text-[var(--text-secondary)]"
             >
               Haven is your cozy AI home. It plans your day, guards your time,
               and quietly handles every task and deadline — so you can put the
@@ -943,7 +1040,7 @@ export default function LandingPage() {
               className="mt-9 flex flex-col items-center gap-4 lg:items-start"
             >
               <GetStartedButton />
-              <p className="font-terminal text-lg tracking-wide text-[var(--text-tertiary)]">
+              <p className="font-terminal text-xl tracking-wide text-[var(--text-tertiary)]">
                 calm in the chaos &middot; no credit card needed
               </p>
             </motion.div>
@@ -951,6 +1048,7 @@ export default function LandingPage() {
 
           {/* artwork (shown at its natural aspect, full quality) */}
           <motion.div
+            className="lg:col-span-7"
             initial={reduce ? undefined : { opacity: 0, y: 24 }}
             animate={reduce ? undefined : { opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: EASE_CALM, delay: 0.15 }}
@@ -962,15 +1060,15 @@ export default function LandingPage() {
 
       <IntegrationsStrip />
 
-      <Band tint="bg-warm-400/[0.05]">
+      <Band tint="bg-warm-400/[0.08]">
         <CalmReassurance />
       </Band>
 
-      <Band tint="bg-warm-400/[0.05]">
+      <Band tint="bg-clay-400/[0.06]">
         <Pillars />
       </Band>
 
-      <Band tint="bg-emerald-500/[0.06] dark:bg-emerald-500/[0.04]">
+      <Band tint="bg-emerald-500/[0.08] dark:bg-emerald-500/[0.05]">
         <HowItWorks />
       </Band>
 
@@ -978,11 +1076,7 @@ export default function LandingPage() {
 
       <CozyBand />
 
-      <Band tint="bg-warm-400/[0.06]">
-        <SocialProof />
-      </Band>
-
-      <Band tint="bg-accent-500/[0.05]">
+      <Band tint="bg-accent-500/[0.07]">
         <Faq />
       </Band>
 
