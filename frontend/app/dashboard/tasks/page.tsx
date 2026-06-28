@@ -1106,6 +1106,21 @@ function TasksPageContent() {
   // Load tasks: localStorage is the source of truth for task status.
   // API fetch merges new tasks in without overwriting existing local statuses.
   useEffect(() => {
+    // Remove any tasks sharing the same id (and re-id collisions) so React
+    // never sees duplicate keys. The first occurrence of an id wins; later
+    // duplicates get a fresh unique id.
+    const dedupe = (list: LocalTask[]): LocalTask[] => {
+      const seen = new Set<string>();
+      return list.map((t) => {
+        let id = t.id;
+        if (!id || seen.has(id)) {
+          id = `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+        seen.add(id);
+        return id === t.id ? t : { ...t, id };
+      });
+    };
+
     async function load() {
       setLoading(true);
       let localTasks: LocalTask[] = [];
@@ -1116,8 +1131,8 @@ function TasksPageContent() {
         if (stored) {
           const parsed = JSON.parse(stored) as LocalTask[];
           if (Array.isArray(parsed) && parsed.length > 0) {
-            localTasks = parsed;
-            setTasks(parsed);
+            localTasks = dedupe(parsed);
+            setTasks(localTasks);
             isHydrated.current = true;
           }
         }
@@ -1135,9 +1150,15 @@ function TasksPageContent() {
 
         // Merge: keep local task data for existing tasks, add truly new ones
         const newTasksFromApi: LocalTask[] = [];
+        const usedIds = new Set<string>(localTaskMap.keys());
         for (const apiTask of fetched) {
-          const id = apiTask.id || `task-api-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          let id = apiTask.id || `task-api-${Date.now()}-${Math.random().toString(36).slice(2)}`;
           if (!localTaskMap.has(id)) {
+            // Avoid colliding with an id we just added in this loop
+            while (usedIds.has(id)) {
+              id = `task-api-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            }
+            usedIds.add(id);
             newTasksFromApi.push({
               ...apiTask,
               id,
