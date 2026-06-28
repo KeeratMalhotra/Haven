@@ -46,7 +46,6 @@ import MorningBriefing from "@/components/dashboard/MorningBriefing";
 import StreakBadge from "@/components/dashboard/StreakBadge";
 import EveningReflection from "@/components/dashboard/EveningReflection";
 
-const PomodoroTimer = dynamic(() => import("@/components/PomodoroTimer"), { ssr: false, loading: () => <div /> });
 const AutoPilotPanel = dynamic(() => import("@/components/autopilot/AutoPilotPanel"), { ssr: false, loading: () => <div /> });
 
 function getGreeting(): string {
@@ -157,19 +156,6 @@ export default function DashboardPage() {
   });
 
   // Chat panel state removed - now handled by layout.tsx
-
-  // Focus mode
-  const [focusActive, setFocusActive] = useState(false);
-  const [focusTask, setFocusTask] = useState<string | undefined>(undefined);
-
-  // Listen for the "chronai-start-focus" custom event dispatched by the TopBar quick actions
-  useEffect(() => {
-    const handleStartFocus = () => {
-      setFocusActive(true);
-    };
-    window.addEventListener("chronai-start-focus", handleStartFocus);
-    return () => window.removeEventListener("chronai-start-focus", handleStartFocus);
-  }, []);
 
   // Auto-Pilot panel
   const [autopilotOpen, setAutopilotOpen] = useState(false);
@@ -916,13 +902,6 @@ export default function DashboardPage() {
       <AutoPilotPanel
         open={autopilotOpen}
         onClose={() => setAutopilotOpen(false)}
-      />
-
-      {/* Pomodoro Timer overlay */}
-      <PomodoroTimer
-        active={focusActive}
-        taskName={focusTask}
-        onStop={() => setFocusActive(false)}
       />
     </>
   );

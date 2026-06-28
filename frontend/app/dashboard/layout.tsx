@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import AppShell from "@/components/layout/AppShell";
 import SpotifyMiniPlayer from "@/components/SpotifyMiniPlayer";
 import {
@@ -16,6 +17,8 @@ import AIChatPanel from "@/components/chat/AIChatPanel";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import ProactiveListener from "@/components/notifications/ProactiveListener";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+
+const PomodoroTimer = dynamic(() => import("@/components/PomodoroTimer"), { ssr: false });
 
 function NotificationSocketListener() {
   return <ProactiveListener />;
@@ -40,6 +43,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const [chatOpen, setChatOpen] = useState(false);
   const [detached, setDetached] = useState(false);
+
+  // Focus mode (Pomodoro) - lives in layout so it works from any dashboard page
+  const [focusActive, setFocusActive] = useState(false);
+  const [focusTask, setFocusTask] = useState<string | undefined>(undefined);
+
+  // Listen for the "chronai-start-focus" custom event dispatched by the TopBar quick actions
+  useEffect(() => {
+    const handleStartFocus = () => {
+      setFocusActive(true);
+    };
+    window.addEventListener("chronai-start-focus", handleStartFocus);
+    return () => window.removeEventListener("chronai-start-focus", handleStartFocus);
+  }, []);
 
   // Allow pages (e.g. the morning briefing "Adjust" action) to open the chat
   // panel by dispatching a window event.
@@ -100,6 +116,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           />
         </AIContextProvider>
         <SpotifyMiniPlayer />
+        <PomodoroTimer
+          active={focusActive}
+          taskName={focusTask}
+          onStop={() => setFocusActive(false)}
+        />
       </AppShell>
     </NotificationProvider>
   );

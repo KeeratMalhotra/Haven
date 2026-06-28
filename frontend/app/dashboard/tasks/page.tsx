@@ -1107,86 +1107,109 @@ function TasksPageContent() {
     }
   }, []);
 
-  // Load tasks: localStorage is the source of truth for task status.
-  // API fetch merges new tasks in without overwriting existing local statuses.
+  // Load tasks: API is the source of truth for which tasks exist.
+  // localStorage provides enrichments (status, priority, labels, recurrence).
   useEffect(() => {
-    // Remove any tasks sharing the same id (and re-id collisions) so React
-    // never sees duplicate keys. The first occurrence of an id wins; later
-    // duplicates get a fresh unique id.
-    const dedupe = (list: LocalTask[]): LocalTask[] => {
-      const seen = new Set<string>();
-      return list.map((t) => {
-        let id = t.id;
-        if (!id || seen.has(id)) {
-          id = `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        }
-        seen.add(id);
-        return id === t.id ? t : { ...t, id };
-      });
-    };
-
     async function load() {
       setLoading(true);
       let localTasks: LocalTask[] = [];
 
-      // Load from localStorage first (source of truth for status)
+      // Load from localStorage
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          const parsed = JSON.parse(stored) as LocalTask[];
+          const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            localTasks = dedupe(parsed);
+            localTasks = parsed;
           }
         }
-      } catch {
-        // Ignore localStorage errors
-      }
+      } catch { }
 
-      // Always attempt API fetch to merge in new tasks
-      let finalTasks: LocalTask[] = localTasks;
+      // Fetch from API
+      let apiTasks: TaskItem[] = [];
       try {
-        const fetched = await fetchTasks(accessToken);
-        const localTaskMap = new Map<string, LocalTask>();
-        localTasks.forEach((t) => {
-          if (t.id) localTaskMap.set(t.id, t);
+        apiTasks = await fetchTasks(accessToken);
+      } catch { }
+
+      let finalTasks: LocalTask[];
+
+      if (apiTasks.length > 0) {
+        // API is the source of truth for WHICH tasks exist.
+        // Merge local enrichments (status, priority, labels, recurrence) onto API tasks.
+
+        // Build lookups from local tasks
+        const localById = new Map<string, LocalTask>();
+        const localByTitle = new Map<string, LocalTask>();
+        for (const lt of localTasks) {
+          if (lt.id) localById.set(lt.id, lt);
+          // For title matching, use first occurrence only
+          if (lt.title && !localByTitle.has(lt.title)) {
+            localByTitle.set(lt.title, lt);
+          }
+        }
+
+        // Track which local tasks got matched (so we can keep unsynced local-only tasks)
+        const matchedLocalIds = new Set<string>();
+
+        // Merge: for each API task, find local enrichment
+        const mergedTasks: LocalTask[] = apiTasks.map((apiTask, i) => {
+          const apiId = apiTask.id || `task-api-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
+
+          // Try ID match first
+          let localMatch = localById.get(apiId);
+
+          // If no ID match, try title match
+          if (!localMatch && apiTask.title) {
+            localMatch = localByTitle.get(apiTask.title);
+          }
+
+          if (localMatch) {
+            matchedLocalIds.add(localMatch.id);
+            // Preserve local enrichments, but use the API's canonical ID and title/notes/due
+            return {
+              ...apiTask,
+              id: apiId,
+              status: localMatch.status || (apiTask.completed ? "done" : "todo"),
+              priority: localMatch.priority || "none",
+              recurrence: localMatch.recurrence || null,
+              labels: localMatch.labels || [],
+              subtasks: localMatch.subtasks || apiTask.subtasks || [],
+            } as LocalTask;
+          }
+
+          // Truly new task from API
+          return {
+            ...apiTask,
+            id: apiId,
+            status: apiTask.completed ? "done" : "todo",
+            priority: "none" as const,
+            recurrence: null,
+            labels: [],
+          } as LocalTask;
         });
 
-        // Merge: keep local task data for existing tasks, add truly new ones
-        const newTasksFromApi: LocalTask[] = [];
-        const usedIds = new Set<string>(localTaskMap.keys());
-        for (const apiTask of fetched) {
-          let id = apiTask.id || `task-api-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-          if (!localTaskMap.has(id)) {
-            // Avoid colliding with an id we just added in this loop
-            while (usedIds.has(id)) {
-              id = `task-api-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            }
-            usedIds.add(id);
-            newTasksFromApi.push({
-              ...apiTask,
-              id,
-              status: apiTask.completed ? "done" : ("todo" as const),
-              priority: "none" as const,
-            });
-          }
-        }
+        // Add local-only tasks that haven't been synced yet (recently created offline)
+        // These have IDs starting with "task-" (locally generated) and weren't matched
+        const localOnlyTasks = localTasks.filter(
+          (lt) => !matchedLocalIds.has(lt.id) && lt.id.startsWith("task-")
+        );
 
-        if (newTasksFromApi.length > 0) {
-          finalTasks = [...newTasksFromApi, ...localTasks];
-        } else if (localTasks.length === 0) {
-          // No local tasks and no new API tasks - use full API response
-          finalTasks = fetched.map((t, i) => ({
-            ...t,
-            id: t.id || `task-${i}-${Date.now()}`,
-            status: t.completed ? "done" : ("todo" as const),
-            priority: "none" as const,
-          }));
-        }
-      } catch {
-        // API failed - keep localTasks (or empty if none)
+        finalTasks = [...mergedTasks, ...localOnlyTasks];
+      } else if (localTasks.length > 0) {
+        // API failed/empty but we have local tasks
+        finalTasks = localTasks;
+      } else {
+        finalTasks = [];
       }
 
-      // Single consolidated state update
+      // Deduplicate by ID (safety net)
+      const seenIds = new Set<string>();
+      finalTasks = finalTasks.filter((t) => {
+        if (seenIds.has(t.id)) return false;
+        seenIds.add(t.id);
+        return true;
+      });
+
       setTasks(finalTasks);
       isHydrated.current = true;
       setLoading(false);

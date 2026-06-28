@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Fix Pomodoro timer start button not working when user is not on the dashboard page, and fix task tripling issue caused by ID mismatch between localStorage and API",
+  "status": "completed",
+  "steps": [
+    "POMODORO FIX: Move the PomodoroTimer from frontend/app/dashboard/page.tsx to frontend/app/dashboard/layout.tsx. Currently the PomodoroTimer only renders inside the dashboard main page, so if the user clicks 'Start Pomodoro' from TopBar while on any other page (tasks, calendar, settings, etc.), nobody is listening for the event and the timer never opens. Steps: (1) In frontend/app/dashboard/layout.tsx inside DashboardShell, add state for focusActive and focusTask. (2) Add the useEffect that listens for 'chronai-start-focus' custom event (copy the pattern from dashboard/page.tsx lines 165-172). (3) Import PomodoroTimer dynamically (same pattern: const PomodoroTimer = dynamic(() => import('@/components/PomodoroTimer'), { ssr: false })). (4) Render <PomodoroTimer active={focusActive} taskName={focusTask} onStop={() => setFocusActive(false)} /> inside DashboardShell, after SpotifyMiniPlayer. (5) Remove the PomodoroTimer import, state, useEffect, and render from frontend/app/dashboard/page.tsx to avoid double-mounting.",
+    "TASK TRIPLING FIX: The issue is in frontend/app/dashboard/tasks/page.tsx in the load() function (the useEffect that fetches tasks). The problem: when a task is created locally, it gets a random ID like 'task-<timestamp>-<random>'. When the API returns tasks, they have real Google Task IDs. The merge logic checks `localTaskMap.has(apiTask.id)` - but since the local ID is different from the Google ID, the same task appears as 'new' every time. Additionally, if the API returns tasks with undefined IDs, they always appear new. FIX: (1) Before merging API tasks, build a title-based lookup Set from local tasks. (2) When checking if an API task is 'new', also check if a task with the same title already exists locally (title match as secondary dedup). (3) If a local task matches an API task by title but has a different (random) ID, UPDATE the local task's ID to the real Google API ID so future loads will match by ID. (4) Most importantly: clear localStorage (STORAGE_KEY) BEFORE running the merge so stale duplicates don't accumulate. Instead, treat the API response as the source of truth for WHICH tasks exist, and localStorage as the source of truth only for local status/priority/labels/recurrence data. (5) The merge logic should be: for each API task, find if there's a matching local task (by ID first, then by title fallback). If matched, use the local task's status/priority/labels but adopt the API task's ID. If not matched, it's truly new - add it. This prevents the ever-growing duplication problem."
+  ],
+  "acceptance_criteria": [
+    "Clicking 'Start Pomodoro' from the TopBar dropdown works regardless of which dashboard page the user is on (tasks, calendar, settings, etc.)",
+    "The Pomodoro timer opens with the duration selection screen when triggered",
+    "Tasks page no longer shows tripled tasks - tasks appear exactly once",
+    "The task merge logic uses both ID matching and title matching to prevent duplicates",
+    "After fixing, if there are 8 tasks in Google Tasks, the app shows exactly 8 tasks (not 24)",
+    "Existing task status, priority, labels, and recurrence are preserved after the fix",
+    "pnpm lint passes without errors",
+    "pnpm build passes without errors"
+  ],
+  "verification": [
+    "Run cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "Run cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": "Both fixes implemented successfully. Pomodoro timer moved to dashboard/layout.tsx so it works from any sub-page. Task tripling fixed by treating API as source of truth and using title-based matching as fallback dedup strategy. Build and lint pass cleanly."
+}
