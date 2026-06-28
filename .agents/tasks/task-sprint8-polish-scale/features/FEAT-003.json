@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Performance optimization (lazy loading, skeletons, debouncing, memoization) plus final UI polish (consistent spacing, hover states, empty states, loading feedback, spring animations) plus accessibility improvements (ARIA labels, keyboard nav, color contrast, prefers-reduced-motion) plus SEO meta tags.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Lazy load heavy components with next/dynamic: (1) In app/dashboard/page.tsx, lazy load FocusMode and AutoPilotPanel with ssr:false and a loading skeleton. (2) In any page that uses Three.js (check app/page.tsx landing), wrap Three.js canvas in dynamic(() => import(...), { ssr: false }). (3) On the analytics page, lazy load chart components.",
     "Add Skeleton loading states on pages that currently lack them. Check app/dashboard/habits/page.tsx, app/dashboard/planner/page.tsx, and app/dashboard/settings/page.tsx and ensure they show Skeleton components while data is loading.",

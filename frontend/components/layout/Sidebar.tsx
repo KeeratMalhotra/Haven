@@ -267,6 +267,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                 <button
                   onClick={onMobileClose}
                   className="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                  aria-label="Close menu"
                 >
                   <X size={20} />
                 </button>

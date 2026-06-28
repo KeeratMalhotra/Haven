@@ -322,6 +322,11 @@ export default function HabitsPage() {
       .finally(() => setLoading(false));
   }, [accessToken]);
 
+  // Set page title
+  useEffect(() => {
+    document.title = "Habits | ChronAI";
+  }, []);
+
   const handleUpdate = useCallback((updated: HabitItem) => {
     setHabits((prev) =>
       prev.map((h) => (h.id === updated.id ? updated : h))

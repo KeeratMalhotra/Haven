@@ -13,7 +13,7 @@ import { AIContextProvider } from "@/components/ai/AIContextProvider";
 import AIToast from "@/components/ai/AIToast";
 import AIChatPanel from "@/components/chat/AIChatPanel";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { MessageCircle, X } from "lucide-react";
 
 function NotificationSocketListener() {
@@ -25,6 +25,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const { connection } = useConnectionState();
   const pathname = usePathname();
+  const prefersReducedMotion = useReducedMotion();
   const userImage = session?.user?.image ?? null;
   const accessToken =
     ((session as Record<string, unknown> | null)?.accessToken as string) || "";
@@ -52,17 +53,21 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     <AppShell connected={connected} userImage={userImage}>
       <AIContextProvider>
         <NotificationSocketListener />
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {prefersReducedMotion ? (
+          <div key={pathname}>{children}</div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        )}
         <AIToast />
 
         {/* Persistent AI Chat FAB - available on all dashboard pages */}

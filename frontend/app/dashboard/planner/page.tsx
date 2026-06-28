@@ -273,6 +273,11 @@ export default function PlannerPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  // Set page title
+  useEffect(() => {
+    document.title = "Planner | ChronAI";
+  }, []);
+
   // Load tasks from localStorage
   useEffect(() => {
     try {
@@ -466,6 +471,7 @@ export default function PlannerPage() {
           <button
             onClick={navigatePrev}
             className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+            aria-label="Previous"
           >
             <ChevronLeft size={16} strokeWidth={1.5} />
           </button>
@@ -478,6 +484,7 @@ export default function PlannerPage() {
           <button
             onClick={navigateNext}
             className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+            aria-label="Next"
           >
             <ChevronRight size={16} strokeWidth={1.5} />
           </button>

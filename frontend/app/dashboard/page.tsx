@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   Calendar,
   CheckSquare,
@@ -26,7 +27,6 @@ import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { safeFormat, safeParseDate } from "@/lib/date-utils";
-import FocusMode from "@/components/FocusMode";
 import {
   fetchOnboardingStatus,
   fetchTasks,
@@ -38,7 +38,9 @@ import {
 } from "@/lib/api";
 import Link from "next/link";
 import { fetchSuggestions } from "@/lib/api-extended";
-import AutoPilotPanel from "@/components/autopilot/AutoPilotPanel";
+
+const FocusMode = dynamic(() => import("@/components/FocusMode"), { ssr: false, loading: () => <div /> });
+const AutoPilotPanel = dynamic(() => import("@/components/autopilot/AutoPilotPanel"), { ssr: false, loading: () => <div /> });
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -154,6 +156,11 @@ export default function DashboardPage() {
 
   // Focus mode usage tracking (hydration-safe)
   const [focusUsed, setFocusUsed] = useState(false);
+
+  // Set page title
+  useEffect(() => {
+    document.title = "Dashboard | ChronAI";
+  }, []);
 
   // Onboarding gate
   useEffect(() => {

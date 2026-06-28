@@ -416,6 +416,7 @@ export default function AnalyticsPage() {
 
   // Load data from localStorage
   useEffect(() => {
+    document.title = "Analytics | ChronAI";
     try {
       const tasksRaw = localStorage.getItem("chronai-tasks");
       if (tasksRaw) {

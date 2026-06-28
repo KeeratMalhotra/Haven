@@ -344,6 +344,7 @@ export default function CalendarPage() {
 
   // Detect mobile viewport for responsive view override
   useEffect(() => {
+    document.title = "Calendar | ChronAI";
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     setIsMobile(mediaQuery.matches);
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
@@ -359,6 +360,7 @@ export default function CalendarPage() {
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("09:00");
   const [newDuration, setNewDuration] = useState(60);
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
   // Edit event form
   const [showEditModal, setShowEditModal] = useState(false);
@@ -637,6 +639,7 @@ export default function CalendarPage() {
   // Create event
   const handleCreateEvent = async () => {
     if (!newSummary.trim() || !newDate) return;
+    setCreatingEvent(true);
     const startTime = `${newDate}T${newTime}:00`;
 
     try {
@@ -667,6 +670,8 @@ export default function CalendarPage() {
           end: endISO,
         },
       ]);
+    } finally {
+      setCreatingEvent(false);
     }
     setNewSummary("");
     setNewDate("");
@@ -736,6 +741,7 @@ export default function CalendarPage() {
             <button
               onClick={navigatePrev}
               className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+              aria-label="Previous"
             >
               <ChevronLeft size={16} strokeWidth={1.5} />
             </button>
@@ -748,6 +754,7 @@ export default function CalendarPage() {
             <button
               onClick={navigateNext}
               className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+              aria-label="Next"
             >
               <ChevronRight size={16} strokeWidth={1.5} />
             </button>
@@ -1232,6 +1239,7 @@ export default function CalendarPage() {
               size="sm"
               onClick={handleCreateEvent}
               disabled={!newSummary.trim() || !newDate}
+              loading={creatingEvent}
             >
               <Plus size={14} />
               Create Event

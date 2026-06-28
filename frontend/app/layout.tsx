@@ -20,6 +20,19 @@ export const metadata: Metadata = {
   title: "ChronAI - Your Intelligent Time Companion",
   description:
     "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+  openGraph: {
+    title: "ChronAI - Your Intelligent Time Companion",
+    description:
+      "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+    type: "website",
+    siteName: "ChronAI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ChronAI - Your Intelligent Time Companion",
+    description:
+      "ChronAI brings calm intelligence to your time, tasks, and intentions. Designed for focus, built for flow.",
+  },
 };
 
 export default function RootLayout({

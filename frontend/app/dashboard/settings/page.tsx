@@ -161,6 +161,10 @@ function SettingsContent() {
 
   // Load preferences on mount
   useEffect(() => {
+    document.title = "Settings | ChronAI";
+  }, []);
+
+  useEffect(() => {
     // Load localStorage values
     const stored = localStorage.getItem("chronai-ai-tone");
     if (stored) setAiTone(stored as AiTone);

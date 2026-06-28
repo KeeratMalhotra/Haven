@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -276,7 +276,7 @@ function getNextDueDate(currentDue: string | null | undefined, recurrence: Recur
 }
 
 // Kanban column component
-function KanbanColumn({
+const KanbanColumn = memo(function KanbanColumn({
   title,
   tasks,
   color,
@@ -326,10 +326,10 @@ function KanbanColumn({
       </SortableContext>
     </div>
   );
-}
+});
 
 // Sortable task card for kanban
-function SortableTaskCard({
+const SortableTaskCard = memo(function SortableTaskCard({
   task,
   onClick,
   onContextMenu,
@@ -438,7 +438,7 @@ function SortableTaskCard({
       </Card>
     </div>
   );
-}
+});
 
 // Drag overlay card
 function DragOverlayCard({ task }: { task: LocalTask }) {
@@ -460,7 +460,7 @@ function DragOverlayCard({ task }: { task: LocalTask }) {
 }
 
 // List view row
-function ListRow({
+const ListRow = memo(function ListRow({
   task,
   onToggle,
   onTitleChange,
@@ -651,13 +651,14 @@ function ListRow({
           onDelete();
         }}
         className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-tertiary)] hover:text-danger-500 flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-0 md:min-w-0"
+        aria-label="Delete task"
       >
         <Trash2 size={14} strokeWidth={1.5} />
       </button>
       {statusBadge()}
     </div>
   );
-}
+});
 
 // Task detail panel
 function TaskDetailPanel({
@@ -1018,10 +1019,16 @@ export default function TasksPage() {
   // Gmail & Slides modal state
   const [showGmailScan, setShowGmailScan] = useState(false);
   const [showSlidesGenerator, setShowSlidesGenerator] = useState(false);
+  const [creatingTask, setCreatingTask] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  // Set page title
+  useEffect(() => {
+    document.title = "Tasks | ChronAI";
+  }, []);
 
   // Load tasks
   useEffect(() => {
@@ -1076,15 +1083,19 @@ export default function TasksPage() {
   }, [tasks]);
 
   // Task helpers - apply label filter
-  const filteredTasks = labelFilter
-    ? tasks.filter((t) => t.labels?.some((l) => l.id === labelFilter))
-    : tasks;
-  const todoTasks = filteredTasks.filter((t) => t.status === "todo");
-  const inProgressTasks = filteredTasks.filter((t) => t.status === "inprogress");
-  const doneTasks = filteredTasks.filter((t) => t.status === "done");
+  const filteredTasks = useMemo(
+    () => labelFilter
+      ? tasks.filter((t) => t.labels?.some((l) => l.id === labelFilter))
+      : tasks,
+    [tasks, labelFilter]
+  );
+  const todoTasks = useMemo(() => filteredTasks.filter((t) => t.status === "todo"), [filteredTasks]);
+  const inProgressTasks = useMemo(() => filteredTasks.filter((t) => t.status === "inprogress"), [filteredTasks]);
+  const doneTasks = useMemo(() => filteredTasks.filter((t) => t.status === "done"), [filteredTasks]);
 
   const handleCreateTask = async () => {
     if (!newTitle.trim()) return;
+    setCreatingTask(true);
     const task: LocalTask = {
       id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       title: newTitle.trim(),
@@ -1131,6 +1142,8 @@ export default function TasksPage() {
       }
     } catch {
       // API failed - task remains in local state only
+    } finally {
+      setCreatingTask(false);
     }
   };
 
@@ -1744,7 +1757,7 @@ export default function TasksPage() {
             >
               Cancel
             </Button>
-            <Button size="sm" onClick={handleCreateTask} disabled={!newTitle.trim()}>
+            <Button size="sm" onClick={handleCreateTask} disabled={!newTitle.trim()} loading={creatingTask}>
               <Plus size={14} />
               Create Task
             </Button>
