@@ -230,18 +230,18 @@ function HeroArt() {
       <Glow x="47%" y="42%" size="3.5%" color="#ffce6b" opacity={0.45} className="animate-pixel-flicker" style={{ animationDelay: "0.9s" }} />
 
       {/* crescent-moon shimmer */}
-      <Glow x="74%" y="11%" size="3%" color="#ffeccb" opacity={0.4} className="animate-pixel-glow" />
+      <Glow x="74%" y="8%" size="2.5%" color="#ffeccb" opacity={0.4} className="animate-pixel-glow" />
 
-      {/* campfire glow — moderate */}
-      <Glow x="66%" y="72%" size="7%" color="#ff7a2e" opacity={0.5} className="animate-pixel-fire" />
-      <Glow x="66%" y="70%" size="4%" color="#ffc23a" opacity={0.55} className="animate-pixel-flicker" />
+      {/* campfire glow — moderate, shifted up */}
+      <Glow x="66%" y="66%" size="5.5%" color="#ff7a2e" opacity={0.5} className="animate-pixel-fire" />
+      <Glow x="66%" y="64%" size="3%" color="#ffc23a" opacity={0.55} className="animate-pixel-flicker" />
 
       {/* rising embers from the fire */}
       {[
-        { l: "64%", t: "65%", d: "0s" },
-        { l: "67%", t: "63%", d: "1s" },
-        { l: "65%", t: "67%", d: "1.8s" },
-        { l: "68%", t: "64%", d: "2.6s" },
+        { l: "64%", t: "60%", d: "0s" },
+        { l: "67%", t: "58%", d: "1s" },
+        { l: "65%", t: "62%", d: "1.8s" },
+        { l: "68%", t: "59%", d: "2.6s" },
       ].map((e, i) => (
         <span
           key={i}
@@ -591,29 +591,55 @@ function CalmReassurance() {
 }
 
 function IntegrationsStrip() {
+  const reduce = useReducedMotion();
   return (
-    <section className="relative z-10 mx-auto mt-24 w-full max-w-4xl px-6 text-center">
-      <Reveal>
-        <SectionLabel>{"// all in one place"}</SectionLabel>
-        <h2 className="font-pixel mx-auto max-w-2xl text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
-          Your Gmail, calendar, tasks &amp; more — handled together
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-lg leading-[1.7] text-[var(--text-secondary)]">
+    <section className="relative z-10 mx-auto w-full max-w-5xl px-6 py-32">
+      <motion.div
+        initial={reduce ? undefined : "hidden"}
+        whileInView={reduce ? undefined : "visible"}
+        viewport={{ once: true, amount: 0.3 }}
+        variants={reduce ? undefined : stagger}
+        className="flex flex-col items-center text-center"
+      >
+        <motion.div variants={reduce ? undefined : fadeUp}>
+          <SectionLabel>{"// all in one place"}</SectionLabel>
+        </motion.div>
+
+        <motion.h2
+          variants={reduce ? undefined : fadeUp}
+          className="font-pixel mx-auto max-w-3xl text-4xl font-bold text-[var(--text-primary)] sm:text-5xl"
+        >
+          Your Gmail, calendar, slides &amp; tasks —{" "}
+          <span className="gradient-text-pixel">handled together</span>
+        </motion.h2>
+
+        <motion.p
+          variants={reduce ? undefined : fadeUp}
+          className="mx-auto mt-6 max-w-xl text-xl leading-[1.7] text-[var(--text-secondary)]"
+        >
           Connect the apps you already use and let Haven run them as one calm,
           coordinated home — no tab-hopping, no juggling, all at once.
-        </p>
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          {integrations.map((name) => (
-            <span
+        </motion.p>
+
+        <motion.div
+          variants={reduce ? undefined : fadeUp}
+          className="mt-10 flex flex-wrap items-center justify-center gap-4"
+        >
+          {integrations.map((name, i) => (
+            <motion.span
               key={name}
-              className="pixel-corners flex items-center gap-2 border-2 border-warm-400/30 bg-warm-400/5 px-3.5 py-2 text-base text-[var(--text-secondary)] shadow-pixel-sm"
+              initial={reduce ? undefined : { opacity: 0, scale: 0.85, y: 12 }}
+              whileInView={reduce ? undefined : { opacity: 1, scale: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, ease: EASE_CALM, delay: 0.1 + i * 0.08 }}
+              className="pixel-corners flex items-center gap-2.5 border-[3px] border-warm-400/40 bg-warm-400/8 px-5 py-3 text-lg font-medium text-[var(--text-primary)] shadow-pixel-sm transition-transform hover:-translate-y-0.5 hover:shadow-pixel"
             >
-              <span className="h-2.5 w-2.5 bg-warm-400" />
+              <span className="h-3 w-3 bg-warm-400 animate-pixel-twinkle" style={{ animationDelay: `${i * 0.4}s` }} />
               {name}
-            </span>
+            </motion.span>
           ))}
-        </div>
-      </Reveal>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
@@ -621,7 +647,7 @@ function IntegrationsStrip() {
 function Pillars() {
   const reduce = useReducedMotion();
   return (
-    <section id="features" className="relative z-10 mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-28">
+    <section id="features" className="relative z-10 mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-32">
       <Reveal className="mb-12 text-center">
         <SectionLabel>{"// why haven"}</SectionLabel>
         <h2 className="font-pixel mx-auto max-w-2xl text-4xl font-semibold text-[var(--text-primary)] sm:text-5xl">
@@ -661,7 +687,7 @@ function Pillars() {
 function HowItWorks() {
   const reduce = useReducedMotion();
   return (
-    <section id="how" className="relative z-10 mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-28">
+    <section id="how" className="relative z-10 mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-32">
       <Reveal className="mb-12 text-center">
         <SectionLabel>{"// moving in"}</SectionLabel>
         <h2 className="font-pixel mx-auto max-w-2xl text-4xl font-semibold text-[var(--text-primary)] sm:text-5xl">
@@ -699,8 +725,8 @@ function HowItWorks() {
 
 function FeatureDepth() {
   return (
-    <section className="relative z-10 mx-auto w-full max-w-4xl px-6 py-28">
-      <div className="flex flex-col gap-24">
+    <section className="relative z-10 mx-auto w-full max-w-4xl px-6 py-32">
+      <div className="flex flex-col gap-28">
         {featureDepth.map((f, i) => (
           <Reveal key={f.eyebrow}>
             <div className={`flex flex-col items-center gap-10 md:flex-row ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
@@ -748,7 +774,7 @@ function CozyBand() {
 function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="relative z-10 mx-auto w-full max-w-3xl scroll-mt-24 px-6 py-28">
+    <section id="faq" className="relative z-10 mx-auto w-full max-w-3xl scroll-mt-24 px-6 py-32">
       <Reveal className="mb-10 text-center">
         <SectionLabel>{"// before you move in"}</SectionLabel>
         <h2 className="font-pixel text-4xl font-semibold text-[var(--text-primary)] sm:text-5xl">
