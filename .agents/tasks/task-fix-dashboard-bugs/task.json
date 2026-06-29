@@ -1,0 +1,14 @@
+{
+  "task_id": "task-fix-dashboard-bugs",
+  "task_description": "Fix four dashboard bugs: analytics not showing data, drag-to-InProgress broken, task sidebar overlapping navbar, and Slides showing not connected after OAuth",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "pnpm lint passes with no warnings/errors. pnpm build succeeds with all pages compiled correctly."
+  }
+}
