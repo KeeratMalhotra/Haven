@@ -1,24 +1,19 @@
 FROM node:22-slim AS base
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
-# Install dependencies
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile || pnpm install
+# Install dependencies using npm (more reliable in CI than pnpm frozen-lockfile)
+COPY package.json package-lock.json* ./
+RUN npm install --legacy-peer-deps
 
 # Copy application code
 COPY . .
 
 # Build the Next.js application
-RUN pnpm build
+RUN npm run build
 
 # Production stage
 FROM node:22-slim AS runner
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
@@ -30,6 +25,8 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/package.json ./package.json
 COPY --from=base /app/public ./public
 
-EXPOSE 3000
+# Cloud Run provides PORT (default 8080). Next.js "start" respects the PORT env var.
+ENV PORT=8080
+EXPOSE 8080
 
-CMD ["pnpm", "start"]
+CMD ["npm", "start"]
