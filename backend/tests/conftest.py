@@ -33,9 +33,10 @@ class MockDocumentSnapshot:
 class MockDocumentReference:
     """Mimics a Firestore DocumentReference."""
 
-    def __init__(self, collection_store: dict, doc_id: str):
+    def __init__(self, collection_store: dict, doc_id: str, db_store: Optional[dict] = None):
         self._store = collection_store
         self.id = doc_id
+        self._db_store = db_store or {}
 
     async def get(self) -> MockDocumentSnapshot:
         data = self._store.get(self.id)
@@ -50,6 +51,11 @@ class MockDocumentReference:
 
     async def delete(self) -> None:
         self._store.pop(self.id, None)
+
+    def collection(self, name: str) -> "MockCollectionReference":
+        """Support subcollections on a document (e.g. users/{uid}/embeddings)."""
+        subcoll_key = f"{self.id}/{name}"
+        return MockCollectionReference(self._db_store, subcoll_key)
 
 
 class MockQuery:
@@ -85,11 +91,12 @@ class MockCollectionReference:
             db_store[collection_name] = {}
         self._store = db_store[collection_name]
         self._collection_name = collection_name
+        self._db_store = db_store
 
     def document(self, doc_id: Optional[str] = None) -> MockDocumentReference:
         if doc_id is None:
             doc_id = str(uuid.uuid4())
-        return MockDocumentReference(self._store, doc_id)
+        return MockDocumentReference(self._store, doc_id, db_store=self._db_store)
 
     def where(self, field: str, op: str, value: Any) -> MockQuery:
         return MockQuery(self._store, field, op, value)
@@ -199,6 +206,16 @@ def mock_verify_token():
     }
     with patch("app.auth.verify_google_token", new_callable=AsyncMock, return_value=user_info) as mock:
         yield mock
+
+
+@pytest.fixture(autouse=True)
+def reset_embedding_model_cache():
+    """Reset the module-level embedding model cache between tests."""
+    import app.agents.memory as mem_module
+    original = mem_module._embedding_model
+    mem_module._embedding_model = None
+    yield
+    mem_module._embedding_model = original
 
 
 @pytest.fixture
