@@ -295,6 +295,9 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
   // Track if timer just started (for glow effect)
   const [justStarted, setJustStarted] = useState(false);
 
+  // Hint text visibility
+  const [showHint, setShowHint] = useState(false);
+
   // Load stats on mount
   useEffect(() => {
     setCompletedToday(getTodayMinutes());
@@ -363,6 +366,8 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     setPhase("focus");
     setJustStarted(true);
     setTimeout(() => setJustStarted(false), 1500);
+    setShowHint(true);
+    setTimeout(() => setShowHint(false), 15000);
   }, [focusMinutes]);
 
   const selectDuration = useCallback((minutes: number) => {
@@ -374,6 +379,8 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     setPhase("focus");
     setJustStarted(true);
     setTimeout(() => setJustStarted(false), 1500);
+    setShowHint(true);
+    setTimeout(() => setShowHint(false), 15000);
   }, []);
 
   const openAIChat = useCallback(() => {
@@ -498,6 +505,21 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                     </span>
                   </motion.div>
 
+                  {/* Plant growth hint text */}
+                  <AnimatePresence>
+                    {showHint && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.4 }}
+                        className="text-sm text-center text-[var(--text-tertiary)] dark:text-[#847e76] italic"
+                      >
+                        The plant will grow as time passes - the more you focus, the more it blooms
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+
                   {/* Plant SVG with glow effect */}
                   {!isDone && (
                     <motion.div
@@ -592,6 +614,14 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                         >
                           <StopCircle size={24} strokeWidth={1.5} />
                         </button>
+                        <button
+                          onClick={openAIChat}
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-tertiary)] ring-1 ring-[var(--border)] transition hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface)]"
+                          aria-label="Ask AI"
+                          title="Ask AI"
+                        >
+                          <Sparkles size={24} strokeWidth={1.5} />
+                        </button>
                       </>
                     )}
                     {isDone && (
@@ -610,32 +640,20 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                           <StopCircle size={16} strokeWidth={1.5} />
                           Done
                         </button>
+                        <button
+                          onClick={openAIChat}
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-tertiary)] ring-1 ring-[var(--border)] transition hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface)]"
+                          aria-label="Ask AI"
+                          title="Ask AI"
+                        >
+                          <Sparkles size={24} strokeWidth={1.5} />
+                        </button>
                       </>
                     )}
                   </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* AI Chat Access Button - only visible when timer is active */}
-            {!isSelecting && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                transition={{ delay: 0.8, type: "spring", stiffness: 300, damping: 25 }}
-                onClick={openAIChat}
-                className="absolute bottom-6 right-6 flex items-center justify-center h-10 w-10 rounded-full bg-[var(--surface)]/80 backdrop-blur-sm text-[var(--text-tertiary)] ring-1 ring-[var(--border)] hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface-hover)] transition-all duration-200 group"
-                aria-label="Ask AI"
-                title="Ask AI"
-              >
-                <Sparkles size={18} strokeWidth={1.5} />
-                {/* Tooltip */}
-                <span className="absolute bottom-full mb-2 px-2 py-1 text-xs rounded-md bg-[var(--surface)] text-[var(--text-secondary)] ring-1 ring-[var(--border)] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  Ask AI
-                </span>
-              </motion.button>
-            )}
           </div>
         </motion.div>
       )}

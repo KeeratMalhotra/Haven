@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix Pomodoro Ask AI button placement and wiring, plus add plant growth hint text",
+  "status": "in_progress",
+  "steps": [
+    "In frontend/components/PomodoroTimer.tsx, move the 'Ask AI' button from the floating absolute position (bottom-6 right-6) to be adjacent to the start/stop timer control buttons in the controls section. Place it as another button in the flex row alongside pause and stop buttons.",
+    "The openAIChat callback already dispatches window.dispatchEvent(new CustomEvent('chronai-open-chat')) which is already listened to in frontend/app/dashboard/layout.tsx - verify this wiring is correct (it is).",
+    "Add a state variable 'showHint' that gets set to true when focus phase starts (in selectDuration and startAnotherSession callbacks). After 15 seconds, set it to false.",
+    "Render a hint text using framer-motion AnimatePresence that says 'The plant will grow as time passes - the more you focus, the more it blooms' which appears when showHint is true and fades out after 15 seconds. Place it between the phase indicator and the plant SVG in the active timer view.",
+    "Style the hint text as text-sm text-[var(--text-tertiary)] with framer-motion fade in/out animation."
+  ],
+  "acceptance_criteria": [
+    "The Ask AI button is visible adjacent to the pause/stop buttons (not floating in a corner)",
+    "Clicking the Ask AI button dispatches 'chronai-open-chat' event which opens the chat panel",
+    "When Pomodoro focus starts, a hint text appears for 15 seconds then fades away",
+    "pnpm lint passes without errors",
+    "pnpm build passes without errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
