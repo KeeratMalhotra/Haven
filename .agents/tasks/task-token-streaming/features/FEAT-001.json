@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Add token-by-token streaming from Gemini over WebSocket. Backend: add generate_stream() to base agent, add execute_streaming() to orchestrator, update WebSocket handler to send text_chunk/text_end frames. Frontend: add text_chunk/text_end to ResponsePayload type, handle streaming chunks in useChatSocket to build up message content in real-time, and update MessageBubble to render streamed content directly without the client-side typewriter effect.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. In backend/app/agents/base.py: Add an async generator method `generate_stream(self, prompt, *, timeout=60.0, **kwargs)` that calls `self.model.generate_content(prompt, stream=True, **kwargs)` in a thread and yields text chunks from the response iterator. Use asyncio.to_thread for the initial call and then iterate in a thread-safe manner. Keep the existing generate() method intact.",
     "2. In backend/app/agents/orchestrator.py: Add an `async def execute_streaming(self, task, send_chunk)` method. This method performs intent analysis (non-streamed) and routing as usual. For single-agent responses that can be streamed (not multi-agent consolidation, not direct_response), use generate_stream() on the specialist agent's model to stream the final response. Call `await send_chunk(text)` for each chunk. For direct_response or multi-agent, fall back to the existing non-streaming execute() logic and return the full content. The method should return the same dict shape as execute() but with content already streamed. Include conversation_history management and pending_action handling same as execute().",
@@ -31,5 +31,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -x -q"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Pre-existing test failure in test_user_context.py::test_get_user_context_no_user (unrelated to streaming changes). pyenv needed to be set to 3.11.15 for Python tests. The existing test_websocket tests used AsyncMock which auto-creates attributes, so the first test was updated to use MagicMock with an explicit execute_streaming coroutine function."
 }
