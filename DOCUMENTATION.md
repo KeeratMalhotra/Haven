@@ -261,10 +261,4 @@ cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload -
 
 ---
 
-## Team
-
-Built with AI-assisted development using Kiro (Claude) for rapid iteration across 13+ development sprints, delivering a production-ready platform in record time.
-
----
-
 *Haven — Calm in the chaos.*
