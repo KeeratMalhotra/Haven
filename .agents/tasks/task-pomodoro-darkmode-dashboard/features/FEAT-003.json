@@ -1,0 +1,40 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Rebuild dashboard page with Bento Grid Command Center layout (Idea 1)",
+  "status": "in_progress",
+  "steps": [
+    "Rewrite frontend/app/dashboard/page.tsx with a two-column Bento Grid layout:",
+    "Keep all existing data fetching, state management, auth checks, and loading/empty states from the current file",
+    "Morning briefing remains as a full-width hero banner at top (the MorningBriefing component is already imported and used - keep it)",
+    "Two-column layout on desktop (grid-cols-3): Left column (col-span-2) contains Today's Timeline with a vertical timeline view (time markers along a vertical line), Right column (col-span-1) contains quick stats badges and upcoming tasks list",
+    "Stats should appear as inline badges/chips (similar to the StatChip pattern in MorningBriefing.tsx) rather than full-width cards",
+    "Timeline view: vertical line on the left with time markers, events displayed along the timeline with time labels. Use the existing events data.",
+    "Bento-style cards with varying sizes - use rounded-2xl borders, bg-[var(--surface)] backgrounds",
+    "Framer Motion entrance animations (stagger children pattern already in the file)",
+    "Ensure dark and light mode both work - use dark: overrides for text colors (dark:text-[#ece9e4], dark:text-[#a8a39c], dark:text-[#847e76])",
+    "Keep warm/minimalistic style - no pixel fonts, use the existing color variables",
+    "Preserve the AutoPilotPanel import and rendering at the bottom",
+    "Keep the StreakBadge, EveningReflection, and empty state (welcome) flow",
+    "Keep all the existing useEffect hooks for data fetching, visibility refresh, etc.",
+    "On mobile (sm and below), stack the columns vertically"
+  ],
+  "acceptance_criteria": [
+    "Dashboard renders with two-column bento grid layout on desktop",
+    "Morning briefing appears as full-width hero at top",
+    "Left column shows today's timeline with vertical time markers",
+    "Right column shows quick stats as badges and upcoming tasks",
+    "All existing functionality preserved (data fetching, auth, navigation, empty states)",
+    "Works in both dark and light mode",
+    "Mobile responsive - stacks vertically",
+    "Framer motion entrance animations present",
+    "pnpm lint passes",
+    "pnpm build passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

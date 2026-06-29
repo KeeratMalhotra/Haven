@@ -620,64 +620,152 @@ export default function DashboardPage() {
             )}
           </motion.div>
         ) : (
-          /* ========== Normal Data View ========== */
-          <>
-            {/* Quick Stats */}
+          /* ========== Bento Grid Command Center ========== */
+          <motion.div
+            variants={reducedItemVariants}
+            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+          >
+            {/* Left Column - Today's Timeline */}
             <motion.div
               variants={reducedItemVariants}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+              className="lg:col-span-2 space-y-6"
             >
-              {statsCards.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{
-                      delay: 0.2 + index * 0.1,
-                      duration: 0.5,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
+              {/* Today's Timeline Card */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:border-[var(--border)]/80">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
+                    Today&apos;s Timeline
+                  </h2>
+                  <Link
+                    href="/dashboard/calendar"
+                    className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-accent-500"
                   >
-                    <Card hover={false} className="flex items-center gap-4 p-5">
-                      <div
-                        className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.bgColor}`}
-                      >
-                        <Icon
-                          size={20}
-                          strokeWidth={1.5}
-                          className={stat.color}
-                        />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)] dark:text-[#ece9e4]">
-                          {dataLoading ? (
-                            <span className="inline-block h-7 w-6 animate-pulse rounded bg-[var(--surface-hover)]" />
-                          ) : (
-                            stat.count
-                          )}
-                        </p>
-                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
-                          {stat.label}
-                        </p>
-                      </div>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+                    View calendar{" "}
+                    <ArrowRight
+                      size={12}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
+                  </Link>
+                </div>
 
-            {/* Plan My Day - Auto-Pilot */}
-            <motion.div variants={reducedItemVariants}>
+                {dataLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                    <Skeleton className="h-14" />
+                  </div>
+                ) : validEvents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <Calendar
+                      size={28}
+                      strokeWidth={1.5}
+                      className="mb-3 text-[var(--text-tertiary)] dark:text-[#847e76]"
+                    />
+                    <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
+                      No events scheduled for today
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative pl-8">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-4 top-0 bottom-0 w-px bg-[var(--border)]" />
+
+                    <div className="space-y-4">
+                      {validEvents.slice(0, 6).map((event, i) => (
+                        <motion.div
+                          key={event.id || i}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.06, duration: 0.35 }}
+                          className="relative flex items-start gap-4"
+                        >
+                          {/* Timeline dot */}
+                          <div className="absolute -left-8 top-2.5 flex items-center justify-center">
+                            <div className="h-2.5 w-2.5 rounded-full bg-accent-500 ring-4 ring-[var(--surface)]" />
+                          </div>
+
+                          {/* Time label */}
+                          <div className="flex-shrink-0 w-16 pt-1">
+                            <span className="text-xs font-medium tabular-nums text-[var(--text-tertiary)] dark:text-[#847e76]">
+                              {safeFormat(event.start, "h:mm a")}
+                            </span>
+                          </div>
+
+                          {/* Event card */}
+                          <div className="flex-1 min-w-0 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 transition-colors hover:border-accent-500/20">
+                            <p className="truncate text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
+                              {event.summary}
+                            </p>
+                            {safeFormat(event.end, "h:mm a") && (
+                              <p className="mt-0.5 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
+                                until {safeFormat(event.end, "h:mm a")}
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* AI Suggestions */}
+              {suggestions.length > 0 && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:border-[var(--border)]/80">
+                  <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] flex items-center gap-2 mb-4">
+                    <Sparkles size={16} className="text-accent-500" />
+                    AI Suggestions
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestions.map((suggestion, i) => {
+                      const iconMap = {
+                        productivity: Sparkles,
+                        reminder: Bell,
+                        preparation: BookOpen,
+                      };
+                      const colorMap = {
+                        productivity: "text-accent-500",
+                        reminder: "text-warning-500",
+                        preparation: "text-success-500",
+                      };
+                      const bgMap = {
+                        productivity: "bg-accent-500/8",
+                        reminder: "bg-warning-500/8",
+                        preparation: "bg-success-500/8",
+                      };
+                      const Icon = iconMap[suggestion.type] || Sparkles;
+                      const iconColor = colorMap[suggestion.type] || "text-accent-500";
+                      const bgColor = bgMap[suggestion.type] || "bg-accent-500/8";
+
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.08, duration: 0.3 }}
+                          className={`flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-4 py-3 ${bgColor}`}
+                        >
+                          <Icon
+                            size={15}
+                            strokeWidth={1.5}
+                            className={`flex-shrink-0 ${iconColor}`}
+                          />
+                          <span className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
+                            {suggestion.text}
+                          </span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Plan My Day - Auto-Pilot */}
               <button
                 onClick={() => setAutopilotOpen(true)}
                 className="w-full group"
               >
-                <Card
-                  hover={false}
-                  className="flex items-center gap-4 p-5 transition-all hover:border-accent-500/30 hover:shadow-lg hover:shadow-accent-500/5"
-                >
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 flex items-center gap-4 transition-all hover:border-accent-500/30 hover:shadow-lg hover:shadow-accent-500/5">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500/20 to-purple-500/20">
                     <Zap size={20} strokeWidth={1.5} className="text-accent-500" />
                   </div>
@@ -694,173 +782,88 @@ export default function DashboardPage() {
                     strokeWidth={1.5}
                     className="text-[var(--text-tertiary)] dark:text-[#847e76] transition-transform group-hover:translate-x-1"
                   />
-                </Card>
+                </div>
               </button>
             </motion.div>
 
-            {/* AI Suggestions */}
-            {suggestions.length > 0 && (
-              <motion.section variants={reducedItemVariants}>
-                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] flex items-center gap-2">
-                  <Sparkles size={16} className="text-accent-500" />
-                  AI Suggestions
-                </h2>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {suggestions.map((suggestion, i) => {
-                    const iconMap = {
-                      productivity: Sparkles,
-                      reminder: Bell,
-                      preparation: BookOpen,
-                    };
-                    const colorMap = {
-                      productivity: "text-accent-500",
-                      reminder: "text-warning-500",
-                      preparation: "text-success-500",
-                    };
-                    const bgMap = {
-                      productivity: "bg-accent-500/8",
-                      reminder: "bg-warning-500/8",
-                      preparation: "bg-success-500/8",
-                    };
-                    const Icon = iconMap[suggestion.type] || Sparkles;
-                    const iconColor = colorMap[suggestion.type] || "text-accent-500";
-                    const bgColor = bgMap[suggestion.type] || "bg-accent-500/8";
-
+            {/* Right Column - Quick Stats + Upcoming Tasks */}
+            <motion.div
+              variants={reducedItemVariants}
+              className="lg:col-span-1 space-y-6"
+            >
+              {/* Quick Stats as Badge Chips */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:border-[var(--border)]/80">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-4">
+                  Quick Stats
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {statsCards.map((stat) => {
+                    const Icon = stat.icon;
                     return (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.08, duration: 0.3 }}
-                        className={`flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-4 py-3 ${bgColor}`}
+                      <div
+                        key={stat.label}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-1.5"
                       >
-                        <Icon
-                          size={15}
-                          strokeWidth={1.5}
-                          className={`flex-shrink-0 ${iconColor}`}
-                        />
-                        <span className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
-                          {suggestion.text}
+                        <Icon size={14} strokeWidth={1.5} className={stat.color} />
+                        <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)] dark:text-[#ece9e4]">
+                          {dataLoading ? (
+                            <span className="inline-block h-4 w-4 animate-pulse rounded bg-[var(--surface-hover)]" />
+                          ) : (
+                            stat.count
+                          )}
                         </span>
-                      </motion.div>
+                        <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
+                          {stat.label}
+                        </span>
+                      </div>
                     );
                   })}
                 </div>
-              </motion.section>
-            )}
-
-            {/* Today's Schedule */}
-            <motion.section variants={reducedItemVariants}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
-                  Today&apos;s Schedule
-                </h2>
-                <Link
-                  href="/dashboard/calendar"
-                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-accent-500"
-                >
-                  View all{" "}
-                  <ArrowRight
-                    size={12}
-                    className="transition-transform group-hover:translate-x-0.5"
-                  />
-                </Link>
               </div>
 
-              <div className="mt-3 space-y-2">
-                {dataLoading ? (
-                  <>
-                    <Skeleton className="h-16" />
-                    <Skeleton className="h-16" />
-                    <Skeleton className="h-16" />
-                  </>
-                ) : events.length === 0 ? (
-                  <Card hover={false} className="py-8 text-center">
-                    <Calendar
-                      size={24}
-                      strokeWidth={1.5}
-                      className="mx-auto mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
+              {/* Upcoming Tasks */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 transition-colors hover:border-[var(--border)]/80">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
+                    Upcoming Tasks
+                  </h3>
+                  <Link
+                    href="/dashboard/tasks"
+                    className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-accent-500"
+                  >
+                    All tasks{" "}
+                    <ArrowRight
+                      size={12}
+                      className="transition-transform group-hover:translate-x-0.5"
                     />
-                    <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-                      No events scheduled for today
-                    </p>
-                  </Card>
-                ) : (
-                  validEvents.slice(0, 5).map((event, i) => (
-                    <motion.div
-                      key={event.id || i}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05, duration: 0.3 }}
-                    >
-                      <Card
-                        hover={false}
-                        className="flex items-center gap-4 px-4 py-3 transition-all hover:border-accent-500/20"
-                      >
-                        <div className="h-9 w-[3px] rounded-full bg-gradient-to-b from-accent-400 to-accent-600" />
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
-                            {event.summary}
-                          </p>
-                          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
-                            {safeFormat(event.start, "h:mm a")}
-                            {safeFormat(event.end, "h:mm a") &&
-                              ` - ${safeFormat(event.end, "h:mm a")}`}
-                          </p>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </motion.section>
+                  </Link>
+                </div>
 
-            {/* Recent Tasks */}
-            <motion.section variants={reducedItemVariants}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
-                  Recent Tasks
-                </h2>
-                <Link
-                  href="/dashboard/tasks"
-                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-accent-500"
-                >
-                  View all{" "}
-                  <ArrowRight
-                    size={12}
-                    className="transition-transform group-hover:translate-x-0.5"
-                  />
-                </Link>
-              </div>
-
-              <div className="mt-3 space-y-2">
                 {dataLoading ? (
-                  <>
-                    <Skeleton className="h-14" />
-                    <Skeleton className="h-14" />
-                    <Skeleton className="h-14" />
-                  </>
+                  <div className="space-y-3">
+                    <Skeleton className="h-12" />
+                    <Skeleton className="h-12" />
+                    <Skeleton className="h-12" />
+                  </div>
                 ) : tasks.length === 0 ? (
-                  <Card hover={false} className="py-8 text-center">
-                    <Sparkles
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <CheckSquare
                       size={24}
                       strokeWidth={1.5}
-                      className="mx-auto mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
+                      className="mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
                     <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-                      No tasks yet. Ask the AI to create some!
+                      No tasks yet
                     </p>
-                  </Card>
+                  </div>
                 ) : (
-                  tasks.slice(0, 5).map((task, i) => (
-                    <motion.div
-                      key={task.id || i}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05, duration: 0.3 }}
-                    >
-                      <Card
-                        hover={false}
+                  <div className="space-y-2">
+                    {[...pendingTasks, ...completedTasks].slice(0, 6).map((task, i) => (
+                      <motion.div
+                        key={task.id || i}
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04, duration: 0.3 }}
                         onClick={() =>
                           router.push(
                             task.id
@@ -868,8 +871,21 @@ export default function DashboardPage() {
                               : "/dashboard/tasks"
                           )
                         }
-                        className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-all duration-200 hover:border-accent-500/20 hover:bg-[var(--surface-hover)]"
+                        className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 transition-all duration-200 hover:border-accent-500/20 hover:bg-[var(--surface-hover)]"
                       >
+                        {task.completed ? (
+                          <CheckSquareFilled
+                            size={15}
+                            strokeWidth={1.5}
+                            className="flex-shrink-0 text-success-500"
+                          />
+                        ) : (
+                          <Square
+                            size={15}
+                            strokeWidth={1.5}
+                            className="flex-shrink-0 text-[var(--text-tertiary)] dark:text-[#847e76]"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <p
                             className={`truncate text-sm ${
@@ -880,20 +896,20 @@ export default function DashboardPage() {
                           >
                             {task.title}
                           </p>
-                          {task.due && (
+                          {task.due && !task.completed && (
                             <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                               {safeFormat(task.due, "MMM d") &&
                                 `Due ${safeFormat(task.due, "MMM d")}`}
                             </p>
                           )}
                         </div>
-                      </Card>
-                    </motion.div>
-                  ))
+                      </motion.div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </motion.section>
-          </>
+            </motion.div>
+          </motion.div>
         )}
       </motion.div>
       </ErrorBoundary>
