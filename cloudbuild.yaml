@@ -9,11 +9,11 @@ steps:
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:latest'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}:latest'
       - '--cache-from'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:latest'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}:latest'
       - '-f'
       - 'Dockerfile'
       - '.'
@@ -24,7 +24,7 @@ steps:
     args:
       - 'push'
       - '--all-tags'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}'
 
   # Deploy backend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -35,7 +35,7 @@ steps:
       - 'deploy'
       - '${_BACKEND_SERVICE}'
       - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -54,11 +54,11 @@ steps:
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:latest'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}:latest'
       - '--cache-from'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:latest'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}:latest'
       - '-f'
       - 'frontend/Dockerfile'
       - 'frontend'
@@ -69,7 +69,7 @@ steps:
     args:
       - 'push'
       - '--all-tags'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}'
 
   # Deploy frontend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -80,7 +80,7 @@ steps:
       - 'deploy'
       - '${_FRONTEND_SERVICE}'
       - '--image'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
       - '--region'
       - '${_REGION}'
       - '--platform'
@@ -91,12 +91,11 @@ steps:
 
 substitutions:
   _REGION: asia-south1
+  _REPO: cloud-run-source-deploy
   # Backend
-  _BACKEND_REPO: haven-backend
   _BACKEND_IMAGE: haven-backend
   _BACKEND_SERVICE: haven-backend
   # Frontend
-  _FRONTEND_REPO: haven-frontend
   _FRONTEND_IMAGE: haven-frontend
   _FRONTEND_SERVICE: haven-frontend
 
@@ -104,7 +103,7 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 images:
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:latest'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
-  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_BACKEND_IMAGE}:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_FRONTEND_IMAGE}:latest'
