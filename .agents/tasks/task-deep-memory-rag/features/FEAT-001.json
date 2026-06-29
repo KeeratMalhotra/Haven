@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Add embedding generation to observations and implement semantic retrieval of relevant memories. Modify the orchestrator to retrieve relevant memories before dispatching and pass them to specialist agents which include them in their prompts.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In backend/app/agents/memory.py, add a helper function `async def _generate_embedding(text: str) -> list[float] | None` that uses `vertexai.language_models.TextEmbeddingModel` with model `text-embedding-004` to embed the given text. It should return a 768-dimensional float list or None on failure (graceful degradation: log warning, return None).",
     "In backend/app/agents/memory.py, modify `record_observation()` so that after calling `_normalize_observation()`, it constructs a text representation of the observation (e.g. 'task_completed: finish report at 10 AM') and calls `_generate_embedding()`. If embedding succeeds, store it as `observation['embedding']` before passing to `MemoryRepository.record_observation()`. If embedding fails, continue without it (existing behavior preserved).",
@@ -28,5 +28,5 @@
     "Run `cd /projects/sandbox/ChronAI/frontend && pnpm build` and confirm it completes successfully"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 23 RAG-specific tests pass. All 11 existing memory tests pass. 2 pre-existing failures in test_user_context.py (unrelated to this change, confirmed by running on base state). Frontend build succeeds. Embedding generation uses vertexai.language_models.TextEmbeddingModel (not vertexai.generative_models). The existing memory tests call record_observation which now attempts embedding - this works fine because the TextEmbeddingModel.from_pretrained call fails gracefully (no credentials) and returns None, so observations are stored without embeddings as before."
 }
