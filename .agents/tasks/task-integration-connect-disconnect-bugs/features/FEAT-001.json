@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix 6 integration connect/disconnect bugs: persist disconnect for session-token services, handleFocus preConnectStatusRef check, polling/focus race guard, handleMessage unconditional toast, disconnect success toast, and optimistic UI revert on failure.",
+  "status": "in_progress",
+  "steps": [
+    "1. Backend: Add explicitly_disconnected flag to /disconnect endpoint, /status endpoint, and /callback endpoint",
+    "2. Frontend: Add preConnectStatusRef check to handleFocus effect",
+    "3. Frontend: Add processingConnectionRef to guard against polling/focus race",
+    "4. Frontend: Add preConnectStatusRef check to handleMessage",
+    "5. Frontend: Change connectionToast to store full message string, add disconnect success toast",
+    "6. Frontend: Revert optimistic UI on disconnect failure by re-fetching status"
+  ],
+  "acceptance_criteria": [
+    "Disconnect persists even when session token has service scopes",
+    "handleFocus uses preConnectStatusRef to avoid false positive toasts",
+    "Polling and handleFocus cannot race (processingConnectionRef guard)",
+    "handleMessage only shows toast for newly connected services",
+    "Disconnect shows a success toast",
+    "Failed disconnect reverts optimistic UI by re-fetching actual status",
+    "Toast renders the full message string directly (not hardcoded 'connected successfully!')",
+    "python3 -m py_compile passes for backend integrations.py",
+    "pnpm lint passes for frontend"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Haven/backend && python3 -m py_compile app/api/integrations.py",
+    "cd /projects/sandbox/Haven/frontend && pnpm lint"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}

@@ -220,6 +220,9 @@ function SettingsContent() {
   // This prevents false positive toasts when polling picks up stale data
   const preConnectStatusRef = useRef<Record<string, boolean>>({});
 
+  // Guard against concurrent processing in handleFocus and polling
+  const processingConnectionRef = useRef(false);
+
   // Get auth token for backend calls
   const authToken = (session as any)?.accessToken || "";
 
@@ -264,7 +267,7 @@ function SettingsContent() {
   useEffect(() => {
     const connectedService = searchParams.get("connected");
     if (connectedService) {
-      setConnectionToast(connectedService);
+      setConnectionToast(`${connectedService} connected successfully!`);
       // If Spotify was connected, also update localStorage for the mini player
       if (connectedService === "spotify") {
         localStorage.setItem("chronai-spotify-connected", "true");
@@ -349,6 +352,10 @@ function SettingsContent() {
       // Check connectingService state instead of popup ref - handles cases where
       // popup was blocked, opened as a new tab, or ref got cleared
       if (authToken && (oauthPopupRef.current || connectingService)) {
+        // Guard against concurrent processing with polling
+        if (processingConnectionRef.current) return;
+        processingConnectionRef.current = true;
+
         setTimeout(() => {
           fetchIntegrationStatus(authToken).then((status) => {
             setIntegrationStatus((prev) => {
@@ -361,11 +368,19 @@ function SettingsContent() {
               localStorage.setItem("chronai-spotify-connected", "true");
               dispatchStorageChange("chronai-spotify-connected", "true");
             }
-            // If the service that was connecting is now connected, clear state
-            if (connectingService && status[connectingService]?.connected) {
+            // If the service that was connecting is now connected AND wasn't before, show toast
+            if (connectingService && status[connectingService]?.connected && !preConnectStatusRef.current[connectingService]) {
+              setConnectingService(null);
+              oauthPopupRef.current = null;
+              setConnectionToast(`${connectingService} connected successfully!`);
+              setTimeout(() => setConnectionToast(null), 4000);
+            } else if (connectingService && status[connectingService]?.connected && preConnectStatusRef.current[connectingService]) {
+              // Was already connected - just clear state without toast
               setConnectingService(null);
               oauthPopupRef.current = null;
             }
+          }).finally(() => {
+            processingConnectionRef.current = false;
           });
         }, 1000);
       }
@@ -384,6 +399,10 @@ function SettingsContent() {
     const maxAttempts = 10; // Poll every 3s for up to 30s
     const intervalId = setInterval(() => {
       attempts++;
+      // Guard against concurrent processing with handleFocus
+      if (processingConnectionRef.current) return;
+      processingConnectionRef.current = true;
+
       fetchIntegrationStatus(authToken).then((status) => {
         setIntegrationStatus((prev) => {
           flushQueuesOnReconnect(prev, status);
@@ -403,7 +422,7 @@ function SettingsContent() {
         ) {
           setConnectingService(null);
           oauthPopupRef.current = null;
-          setConnectionToast(connectingService);
+          setConnectionToast(`${connectingService} connected successfully!`);
           setTimeout(() => setConnectionToast(null), 4000);
           clearInterval(intervalId);
         } else if (
@@ -419,6 +438,8 @@ function SettingsContent() {
         }
       }).catch(() => {
         // Silently ignore fetch errors during polling
+      }).finally(() => {
+        processingConnectionRef.current = false;
       });
 
       if (attempts >= maxAttempts) {
@@ -448,8 +469,11 @@ function SettingsContent() {
             return status;
           });
           localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
-          setConnectionToast(`${service} connected successfully!`);
-          setTimeout(() => setConnectionToast(null), 3000);
+          // Only show toast if the service was not already connected before
+          if (!preConnectStatusRef.current[service]) {
+            setConnectionToast(`${service} connected successfully!`);
+            setTimeout(() => setConnectionToast(null), 3000);
+          }
           if (status.spotify?.connected) {
             localStorage.setItem("chronai-spotify-connected", "true");
             dispatchStorageChange("chronai-spotify-connected", "true");
@@ -529,8 +553,18 @@ function SettingsContent() {
       localStorage.setItem("chronai-integration-status-cache", JSON.stringify(updatedStatus));
       // Clear pre-connect ref for this service so future connects work properly
       delete preConnectStatusRef.current[service];
+      // Show disconnect success toast
+      setConnectionToast(`${service} disconnected successfully`);
+      setTimeout(() => setConnectionToast(null), 3000);
     } catch {
       setIntegrationError(`Failed to disconnect ${service}. Please try again.`);
+      // Revert optimistic update by fetching actual status from backend
+      fetchIntegrationStatus(authToken).then((status) => {
+        setIntegrationStatus(status);
+        localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
+      }).catch(() => {
+        // If re-fetch also fails, leave the error message visible
+      });
     } finally {
       setDisconnectingService(null);
     }
@@ -637,7 +671,7 @@ function SettingsContent() {
           className="fixed top-4 right-4 z-[100] flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-500"
         >
           <CheckCircle2 size={16} strokeWidth={1.5} />
-          <span className="capitalize">{connectionToast}</span> connected successfully!
+          <span className="capitalize">{connectionToast}</span>
         </motion.div>
       )}
 

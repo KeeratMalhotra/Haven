@@ -1,0 +1,8 @@
+{
+  "task_id": "task-integration-connect-disconnect-bugs",
+  "task_description": "Fix 6 integration connect/disconnect bugs identified in deep review",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": null
+}

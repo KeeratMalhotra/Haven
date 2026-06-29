@@ -225,6 +225,7 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...)):
         "expires_in": tokens.get("expires_in", 0),
         "scopes": SERVICE_SCOPES[service],
         "connected": True,
+        "explicitly_disconnected": False,
     }
 
     await user_ref.set(
@@ -296,7 +297,14 @@ async def disconnect_service(service: str, auth_token: str = Query(...)):
                     # If revocation fails (network, already expired), proceed anyway
                     logger.warning(f"Token revocation failed for service {service}, user {user_id}")
 
-            del connected_services[service]
+            # Mark as explicitly disconnected instead of deleting so that
+            # the /status endpoint respects the disconnection even when the
+            # session token still carries the service scopes.
+            connected_services[service] = {"connected": False, "explicitly_disconnected": True}
+            await user_ref.update({"connected_services": connected_services})
+        else:
+            # No stored entry yet; create one with the disconnection flag
+            connected_services[service] = {"connected": False, "explicitly_disconnected": True}
             await user_ref.update({"connected_services": connected_services})
 
     return {"status": "disconnected", "service": service}
@@ -346,17 +354,21 @@ async def get_integration_status(auth_token: str = Query(...)):
         spotify_connected = bool(spotify_tokens.get("access_token"))
 
     # Build status for each Google service — connected if EITHER
-    # the session token has the scope OR Firestore has a stored token
+    # the session token has the scope OR Firestore has a stored token,
+    # BUT NOT if the user has explicitly disconnected the service.
     status_map = {}
     for service_name, scopes in SERVICE_SCOPES.items():
         # Check if the current session token already has these scopes
         session_has_scopes = all(_scope_satisfied(s, session_scopes) for s in scopes)
         # Check if Firestore has a stored incremental token
         firestore_connected = connected_services.get(service_name, {}).get("connected", False)
+        # Check if the user explicitly disconnected this service
+        explicitly_disconnected = connected_services.get(service_name, {}).get("explicitly_disconnected", False)
 
+        is_connected = (session_has_scopes or firestore_connected) and not explicitly_disconnected
         status_map[service_name] = {
-            "connected": session_has_scopes or firestore_connected,
-            "scopes": scopes if (session_has_scopes or firestore_connected) else [],
+            "connected": is_connected,
+            "scopes": scopes if is_connected else [],
         }
 
     # Add Spotify status
