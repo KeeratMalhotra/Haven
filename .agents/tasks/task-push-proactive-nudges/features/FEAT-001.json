@@ -28,5 +28,5 @@
     "Run `cd /projects/sandbox/ChronAI/frontend && pnpm lint` and confirm it passes"
   ],
   "blocked_reason": null,
-  "findings": "All changes compile cleanly. pnpm build and pnpm lint both pass with zero errors. The proactive_nudge message type is now used on both push paths (chat WebSocket and notification WebSocket). Polling reduced to 10 minutes as a fallback. Existing notification type handling preserved in useNotificationSocket.ts."
+  "findings": "All changes compile cleanly. pnpm build and pnpm lint both pass with zero errors. The proactive_nudge message type is now used on both push paths (chat WebSocket and notification WebSocket). Polling reduced to 10 minutes as a fallback. Existing notification type handling preserved in useNotificationSocket.ts. Post-review fixes applied: (1) removed proactive_nudge handling from useNotificationSocket to prevent duplicate notifications, (2) added title field to push payload, (3) added focus-state check in handleNudge as defense-in-depth, (4) added random suffix to fallback dedup key to prevent millisecond collisions."
 }
