@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix Pomodoro Ask AI button placement and wiring, plus add plant growth hint text",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/components/PomodoroTimer.tsx, move the 'Ask AI' button from the floating absolute position (bottom-6 right-6) to be adjacent to the start/stop timer control buttons in the controls section. Place it as another button in the flex row alongside pause and stop buttons.",
     "The openAIChat callback already dispatches window.dispatchEvent(new CustomEvent('chronai-open-chat')) which is already listened to in frontend/app/dashboard/layout.tsx - verify this wiring is correct (it is).",
@@ -22,5 +22,5 @@
     "cd /projects/sandbox/ChronAI/frontend && pnpm build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All changes made in a single file (PomodoroTimer.tsx). The Ask AI button was moved from an absolute-positioned floating button to inline with the control buttons in both the active timer and done states. Plant growth hint text uses AnimatePresence for smooth fade in/out. Both lint and build pass cleanly."
 }
