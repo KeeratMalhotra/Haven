@@ -9,6 +9,6 @@
     "tests": "pass",
     "test_quality": "pass",
     "docker_build": "skipped",
-    "summary": "pnpm lint passes. pnpm build succeeds. pytest passes 36/36 on test_websocket.py + test_agents.py. Review fixes applied: asyncio.Queue for true incremental streaming, per-request callback via task dict (no singleton race), ghost message fallback when no chunks sent, dead generate_stream() removed."
+    "summary": "pnpm lint passes. pnpm build succeeds. pytest passes 38/38 on test_websocket.py + test_agents.py. Review v2 fixes applied: contextvar-based streaming (no specialist code changes needed, no singleton race), JSON-mode calls excluded from auto-streaming, orphaned streaming state fixed on WebSocket close."
   }
 }

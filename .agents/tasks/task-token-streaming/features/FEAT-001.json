@@ -31,5 +31,5 @@
     "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -x -q"
   ],
   "blocked_reason": null,
-  "findings": "Pre-existing test failure in test_user_context.py::test_get_user_context_no_user (unrelated to streaming changes). pyenv needed to be set to 3.11.15 for Python tests. The existing test_websocket tests used AsyncMock which auto-creates attributes, so the first test was updated to use MagicMock with an explicit execute_streaming coroutine function."
+  "findings": "Pre-existing test failure in test_user_context.py::test_get_user_context_no_user (unrelated to streaming changes). pyenv needed to be set to 3.11.15 for Python tests. The existing test_websocket tests used AsyncMock which auto-creates attributes, so the first test was updated to use MagicMock with an explicit execute_streaming coroutine function. v2 review fix: added ContextVar (_stream_callback_var) so generate() auto-streams for non-JSON-mode calls when the contextvar is set by the orchestrator. This makes streaming work for any specialist that makes a user-facing generate() call without requiring code changes in each specialist. Also fixed frontend orphaned streaming state on WebSocket close."
 }
