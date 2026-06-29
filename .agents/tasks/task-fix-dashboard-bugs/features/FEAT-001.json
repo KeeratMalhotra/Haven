@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix four dashboard bugs: analytics not showing data, drag-to-InProgress broken, task sidebar overlapping navbar, and Slides showing not connected after OAuth",
+  "status": "in_progress",
+  "steps": [
+    "1. Fix analytics not showing: In frontend/app/dashboard/analytics/page.tsx, the analytics page reads from localStorage keys 'chronai-tasks', 'chronai-pomodoro-stats', and 'chronai-habits'. The data loading logic looks correct. The issue might be that the tasks stored have 'status: done' but no 'completedAt' or 'updatedAt' field set, meaning they never appear in the per-day chart. In the tasks page, when a task is toggled done via handleToggleTask, it sets 'completedAt' correctly. However when a task is created with status 'done' via bulk actions or drag-to-done, the completedAt/updatedAt may not be set. Also the analytics may show 'No data yet' because hasAnyData checks for array length and pomodoroStats !== null, but the issue could be something else. Actually looking more carefully - the page reads localStorage correctly and computes charts. The real issue is likely that the 'hasAnyData' check passes but 'periodHasActivity' fails because tasks have no completedAt/updatedAt dates. Fix: when a task has status 'done' but no completedAt/updatedAt, count it in the 'today' bucket in tasksPerDay computation. Also ensure that updatedAt is set when task status changes.",
+    "2. Fix drag-to-InProgress column: In frontend/app/dashboard/tasks/page.tsx, the handleDragEnd function only moves a task to a new column if it detects that the 'over' item is a task in a different column (overTask.status !== activeTask.status). However with @dnd-kit, each column has its own SortableContext, and closestCorners collision detection only finds the closest sortable ITEMS (tasks). If a column is empty (e.g., In Progress has no tasks), there are no sortable items to land on, and the drop fails. Fix: Add useDroppable hooks for each column container div with IDs like 'column-todo', 'column-inprogress', 'column-done'. In handleDragEnd, if 'over.id' matches a column ID (starts with 'column-'), extract the target status and move the task. Also need to handle the case where over is a task in a different column (existing logic) by keeping that path.",
+    "3. Fix task detail sidebar overlapping navbar: In the TaskDetailPanel component (inside frontend/app/dashboard/tasks/page.tsx), the panel uses 'fixed top-0 right-0 h-full ... z-50'. The TopBar has z-[100] and h-14. Fix: Change TaskDetailPanel to use 'fixed top-14 right-0 h-[calc(100%-3.5rem)] ... z-[45]' so it sits below the navbar. Also update the backdrop overlay to not cover the navbar (top-14 and adjusted height), or keep it at inset-0 with z-[40] which is below the TopBar's z-[100].",
+    "4. Fix Slides showing 'not connected' after OAuth: In settings/page.tsx, the ?connected= query param handler shows a toast but does NOT trigger a refetch of integration status from the backend. The integration status refetch happens in a separate useEffect that depends on authToken (runs once on mount), and in the window focus handler (which only fires if oauthPopupRef.current was set). If OAuth uses a redirect flow (not popup), the popup ref is never set and the focus handler never fires. Fix: In the ?connected= query param useEffect, also trigger a refetch of integration status from the backend and update the cache."
+  ],
+  "acceptance_criteria": [
+    "Analytics page shows charts when tasks with status 'done' exist in localStorage, even if they lack completedAt/updatedAt timestamps",
+    "Dragging a task to the 'In Progress' column (whether empty or not) correctly updates task status to 'inprogress'",
+    "The task detail sidebar panel starts below the navbar and does not overlap it",
+    "After OAuth redirect back to settings with ?connected=slides, the integration status is refetched and shows as connected"
+  ],
+  "verification": [
+    "Run: cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "Run: cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

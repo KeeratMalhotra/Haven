@@ -1,0 +1,23 @@
+{
+  "project_type": "Next.js 15 App Router with Tailwind CSS and Framer Motion",
+  "language": "TypeScript",
+  "build_system": "pnpm",
+  "test_framework": "None detected - lint + build only",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && pnpm build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+  "verification_instructions": "Run pnpm lint then pnpm build from the frontend directory. Both must pass with no errors.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd /projects/sandbox/ChronAI/frontend && pnpm install",
+  "environment_constraints": "OPEN_INTERNET - full network access. Node 22, pnpm available.",
+  "contribution_requirements": "No pixel fonts inside the app. Both dark and light mode must work (use dark: overrides). Commit all changes but do NOT push.",
+  "key_patterns": "localStorage is used for data persistence (chronai-* keys). DnD uses @dnd-kit/core + @dnd-kit/sortable. Tasks board has 3 columns (todo, inprogress, done). TopBar z-index is z-[100] at h-14. OAuth connects via popup with postMessage or window focus refetch.",
+  "relevant_files": [
+    "frontend/app/dashboard/analytics/page.tsx",
+    "frontend/app/dashboard/tasks/page.tsx",
+    "frontend/app/dashboard/settings/page.tsx",
+    "frontend/components/layout/TopBar.tsx",
+    "frontend/components/PomodoroTimer.tsx",
+    "frontend/lib/api-extended.ts"
+  ],
+  "directory_structure": "frontend/app/dashboard/ contains pages for analytics, tasks, settings, calendar, habits, planner. frontend/components/ contains shared UI and feature components. frontend/lib/ has API utilities."
+}

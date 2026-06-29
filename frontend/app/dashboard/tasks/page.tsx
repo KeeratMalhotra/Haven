@@ -34,6 +34,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
@@ -285,6 +286,7 @@ const KanbanColumn = memo(function KanbanColumn({
   title,
   tasks,
   color,
+  columnId,
   onTaskClick,
   onContextMenu,
   isSelectMode,
@@ -294,12 +296,15 @@ const KanbanColumn = memo(function KanbanColumn({
   title: string;
   tasks: LocalTask[];
   color: string;
+  columnId: string;
   onTaskClick: (task: LocalTask) => void;
   onContextMenu?: (e: React.MouseEvent, task: LocalTask) => void;
   isSelectMode?: boolean;
   selectedTasks?: Set<string>;
   onSelect?: (taskId: string) => void;
 }) {
+  const { setNodeRef } = useDroppable({ id: columnId });
+
   return (
     <div className="flex-1 md:min-w-[280px]">
       <div className="flex items-center gap-2 mb-3 px-1">
@@ -315,7 +320,7 @@ const KanbanColumn = memo(function KanbanColumn({
         items={tasks.map((t) => t.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex flex-col gap-2 min-h-[120px] p-1 rounded-xl">
+        <div ref={setNodeRef} className="flex flex-col gap-2 min-h-[120px] p-1 rounded-xl">
           {tasks.map((task) => (
             <SortableTaskCard
               key={task.id}
@@ -761,7 +766,7 @@ function TaskDetailPanel({
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-50 flex flex-col"
+      className="fixed top-14 right-0 h-[calc(100%-3.5rem)] w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-50 flex flex-col"
     >
       <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
         <h3 className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
@@ -1464,7 +1469,29 @@ function TasksPageContent() {
     const activeTask = tasks.find((t) => t.id === active.id);
     if (!activeTask) return;
 
-    // Determine which column the card was dropped into
+    // Check if dropped on a column droppable (e.g., 'column-todo', 'column-inprogress', 'column-done')
+    const overId = over.id as string;
+    if (overId.startsWith("column-")) {
+      const targetStatus = overId.replace("column-", "") as "todo" | "inprogress" | "done";
+      if (targetStatus !== activeTask.status) {
+        reportAction("task_dragged", {
+          taskId: activeTask.id,
+          title: activeTask.title,
+          fromStatus: activeTask.status,
+          toStatus: targetStatus,
+        });
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === activeTask.id
+              ? { ...t, status: targetStatus, completed: targetStatus === "done" }
+              : t
+          )
+        );
+      }
+      return;
+    }
+
+    // Determine which column the card was dropped into by checking the over task
     const overTask = tasks.find((t) => t.id === over.id);
     if (overTask && overTask.status !== activeTask.status) {
       reportAction("task_dragged", {
@@ -1853,6 +1880,7 @@ function TasksPageContent() {
                   title="To Do"
                   tasks={todoTasks}
                   color="bg-[var(--text-tertiary)]"
+                  columnId="column-todo"
                   onTaskClick={setSelectedTask}
                   onContextMenu={handleContextMenu}
                   isSelectMode={isSelectMode}
@@ -1863,6 +1891,7 @@ function TasksPageContent() {
                   title="In Progress"
                   tasks={inProgressTasks}
                   color="bg-warning-500"
+                  columnId="column-inprogress"
                   onTaskClick={setSelectedTask}
                   onContextMenu={handleContextMenu}
                   isSelectMode={isSelectMode}
@@ -1873,6 +1902,7 @@ function TasksPageContent() {
                   title="Done"
                   tasks={doneTasks}
                   color="bg-success-500"
+                  columnId="column-done"
                   onTaskClick={setSelectedTask}
                   onContextMenu={handleContextMenu}
                   isSelectMode={isSelectMode}

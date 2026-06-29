@@ -472,6 +472,8 @@ export default function AnalyticsPage() {
     const counts: Record<string, number> = {};
     dateKeys.forEach((key) => (counts[key] = 0));
 
+    const todayKey = new Date().toISOString().split("T")[0];
+
     tasksData.forEach((task) => {
       // Check both completed boolean and status === "done"
       if (task.completed || task.status === "done") {
@@ -479,8 +481,10 @@ export default function AnalyticsPage() {
           task.completedAt?.split("T")[0] || task.updatedAt?.split("T")[0];
         if (dateStr && counts[dateStr] !== undefined) {
           counts[dateStr]++;
+        } else if (!dateStr && counts[todayKey] !== undefined) {
+          // Tasks marked done without a completedAt/updatedAt date count in today's bucket
+          counts[todayKey]++;
         }
-        // If no date info available, skip this task in per-day stats
       }
     });
 

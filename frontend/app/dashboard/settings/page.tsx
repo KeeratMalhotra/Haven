@@ -264,11 +264,25 @@ function SettingsContent() {
         localStorage.setItem("chronai-spotify-connected", "true");
         dispatchStorageChange("chronai-spotify-connected", "true");
       }
+      // Refetch integration status from backend to update the UI
+      if (authToken) {
+        fetchIntegrationStatus(authToken).then((status) => {
+          setIntegrationStatus((prev) => {
+            flushQueuesOnReconnect(prev, status);
+            return status;
+          });
+          localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
+          if (status.spotify?.connected) {
+            localStorage.setItem("chronai-spotify-connected", "true");
+            dispatchStorageChange("chronai-spotify-connected", "true");
+          }
+        });
+      }
       // Clear the toast after 4 seconds
       const timer = setTimeout(() => setConnectionToast(null), 4000);
       return () => clearTimeout(timer);
     }
-  }, [searchParams]);
+  }, [searchParams, authToken]);
 
   // Fetch backend preferences and integration status
   useEffect(() => {
