@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Frontend: fetch chat history on WebSocket connect and show loading state. When the WebSocket connection is established, fetch recent messages from the REST endpoint and prepend them to the messages state so the user sees a continuous conversation thread.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/lib/api.ts, add a fetchChatHistory(authToken: string, limit?: number) function that calls GET /api/conversations/history?auth_token=...&limit=... and returns an array of {id, role, content, timestamp} objects. Follow the existing safeGet pattern.",
     "In frontend/hooks/useChatSocket.ts: (a) Add a new state: const [loadingHistory, setLoadingHistory] = useState(true). (b) In the useEffect where WebSocket connects, after the 'open' event fires, call fetchChatHistory(tokenRef.current) and prepend the returned messages to the messages state (map them to ChatMessage format with role mapped to 'user'|'ai', timestamp from the ISO string, streaming: false). Set loadingHistory to false after fetch completes (or on error). (c) Export loadingHistory from the hook.",
@@ -22,5 +22,5 @@
     "Run: cd /projects/sandbox/ChronAI/frontend && pnpm lint"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All verification passed. pnpm build and pnpm lint both succeed cleanly. The fetchChatHistory function uses the existing safeGet pattern. Role mapping (assistant -> ai) and timestamp conversion (ISO string -> epoch ms) are handled in useChatSocket. Loading state shows an animate-pulse indicator while history is fetched, then transitions to either conversation mode (if history exists) or greeting mode (if no history)."
 }
