@@ -26,7 +26,7 @@ const handler = NextAuth({
         // Handle case where user denies permissions - access_token may be null/undefined
         token.accessToken = account.access_token ?? "";
         token.refreshToken = account.refresh_token ?? "";
-        token.expiresAt = account.expires_at;
+        token.expiresAt = account.expires_at ?? 0;
       }
       return token;
     },

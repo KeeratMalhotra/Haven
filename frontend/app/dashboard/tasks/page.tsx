@@ -1472,53 +1472,55 @@ function TasksPageContent() {
     // Prevent re-entrant calls from rapid drag events
     if (dragProcessingRef.current) return;
     dragProcessingRef.current = true;
-    // Release the guard after a short delay to allow the next legitimate drag
-    setTimeout(() => { dragProcessingRef.current = false; }, 100);
 
-    // Early return if dropped on itself
-    if (active.id === over.id) return;
+    try {
+      // Early return if dropped on itself
+      if (active.id === over.id) return;
 
-    const activeTask = tasks.find((t) => t.id === active.id);
-    if (!activeTask) return;
+      const activeTask = tasks.find((t) => t.id === active.id);
+      if (!activeTask) return;
 
-    // Check if dropped on a column droppable (e.g., 'column-todo', 'column-inprogress', 'column-done')
-    const overId = over.id as string;
-    if (overId.startsWith("column-")) {
-      const targetStatus = overId.replace("column-", "") as "todo" | "inprogress" | "done";
-      if (targetStatus !== activeTask.status) {
+      // Check if dropped on a column droppable (e.g., 'column-todo', 'column-inprogress', 'column-done')
+      const overId = over.id as string;
+      if (overId.startsWith("column-")) {
+        const targetStatus = overId.replace("column-", "") as "todo" | "inprogress" | "done";
+        if (targetStatus !== activeTask.status) {
+          reportAction("task_dragged", {
+            taskId: activeTask.id,
+            title: activeTask.title,
+            fromStatus: activeTask.status,
+            toStatus: targetStatus,
+          });
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === activeTask.id
+                ? { ...t, status: targetStatus, completed: targetStatus === "done" }
+                : t
+            )
+          );
+        }
+        return;
+      }
+
+      // Determine which column the card was dropped into by checking the over task
+      const overTask = tasks.find((t) => t.id === over.id);
+      if (overTask && overTask.status !== activeTask.status) {
         reportAction("task_dragged", {
           taskId: activeTask.id,
           title: activeTask.title,
           fromStatus: activeTask.status,
-          toStatus: targetStatus,
+          toStatus: overTask.status,
         });
         setTasks((prev) =>
           prev.map((t) =>
             t.id === activeTask.id
-              ? { ...t, status: targetStatus, completed: targetStatus === "done" }
+              ? { ...t, status: overTask.status, completed: overTask.status === "done" }
               : t
           )
         );
       }
-      return;
-    }
-
-    // Determine which column the card was dropped into by checking the over task
-    const overTask = tasks.find((t) => t.id === over.id);
-    if (overTask && overTask.status !== activeTask.status) {
-      reportAction("task_dragged", {
-        taskId: activeTask.id,
-        title: activeTask.title,
-        fromStatus: activeTask.status,
-        toStatus: overTask.status,
-      });
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === activeTask.id
-            ? { ...t, status: overTask.status, completed: overTask.status === "done" }
-            : t
-        )
-      );
+    } finally {
+      dragProcessingRef.current = false;
     }
   };
 

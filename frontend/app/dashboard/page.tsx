@@ -685,8 +685,18 @@ export default function DashboardPage() {
                       className="mb-3 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
                     <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-                      No events scheduled for today
+                      {!accessToken
+                        ? "Connect your Google account to see your calendar here"
+                        : "No events scheduled for today"}
                     </p>
+                    {!accessToken && (
+                      <Link
+                        href="/dashboard/settings"
+                        className="mt-2 text-xs text-accent-500 hover:underline"
+                      >
+                        Go to Settings
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div className="relative pl-8">
@@ -876,8 +886,18 @@ export default function DashboardPage() {
                       className="mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
                     <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-                      No tasks yet
+                      {!accessToken
+                        ? "Connect your Google account to see your tasks here"
+                        : "No tasks yet"}
                     </p>
+                    {!accessToken && (
+                      <Link
+                        href="/dashboard/settings"
+                        className="mt-2 text-xs text-accent-500 hover:underline"
+                      >
+                        Go to Settings
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">

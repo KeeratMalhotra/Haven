@@ -412,8 +412,10 @@ function SettingsContent() {
           preConnectStatusRef.current[connectingService]
         ) {
           // Service was already connected before - do NOT show toast
-          // This is a false positive from stale data
-          // Keep polling in case it disconnects and reconnects
+          // Clear interval immediately to avoid unnecessary polling
+          clearInterval(intervalId);
+          setConnectingService(null);
+          oauthPopupRef.current = null;
         }
       }).catch(() => {
         // Silently ignore fetch errors during polling
