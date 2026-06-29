@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Address code review findings: short-circuit stale polling in settings, replace timer-based drag guard with try/finally, add per-widget empty messages on dashboard, and coalesce expiresAt to 0 in route.ts.",
+  "status": "completed",
+  "steps": [
+    "Step 1 - Short-circuit stale polling in settings (frontend/app/dashboard/settings/page.tsx): In the else-if branch that detects a service was already connected before the connect action, add clearInterval(intervalId), setConnectingService(null), and oauthPopupRef.current = null to immediately stop polling and reset state.",
+    "Step 2 - Replace timer-based drag guard with try/finally (frontend/app/dashboard/tasks/page.tsx): Remove the setTimeout(..., 100) that resets dragProcessingRef and instead wrap the handler logic in a try/finally block that resets dragProcessingRef.current = false synchronously.",
+    "Step 3 - Add per-widget empty messages on dashboard (frontend/app/dashboard/page.tsx): When accessToken is empty, show contextual messages in the Timeline and Upcoming Tasks empty states like 'Connect your Google account to see data here' instead of generic empty messages.",
+    "Step 4 - Coalesce expiresAt to 0 (frontend/app/api/auth/[...nextauth]/route.ts): Change token.expiresAt = account.expires_at to token.expiresAt = account.expires_at ?? 0 for consistency with the other coalesced fields."
+  ],
+  "acceptance_criteria": [
+    "The else-if branch in settings polling useEffect calls clearInterval and resets state immediately",
+    "dragProcessingRef uses a synchronous try/finally reset instead of setTimeout",
+    "Dashboard widgets show a connect-your-account message when accessToken is empty",
+    "token.expiresAt is coalesced to 0 when account.expires_at is undefined/null",
+    "pnpm lint passes without errors",
+    "pnpm test passes (excluding pre-existing failures)"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/Haven/frontend && pnpm lint` - should pass with no errors",
+    "Run `cd /projects/sandbox/Haven/frontend && pnpm test` - should pass (2 pre-existing failures expected)"
+  ],
+  "blocked_reason": null,
+  "findings": "All four review issues addressed. Pre-existing test failures in ChatExperience and Sidebar remain (not caused by our changes). Lint passes cleanly."
+}

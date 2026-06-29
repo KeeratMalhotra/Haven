@@ -1,0 +1,110 @@
+steps:
+  # =====================
+  # Backend
+  # =====================
+
+  # Build backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:latest'
+      - '--cache-from'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+
+  # Push backend Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}'
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_BACKEND_SERVICE}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--port'
+      - '8080'
+      - '--allow-unauthenticated'
+
+  # =====================
+  # Frontend
+  # =====================
+
+  # Build frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:latest'
+      - '--cache-from'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:latest'
+      - '-f'
+      - 'frontend/Dockerfile'
+      - 'frontend'
+
+  # Push frontend Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}'
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-frontend'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_FRONTEND_SERVICE}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--port'
+      - '8080'
+      - '--allow-unauthenticated'
+
+substitutions:
+  _REGION: asia-south1
+  # Backend
+  _BACKEND_REPO: haven-backend
+  _BACKEND_IMAGE: haven-backend
+  _BACKEND_SERVICE: haven-backend
+  # Frontend
+  _FRONTEND_REPO: haven-frontend
+  _FRONTEND_IMAGE: haven-frontend
+  _FRONTEND_SERVICE: haven-frontend
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_BACKEND_REPO}/${_BACKEND_IMAGE}:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_FRONTEND_REPO}/${_FRONTEND_IMAGE}:latest'

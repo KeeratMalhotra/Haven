@@ -23,9 +23,10 @@ const handler = NextAuth({
     async jwt({ token, account }) {
       // Persist the Google OAuth access token on initial sign-in
       if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at;
+        // Handle case where user denies permissions - access_token may be null/undefined
+        token.accessToken = account.access_token ?? "";
+        token.refreshToken = account.refresh_token ?? "";
+        token.expiresAt = account.expires_at ?? 0;
       }
       return token;
     },
@@ -33,9 +34,9 @@ const handler = NextAuth({
       if (session.user) {
         (session.user as Record<string, unknown>).id = token.sub;
       }
-      // Expose the access token to the client session
+      // Expose the access token to the client session (empty string if missing)
       const sessionWithToken = session as unknown as Record<string, unknown>;
-      sessionWithToken.accessToken = token.accessToken;
+      sessionWithToken.accessToken = token.accessToken ?? "";
       return session;
     },
   },

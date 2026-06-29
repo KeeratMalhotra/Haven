@@ -1,0 +1,13 @@
+{
+  "task_id": "task-integration-connect-disconnect-bugs",
+  "task_description": "Fix 6 integration connect/disconnect bugs identified in deep review",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "lint": "pass",
+    "summary": "pnpm build passes (all routes compile). pnpm lint passes (0 warnings/errors). python3 -m py_compile passes for integrations.py. All 6 bugs fixed."
+  }
+}

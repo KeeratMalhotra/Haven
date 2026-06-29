@@ -181,7 +181,13 @@ export default function DashboardPage() {
 
   // Onboarding gate
   useEffect(() => {
-    if (status !== "authenticated" || !accessToken) return;
+    if (status !== "authenticated") return;
+    // If accessToken is empty (user denied permissions), skip onboarding
+    // and show the dashboard in degraded mode
+    if (!accessToken) {
+      setOnboardingChecked(true);
+      return;
+    }
     fetchOnboardingStatus(accessToken)
       .then((data) => {
         if (!data.complete) {
@@ -424,6 +430,23 @@ export default function DashboardPage() {
   return (
     <>
       <ErrorBoundary sectionName="your dashboard">
+      {/* Permissions banner when user denied Google permissions */}
+      {!accessToken && status === "authenticated" && (
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-warning-500/20 bg-warning-500/5 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Bell size={16} strokeWidth={1.5} className="text-warning-500 flex-shrink-0" />
+            <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
+              Some features are limited because Google permissions were not granted. Connect your services in Settings to unlock full functionality.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/settings"
+            className="flex-shrink-0 ml-3 rounded-lg bg-accent-500/10 px-3 py-1.5 text-xs font-medium text-accent-500 hover:bg-accent-500/20 transition-colors"
+          >
+            Go to Settings
+          </Link>
+        </div>
+      )}
       <motion.div
         variants={reducedContainerVariants}
         initial="hidden"
@@ -662,8 +685,18 @@ export default function DashboardPage() {
                       className="mb-3 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
                     <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-                      No events scheduled for today
+                      {!accessToken
+                        ? "Connect your Google account to see your calendar here"
+                        : "No events scheduled for today"}
                     </p>
+                    {!accessToken && (
+                      <Link
+                        href="/dashboard/settings"
+                        className="mt-2 text-xs text-accent-500 hover:underline"
+                      >
+                        Go to Settings
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div className="relative pl-8">
@@ -853,8 +886,18 @@ export default function DashboardPage() {
                       className="mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
                     <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-                      No tasks yet
+                      {!accessToken
+                        ? "Connect your Google account to see your tasks here"
+                        : "No tasks yet"}
                     </p>
+                    {!accessToken && (
+                      <Link
+                        href="/dashboard/settings"
+                        className="mt-2 text-xs text-accent-500 hover:underline"
+                      >
+                        Go to Settings
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">
