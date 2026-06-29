@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix app crash when user signs in without granting Google permissions, fix Slides connect/disconnect showing false positive, fix offline task drag duplication, and add sign out button to settings page.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Step 1 - Resilient auth flow (frontend/app/api/auth/[...nextauth]/route.ts): Modify the NextAuth callbacks so that if account.access_token is null/undefined, the session still works but accessToken is set to empty string. The JWT callback should handle the case where account exists but access_token is missing (e.g., user denied permissions). The session callback should safely expose accessToken as empty string rather than undefined.",
     "Step 2 - Dashboard graceful degradation (frontend/app/dashboard/page.tsx): The dashboard page already has good error handling. The onboarding gate useEffect already has `if (!accessToken) return;` which prevents it from running. However, the page stays in loading state forever when accessToken is empty. Fix: When status is 'authenticated' but accessToken is empty string, set onboardingChecked to true and show the dashboard in an empty/degraded state with a banner telling user to connect services in Settings. Add a permissions banner component that appears when accessToken is empty, with a link to settings.",
@@ -26,5 +26,5 @@
     "Run `cd /projects/sandbox/Haven/frontend && pnpm test` - should pass"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Pre-existing test failures in ChatExperience.test.tsx and Sidebar.test.tsx (4 tests) - these fail on the base branch and are unrelated to this change. Lint passes cleanly."
 }
