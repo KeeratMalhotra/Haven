@@ -234,6 +234,27 @@ export async function fetchWeeklyReview(
   return { content: data.review || "" };
 }
 
+// --- Chat History ---
+
+export interface ChatHistoryMessage {
+  id: string;
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
+export async function fetchChatHistory(
+  authToken: string,
+  limit = 50
+): Promise<ChatHistoryMessage[]> {
+  if (!authToken) return [];
+  const data = await safeGet<{ messages: ChatHistoryMessage[] }>(
+    `/api/conversations/history?auth_token=${encodeURIComponent(authToken)}&limit=${limit}`,
+    { messages: [] }
+  );
+  return Array.isArray(data.messages) ? data.messages : [];
+}
+
 export async function checkTokenScopes(accessToken: string): Promise<string> {
   try {
     const res = await fetch(

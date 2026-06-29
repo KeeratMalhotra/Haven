@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WebSocketClient } from "@/lib/ws";
 import { playAudioBase64 } from "@/lib/voice";
+import { fetchChatHistory } from "@/lib/api";
 
 export interface ChatMessage {
   id: string;
@@ -82,6 +83,7 @@ export function useChatSocket({ accessToken, onAudio }: UseChatSocketOptions) {
   const [thinking, setThinking] = useState(false);
   const [statusLabel, setStatusLabel] = useState("");
   const [connection, setConnection] = useState<ConnectionState>("connecting");
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
   const wsRef = useRef<WebSocketClient | null>(null);
   const tokenRef = useRef(accessToken);
@@ -100,7 +102,28 @@ export function useChatSocket({ accessToken, onAudio }: UseChatSocketOptions) {
     const ws = new WebSocketClient(wsUrl);
     wsRef.current = ws;
 
-    ws.on("open", () => setConnection("connected"));
+    ws.on("open", () => {
+      setConnection("connected");
+      fetchChatHistory(tokenRef.current)
+        .then((history) => {
+          if (history.length > 0) {
+            const mapped: ChatMessage[] = history.map((msg) => ({
+              id: msg.id,
+              role: msg.role === "assistant" ? "ai" : "user",
+              content: msg.content,
+              timestamp: new Date(msg.timestamp).getTime(),
+              streaming: false,
+            }));
+            setMessages((prev) => [...mapped, ...prev]);
+          }
+        })
+        .catch(() => {
+          // History fetch failed silently - user can still chat
+        })
+        .finally(() => {
+          setLoadingHistory(false);
+        });
+    });
     ws.on("close", () => {
       setConnection("disconnected");
       // Finalize any messages still in streaming state. If the WebSocket
@@ -240,5 +263,6 @@ export function useChatSocket({ accessToken, onAudio }: UseChatSocketOptions) {
     send,
     finishStreaming,
     hasMessages: messages.length > 0,
+    loadingHistory,
   };
 }
