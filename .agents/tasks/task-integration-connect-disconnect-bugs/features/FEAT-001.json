@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix 6 integration connect/disconnect bugs: persist disconnect for session-token services, handleFocus preConnectStatusRef check, polling/focus race guard, handleMessage unconditional toast, disconnect success toast, and optimistic UI revert on failure.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Backend: Add explicitly_disconnected flag to /disconnect endpoint, /status endpoint, and /callback endpoint",
     "2. Frontend: Add preConnectStatusRef check to handleFocus effect",
@@ -27,5 +27,5 @@
     "cd /projects/sandbox/Haven/frontend && pnpm lint"
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All 6 bugs fixed and verified. Backend py_compile, frontend lint, and frontend build all pass. The explicitly_disconnected flag is stored alongside the service entry in Firestore rather than deleting it. Toast rendering now uses the full message string from connectionToast state. The processingConnectionRef prevents concurrent fetch calls from handleFocus and the polling interval."
 }
