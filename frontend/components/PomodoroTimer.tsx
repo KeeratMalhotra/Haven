@@ -298,6 +298,10 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
   // Hint text visibility
   const [showHint, setShowHint] = useState(false);
 
+  // Refs for setTimeout cleanup on unmount
+  const hintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const glowTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Load stats on mount
   useEffect(() => {
     setCompletedToday(getTodayMinutes());
@@ -354,6 +358,14 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     };
   }, [active, paused, phase, breakMinutes, focusMinutes]);
 
+  // Cleanup timeouts on unmount to prevent state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+      if (glowTimeoutRef.current) clearTimeout(glowTimeoutRef.current);
+    };
+  }, []);
+
   const togglePause = useCallback(() => {
     setPaused((p) => !p);
   }, []);
@@ -365,9 +377,11 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     setPaused(false);
     setPhase("focus");
     setJustStarted(true);
-    setTimeout(() => setJustStarted(false), 1500);
+    if (glowTimeoutRef.current) clearTimeout(glowTimeoutRef.current);
+    glowTimeoutRef.current = setTimeout(() => setJustStarted(false), 1500);
     setShowHint(true);
-    setTimeout(() => setShowHint(false), 15000);
+    if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+    hintTimeoutRef.current = setTimeout(() => setShowHint(false), 15000);
   }, [focusMinutes]);
 
   const selectDuration = useCallback((minutes: number) => {
@@ -378,9 +392,11 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
     setPaused(false);
     setPhase("focus");
     setJustStarted(true);
-    setTimeout(() => setJustStarted(false), 1500);
+    if (glowTimeoutRef.current) clearTimeout(glowTimeoutRef.current);
+    glowTimeoutRef.current = setTimeout(() => setJustStarted(false), 1500);
     setShowHint(true);
-    setTimeout(() => setShowHint(false), 15000);
+    if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+    hintTimeoutRef.current = setTimeout(() => setShowHint(false), 15000);
   }, []);
 
   const openAIChat = useCallback(() => {
