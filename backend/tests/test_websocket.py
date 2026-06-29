@@ -153,6 +153,7 @@ class TestWebSocket:
                 "metadata": {"intent": "greeting", "routed_to": ["scheduler"]},
                 "pending_action": None,
                 "_streamed": True,
+                "_chunks_sent": 2,
             }
 
         mock_orchestrator.execute_streaming = mock_execute_streaming
@@ -216,4 +217,41 @@ class TestWebSocket:
             data = ws.receive_json()
             assert data["type"] == "text"
             assert data["content"] == "Hey! I'm Haven."
+            assert data["agent"] == "orchestrator"
+
+    def test_websocket_streaming_empty_stream_fallback(self, test_client):
+        """Verify that when _streamed is True but no chunks were sent, a text frame is sent instead of text_end."""
+        from app.agents.base import AgentRegistry
+
+        # Create a mock orchestrator that simulates a failed/timed-out stream
+        # where _streamed is True but _chunks_sent is 0
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.name = "orchestrator"
+
+        async def mock_execute_streaming(task, send_chunk, status_callback=None):
+            # Simulate a streaming path where generate() failed/timed out
+            # and returned a fallback without sending any chunks
+            return {
+                "content": "I wasn't able to process that request. Could you try rephrasing?",
+                "agent": "orchestrator",
+                "metadata": {"intent": "schedule", "routed_to": ["scheduler"]},
+                "pending_action": None,
+                "_streamed": True,
+                "_chunks_sent": 0,
+            }
+
+        mock_orchestrator.execute_streaming = mock_execute_streaming
+        AgentRegistry._agents["orchestrator"] = mock_orchestrator
+
+        with test_client.websocket_connect("/ws") as ws:
+            ws.send_text(json.dumps({
+                "type": "chat",
+                "content": "Schedule a meeting",
+                "auth_token": "test-token-123",
+            }))
+
+            # Should receive a regular text frame (NOT text_end) since no chunks were sent
+            data = ws.receive_json()
+            assert data["type"] == "text"
+            assert "process that request" in data["content"]
             assert data["agent"] == "orchestrator"

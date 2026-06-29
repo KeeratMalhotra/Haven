@@ -356,19 +356,25 @@ class OrchestratorAgent(AgentBase):
                     except Exception as e:
                         logger.warning(f"[orchestrator] status_callback failed: {e}")
 
-                # Set stream callback on the agent so its generate() streams
-                agent._stream_callback = send_chunk
-                try:
-                    result = await agent.execute(
-                        {
-                            "message": instruction,
-                            "original_message": message,
-                            "auth_token": auth_token,
-                            "user_id": user_id,
-                        }
-                    )
-                finally:
-                    agent._stream_callback = None
+                # Track whether any chunks were actually sent to the client.
+                chunks_sent = 0
+
+                async def _counting_send_chunk(text: str) -> None:
+                    nonlocal chunks_sent
+                    chunks_sent += 1
+                    await send_chunk(text)
+
+                # Pass the stream callback through the task dict (per-request)
+                # instead of mutating a shared attribute on the singleton agent.
+                result = await agent.execute(
+                    {
+                        "message": instruction,
+                        "original_message": message,
+                        "auth_token": auth_token,
+                        "user_id": user_id,
+                        "_stream_callback": _counting_send_chunk,
+                    }
+                )
 
                 new_pending = result.get("pending_action")
                 content = result.get("content", "")
@@ -380,6 +386,7 @@ class OrchestratorAgent(AgentBase):
                         content = f"{content}\n\n{followup}"
                         # Send the follow-up as a final chunk
                         await send_chunk(f"\n\n{followup}")
+                        chunks_sent += 1
 
                 conversation_history.append(
                     {"role": "assistant", "content": content}
@@ -394,6 +401,7 @@ class OrchestratorAgent(AgentBase):
                     },
                     "pending_action": new_pending,
                     "_streamed": True,
+                    "_chunks_sent": chunks_sent,
                 }
 
         # Multi-agent routing -- fall back to non-streaming

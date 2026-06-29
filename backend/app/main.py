@@ -348,11 +348,26 @@ async def websocket_chat(websocket: WebSocket):
                         pending_action = result.get("pending_action")
 
                         if result.get("_streamed"):
-                            # Chunks were already sent; finalize with text_end
-                            await websocket.send_json({
-                                "type": "text_end",
-                                "message_id": message_id,
-                            })
+                            # Check if chunks were actually sent to the client.
+                            # If generate() failed/timed out and returned the
+                            # fallback, no chunks will have been emitted. In that
+                            # case send a regular text frame instead of text_end
+                            # to avoid a ghost message with no content.
+                            chunks_sent = result.get("_chunks_sent", 0)
+                            if chunks_sent > 0:
+                                # Chunks were already sent; finalize with text_end
+                                await websocket.send_json({
+                                    "type": "text_end",
+                                    "message_id": message_id,
+                                })
+                            else:
+                                # No chunks were delivered (error/timeout).
+                                # Fall back to a regular text frame.
+                                await websocket.send_json({
+                                    "type": "text",
+                                    "content": result["content"],
+                                    "agent": result.get("agent", "orchestrator"),
+                                })
                         else:
                             # Non-streamed fallback (direct_response, multi-agent)
                             response_type = "text"
