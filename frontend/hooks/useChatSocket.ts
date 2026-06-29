@@ -16,9 +16,10 @@ export interface ChatMessage {
 export type ConnectionState = "connecting" | "connected" | "disconnected";
 
 interface IncomingMessage {
-  type: "text" | "audio" | "status" | "error" | "task_update";
+  type: "text" | "audio" | "status" | "error" | "task_update" | "text_chunk" | "text_end";
   content: string;
   agent?: string;
+  message_id?: string;
 }
 
 /**
@@ -113,6 +114,37 @@ export function useChatSocket({ accessToken, onAudio }: UseChatSocketOptions) {
         ]);
         setThinking(false);
         setStatusLabel("");
+      } else if (data.type === "text_chunk") {
+        const messageId = data.message_id || "";
+        setMessages((prev) => {
+          const existing = prev.find((m) => m.id === messageId);
+          if (existing) {
+            return prev.map((m) =>
+              m.id === messageId
+                ? { ...m, content: m.content + data.content }
+                : m
+            );
+          }
+          return [
+            ...prev,
+            {
+              id: messageId,
+              role: "ai" as const,
+              content: data.content,
+              timestamp: Date.now(),
+              streaming: true,
+            },
+          ];
+        });
+        setThinking(false);
+        setStatusLabel("");
+      } else if (data.type === "text_end") {
+        const messageId = data.message_id || "";
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, streaming: false } : m
+          )
+        );
       } else if (data.type === "status") {
         setThinking(true);
         setStatusLabel(humanizeStatus(data.content));

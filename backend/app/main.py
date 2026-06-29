@@ -6,6 +6,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 import asyncio
 import secrets
 import sys
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -318,34 +319,83 @@ async def websocket_chat(websocket: WebSocket):
                 # Standard chat message
                 orchestrator = AgentRegistry.get("orchestrator")
                 if orchestrator:
-                    result = await orchestrator.execute(
-                        {
-                            "message": content,
-                            "auth_token": auth_token,
-                            "user": user,
-                            "conversation_history": conversation_history,
-                            "pending_action": pending_action,
-                        },
-                        status_callback=_make_status_callback(websocket),
-                    )
+                    status_cb = _make_status_callback(websocket)
 
-                    # Persist any pending clarification for the next turn.
-                    pending_action = result.get("pending_action")
+                    if hasattr(orchestrator, "execute_streaming"):
+                        # Streaming path: send text_chunk frames as content arrives
+                        message_id = str(uuid.uuid4())
 
-                    # Determine response type
-                    response_type = "text"
-                    metadata = result.get("metadata", {})
-                    routed_to = metadata.get("routed_to", [])
-                    if "planner" in routed_to:
-                        response_type = "task_update"
+                        async def send_chunk(text: str) -> None:
+                            await websocket.send_json({
+                                "type": "text_chunk",
+                                "content": text,
+                                "message_id": message_id,
+                            })
 
-                    await websocket.send_json(
-                        {
-                            "type": response_type,
-                            "content": result["content"],
-                            "agent": result.get("agent", "orchestrator"),
-                        }
-                    )
+                        result = await orchestrator.execute_streaming(
+                            {
+                                "message": content,
+                                "auth_token": auth_token,
+                                "user": user,
+                                "conversation_history": conversation_history,
+                                "pending_action": pending_action,
+                            },
+                            send_chunk=send_chunk,
+                            status_callback=status_cb,
+                        )
+
+                        # Persist any pending clarification for the next turn.
+                        pending_action = result.get("pending_action")
+
+                        if result.get("_streamed"):
+                            # Chunks were already sent; finalize with text_end
+                            await websocket.send_json({
+                                "type": "text_end",
+                                "message_id": message_id,
+                            })
+                        else:
+                            # Non-streamed fallback (direct_response, multi-agent)
+                            response_type = "text"
+                            metadata = result.get("metadata", {})
+                            routed_to = metadata.get("routed_to", [])
+                            if "planner" in routed_to:
+                                response_type = "task_update"
+
+                            await websocket.send_json({
+                                "type": response_type,
+                                "content": result["content"],
+                                "agent": result.get("agent", "orchestrator"),
+                            })
+                    else:
+                        # Legacy non-streaming path
+                        result = await orchestrator.execute(
+                            {
+                                "message": content,
+                                "auth_token": auth_token,
+                                "user": user,
+                                "conversation_history": conversation_history,
+                                "pending_action": pending_action,
+                            },
+                            status_callback=status_cb,
+                        )
+
+                        # Persist any pending clarification for the next turn.
+                        pending_action = result.get("pending_action")
+
+                        # Determine response type
+                        response_type = "text"
+                        metadata = result.get("metadata", {})
+                        routed_to = metadata.get("routed_to", [])
+                        if "planner" in routed_to:
+                            response_type = "task_update"
+
+                        await websocket.send_json(
+                            {
+                                "type": response_type,
+                                "content": result["content"],
+                                "agent": result.get("agent", "orchestrator"),
+                            }
+                        )
                 else:
                     await websocket.send_json(
                         {

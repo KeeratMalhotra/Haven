@@ -1,0 +1,24 @@
+{
+  "project_type": "Full-stack AI chat app: Next.js 15 frontend + FastAPI backend with Vertex AI Gemini",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_system": "pnpm (frontend), pip/uvicorn (backend)",
+  "test_framework": "jest with jsdom (frontend), pytest with mocks (backend)",
+  "build_command": "cd frontend && pnpm build",
+  "test_command": "cd frontend && pnpm lint",
+  "verification_instructions": "1. Run pnpm lint in frontend/ to check TypeScript types and ESLint rules. 2. Run pnpm build in frontend/ to validate production build. 3. Run pytest in backend/ to run backend tests.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd frontend && pnpm install; cd backend && pip install -r requirements.txt",
+  "environment_constraints": "OPEN_INTERNET. Node 22, pnpm, Python 3.11. Vertex AI credentials not available in sandbox so backend tests rely on mocks.",
+  "contribution_requirements": "Commit changes to git but do NOT push.",
+  "key_patterns": "Backend: AgentBase.generate() wraps model.generate_content in asyncio.to_thread with timeout. Orchestrator.execute() calls specialist agents and returns {content, agent, metadata}. WebSocket handler in main.py sends JSON frames: {type, content, agent}. Frontend: useChatSocket hook manages messages state, WebSocketClient emits 'message' events with ResponsePayload type. MessageBubble does client-side typewriter effect for streaming:true messages.",
+  "relevant_files": [
+    "backend/app/agents/base.py",
+    "backend/app/agents/orchestrator.py",
+    "backend/app/main.py",
+    "frontend/lib/ws.ts",
+    "frontend/hooks/useChatSocket.ts",
+    "frontend/components/chat/MessageBubble.tsx",
+    "backend/tests/test_websocket.py"
+  ],
+  "directory_structure": "frontend/ - Next.js 15 app with App Router. frontend/hooks/ - custom hooks including useChatSocket. frontend/lib/ - utilities including ws.ts WebSocket client. frontend/components/chat/ - chat UI components. backend/app/ - FastAPI app. backend/app/agents/ - AI agent classes with base.py and orchestrator.py. backend/tests/ - pytest test files."
+}

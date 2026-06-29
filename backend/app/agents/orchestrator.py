@@ -256,6 +256,203 @@ class OrchestratorAgent(AgentBase):
             "pending_action": new_pending,
         }
 
+    async def execute_streaming(self, task: dict, send_chunk, status_callback=None) -> dict:
+        """Stream-aware version of execute().
+
+        Performs the same intent analysis and routing as execute(). For
+        single-agent responses (the common case), sets the stream callback on
+        the specialist agent so its generate() call streams token-by-token.
+
+        For direct_response, multi-agent consolidation, or pending_action flows,
+        falls back to non-streaming behavior and returns the full content.
+
+        Args:
+            task: Same task dict as execute().
+            send_chunk: Async callable that receives a string chunk to send
+                to the client.
+            status_callback: Optional async callable for status updates.
+
+        Returns:
+            Same dict shape as execute(): {content, agent, metadata, pending_action}.
+            The 'content' field is the full text (already streamed chunk-by-chunk
+            to the client via send_chunk if streaming was used).
+            Also includes '_streamed': True/False to indicate if chunks were sent.
+        """
+        message = task.get("message", "")
+        auth_token = task.get("auth_token", "")
+        conversation_history: list[dict] = task.get("conversation_history", [])
+        pending_action: dict | None = task.get("pending_action")
+
+        # Add user message to per-connection history
+        conversation_history.append({"role": "user", "content": message})
+
+        # If a clarification/confirmation is pending, handle it non-streamed
+        if pending_action:
+            handled = await self._handle_pending(
+                message, pending_action, task, status_callback
+            )
+            if handled is not None:
+                conversation_history.append(
+                    {"role": "assistant", "content": handled["content"]}
+                )
+                handled["_streamed"] = False
+                return handled
+
+        # Analyze intent with Gemini (non-streamed -- this is internal routing)
+        user_id = task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else ""
+        routing = await self._analyze_intent(message, conversation_history, user_id)
+
+        logger.info(f"[orchestrator] Streaming routing: intent={routing.get('intent')}, agents={routing.get('agents', [])}")
+
+        # Direct response -- no streaming needed
+        if routing.get("direct_response") and not routing.get("agents"):
+            is_greeting = self._is_greeting(message)
+            if is_greeting and user_id:
+                greeting_text = await self._generate_short_greeting(user_id, task.get("auth_token", ""))
+                if greeting_text:
+                    conversation_history.append(
+                        {"role": "assistant", "content": greeting_text}
+                    )
+                    return {
+                        "content": greeting_text,
+                        "agent": self.name,
+                        "metadata": {"intent": "greeting_short", "routed_to": []},
+                        "pending_action": None,
+                        "_streamed": False,
+                    }
+
+            response_content = routing["direct_response"]
+            conversation_history.append(
+                {"role": "assistant", "content": response_content}
+            )
+            return {
+                "content": response_content,
+                "agent": self.name,
+                "metadata": {"intent": routing.get("intent", ""), "routed_to": []},
+                "pending_action": None,
+                "_streamed": False,
+            }
+
+        tasks_list = routing.get("tasks", [])
+
+        # Single-agent routing -- use streaming
+        if len(tasks_list) == 1:
+            agent_task = tasks_list[0]
+            agent_name = agent_task.get("agent", "")
+            instruction = agent_task.get("instruction", message)
+            agent = AgentRegistry.get(agent_name)
+
+            if agent:
+                # Emit status update before the slow agent work
+                if status_callback:
+                    try:
+                        await status_callback(
+                            {
+                                "type": "status",
+                                "content": self._status_for(agent_name),
+                                "agent": agent_name,
+                            }
+                        )
+                    except Exception as e:
+                        logger.warning(f"[orchestrator] status_callback failed: {e}")
+
+                # Set stream callback on the agent so its generate() streams
+                agent._stream_callback = send_chunk
+                try:
+                    result = await agent.execute(
+                        {
+                            "message": instruction,
+                            "original_message": message,
+                            "auth_token": auth_token,
+                            "user_id": user_id,
+                        }
+                    )
+                finally:
+                    agent._stream_callback = None
+
+                new_pending = result.get("pending_action")
+                content = result.get("content", "")
+
+                # Context chaining follow-up
+                if not new_pending:
+                    followup = await self._suggest_followup(message, [result])
+                    if followup:
+                        content = f"{content}\n\n{followup}"
+                        # Send the follow-up as a final chunk
+                        await send_chunk(f"\n\n{followup}")
+
+                conversation_history.append(
+                    {"role": "assistant", "content": content}
+                )
+
+                return {
+                    "content": content,
+                    "agent": self.name,
+                    "metadata": {
+                        "intent": routing.get("intent", ""),
+                        "routed_to": routing.get("agents", []),
+                    },
+                    "pending_action": new_pending,
+                    "_streamed": True,
+                }
+
+        # Multi-agent routing -- fall back to non-streaming
+        results = []
+        for agent_task in tasks_list:
+            agent_name = agent_task.get("agent", "")
+            instruction = agent_task.get("instruction", message)
+            agent = AgentRegistry.get(agent_name)
+
+            if agent:
+                if status_callback:
+                    try:
+                        await status_callback(
+                            {
+                                "type": "status",
+                                "content": self._status_for(agent_name),
+                                "agent": agent_name,
+                            }
+                        )
+                    except Exception:
+                        pass
+
+                result = await agent.execute(
+                    {
+                        "message": instruction,
+                        "original_message": message,
+                        "auth_token": auth_token,
+                        "user_id": user_id,
+                    }
+                )
+                results.append(result)
+
+        new_pending = next(
+            (r.get("pending_action") for r in results if r.get("pending_action")),
+            None,
+        )
+
+        consolidated = await self._consolidate_responses(message, results)
+
+        if not new_pending:
+            followup = await self._suggest_followup(message, results)
+            if followup:
+                consolidated = f"{consolidated}\n\n{followup}"
+
+        conversation_history.append(
+            {"role": "assistant", "content": consolidated}
+        )
+
+        return {
+            "content": consolidated,
+            "agent": self.name,
+            "metadata": {
+                "intent": routing.get("intent", ""),
+                "routed_to": routing.get("agents", []),
+            },
+            "pending_action": new_pending,
+            "_streamed": False,
+        }
+
     async def _handle_pending(
         self,
         message: str,

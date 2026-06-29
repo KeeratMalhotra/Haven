@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any, AsyncGenerator, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,10 @@ class AgentBase(ABC):
         # Subclasses that use Vertex AI Gemini set self.model to a
         # GenerativeModel instance. Agents without an LLM leave it as None.
         self.model: Any = None
+        # Optional streaming callback. When set by the orchestrator before
+        # calling execute(), generate() will use Gemini streaming mode and
+        # forward each text chunk through this callback.
+        self._stream_callback: Optional[Callable[[str], Any]] = None
         AgentRegistry.register(self)
 
     @abstractmethod
@@ -110,6 +114,10 @@ class AgentBase(ABC):
         or error is logged and the provided ``fallback`` string is returned so
         a slow or failing model never hangs the user's turn.
 
+        When ``self._stream_callback`` is set, uses Gemini streaming mode
+        (``stream=True``) and forwards each text chunk through the callback in
+        real-time, then returns the full concatenated text.
+
         Args:
             prompt: The prompt text to send to the model.
             fallback: Text returned if the call times out or errors. Callers
@@ -124,6 +132,22 @@ class AgentBase(ABC):
         if self.model is None:
             logger.error(f"[{self.name}] generate() called but no model is configured.")
             return fallback
+
+        # If a stream callback is set, use streaming mode
+        if self._stream_callback is not None:
+            try:
+                full_text = await asyncio.wait_for(
+                    self._generate_with_streaming(prompt, **kwargs),
+                    timeout=timeout,
+                )
+                return full_text
+            except asyncio.TimeoutError:
+                logger.error(f"[{self.name}] Gemini streaming generation timed out after {timeout}s.")
+                return fallback
+            except Exception as e:
+                logger.error(f"[{self.name}] Gemini streaming generation failed: {e}", exc_info=True)
+                return fallback
+
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(self.model.generate_content, prompt, **kwargs),
@@ -136,6 +160,89 @@ class AgentBase(ABC):
         except Exception as e:
             logger.error(f"[{self.name}] Gemini generation failed: {e}", exc_info=True)
             return fallback
+
+    async def _generate_with_streaming(self, prompt: str, **kwargs: Any) -> str:
+        """Internal helper: stream Gemini response and forward chunks via callback.
+
+        Uses ``model.generate_content(prompt, stream=True)`` in a thread,
+        then iterates over response chunks and calls ``_stream_callback``
+        for each text chunk.
+
+        Returns:
+            The full concatenated response text.
+        """
+        # Get the streaming response iterator in a thread (initial call is blocking)
+        response_iter = await asyncio.to_thread(
+            self.model.generate_content, prompt, stream=True, **kwargs
+        )
+
+        full_text = ""
+
+        # Iterate over chunks - each chunk.text contains the incremental text
+        def _iter_chunks():
+            chunks = []
+            for chunk in response_iter:
+                text = chunk.text if hasattr(chunk, "text") else ""
+                if text:
+                    chunks.append(text)
+            return chunks
+
+        chunks = await asyncio.to_thread(_iter_chunks)
+        for chunk_text in chunks:
+            full_text += chunk_text
+            if self._stream_callback:
+                await self._stream_callback(chunk_text)
+
+        return full_text
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        *,
+        timeout: float = GEMINI_TIMEOUT_SECONDS,
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
+        """Async generator that yields text chunks from Gemini streaming.
+
+        Uses ``model.generate_content(prompt, stream=True)`` to get an iterator
+        of response chunks and yields each chunk's text content.
+
+        Args:
+            prompt: The prompt text to send to the model.
+            timeout: Maximum seconds to wait for the initial response.
+            **kwargs: Extra keyword args forwarded to ``generate_content``.
+
+        Yields:
+            Text chunks as they arrive from the model.
+        """
+        if self.model is None:
+            logger.error(f"[{self.name}] generate_stream() called but no model is configured.")
+            return
+
+        try:
+            response_iter = await asyncio.wait_for(
+                asyncio.to_thread(
+                    self.model.generate_content, prompt, stream=True, **kwargs
+                ),
+                timeout=timeout,
+            )
+
+            def _iter_chunks():
+                chunks = []
+                for chunk in response_iter:
+                    text = chunk.text if hasattr(chunk, "text") else ""
+                    if text:
+                        chunks.append(text)
+                return chunks
+
+            chunks = await asyncio.to_thread(_iter_chunks)
+            for chunk_text in chunks:
+                yield chunk_text
+
+        except asyncio.TimeoutError:
+            logger.error(f"[{self.name}] Gemini stream timed out after {timeout}s.")
+        except Exception as e:
+            logger.error(f"[{self.name}] Gemini stream failed: {e}", exc_info=True)
 
     async def call_mcp_tool(self, server_name: str, tool_name: str, arguments: dict) -> Any:
         """Call an MCP tool through the client.

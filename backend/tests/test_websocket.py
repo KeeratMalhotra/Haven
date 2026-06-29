@@ -43,14 +43,20 @@ class TestWebSocket:
         """Connect to /ws, send a chat message, receive a text response."""
         from app.agents.base import AgentRegistry
 
-        # Register a mock orchestrator
-        mock_orchestrator = AsyncMock()
+        # Register a mock orchestrator with execute_streaming
+        mock_orchestrator = MagicMock()
         mock_orchestrator.name = "orchestrator"
-        mock_orchestrator.execute = AsyncMock(return_value={
-            "content": "Hello! How can I help you?",
-            "agent": "orchestrator",
-            "metadata": {"intent": "greeting", "routed_to": []},
-        })
+
+        async def mock_execute_streaming(task, send_chunk, status_callback=None):
+            return {
+                "content": "Hello! How can I help you?",
+                "agent": "orchestrator",
+                "metadata": {"intent": "greeting", "routed_to": []},
+                "pending_action": None,
+                "_streamed": False,
+            }
+
+        mock_orchestrator.execute_streaming = mock_execute_streaming
         AgentRegistry._agents["orchestrator"] = mock_orchestrator
 
         with test_client.websocket_connect("/ws") as ws:
@@ -128,3 +134,86 @@ class TestWebSocket:
                 data = ws.receive_json()
 
                 assert "authentication failed" in data["content"].lower() or "sign in" in data["content"].lower()
+
+    def test_websocket_streaming_chunks(self, test_client):
+        """Verify execute_streaming sends text_chunk and text_end frames."""
+        from app.agents.base import AgentRegistry
+
+        # Create a mock orchestrator with execute_streaming
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.name = "orchestrator"
+
+        async def mock_execute_streaming(task, send_chunk, status_callback=None):
+            # Simulate streaming by sending chunks
+            await send_chunk("Hello ")
+            await send_chunk("world!")
+            return {
+                "content": "Hello world!",
+                "agent": "orchestrator",
+                "metadata": {"intent": "greeting", "routed_to": ["scheduler"]},
+                "pending_action": None,
+                "_streamed": True,
+            }
+
+        mock_orchestrator.execute_streaming = mock_execute_streaming
+        # Also provide hasattr support
+        AgentRegistry._agents["orchestrator"] = mock_orchestrator
+
+        with test_client.websocket_connect("/ws") as ws:
+            ws.send_text(json.dumps({
+                "type": "chat",
+                "content": "What's on my calendar?",
+                "auth_token": "test-token-123",
+            }))
+
+            # Should receive text_chunk frames first
+            chunk1 = ws.receive_json()
+            assert chunk1["type"] == "text_chunk"
+            assert chunk1["content"] == "Hello "
+            assert "message_id" in chunk1
+
+            message_id = chunk1["message_id"]
+
+            chunk2 = ws.receive_json()
+            assert chunk2["type"] == "text_chunk"
+            assert chunk2["content"] == "world!"
+            assert chunk2["message_id"] == message_id
+
+            # Should receive text_end frame last
+            end_frame = ws.receive_json()
+            assert end_frame["type"] == "text_end"
+            assert end_frame["message_id"] == message_id
+
+    def test_websocket_streaming_non_streamed_fallback(self, test_client):
+        """Verify execute_streaming falls back to regular text frame when not streamed."""
+        from app.agents.base import AgentRegistry
+
+        # Create a mock orchestrator with execute_streaming that returns non-streamed
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.name = "orchestrator"
+
+        async def mock_execute_streaming(task, send_chunk, status_callback=None):
+            # Simulate a direct_response (no streaming)
+            return {
+                "content": "Hey! I'm Haven.",
+                "agent": "orchestrator",
+                "metadata": {"intent": "greeting", "routed_to": []},
+                "pending_action": None,
+                "_streamed": False,
+            }
+
+        mock_orchestrator.execute_streaming = mock_execute_streaming
+        AgentRegistry._agents["orchestrator"] = mock_orchestrator
+
+        with test_client.websocket_connect("/ws") as ws:
+            ws.send_text(json.dumps({
+                "type": "chat",
+                "content": "Hello!",
+                "auth_token": "test-token-123",
+            }))
+
+            # Should receive a regular text frame (not chunk)
+            data = ws.receive_json()
+            assert data["type"] == "text"
+            assert data["content"] == "Hey! I'm Haven."
+            assert data["agent"] == "orchestrator"

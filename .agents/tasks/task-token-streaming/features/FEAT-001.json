@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add token-by-token streaming from Gemini over WebSocket. Backend: add generate_stream() to base agent, add execute_streaming() to orchestrator, update WebSocket handler to send text_chunk/text_end frames. Frontend: add text_chunk/text_end to ResponsePayload type, handle streaming chunks in useChatSocket to build up message content in real-time, and update MessageBubble to render streamed content directly without the client-side typewriter effect.",
+  "status": "in_progress",
+  "steps": [
+    "1. In backend/app/agents/base.py: Add an async generator method `generate_stream(self, prompt, *, timeout=60.0, **kwargs)` that calls `self.model.generate_content(prompt, stream=True, **kwargs)` in a thread and yields text chunks from the response iterator. Use asyncio.to_thread for the initial call and then iterate in a thread-safe manner. Keep the existing generate() method intact.",
+    "2. In backend/app/agents/orchestrator.py: Add an `async def execute_streaming(self, task, send_chunk)` method. This method performs intent analysis (non-streamed) and routing as usual. For single-agent responses that can be streamed (not multi-agent consolidation, not direct_response), use generate_stream() on the specialist agent's model to stream the final response. Call `await send_chunk(text)` for each chunk. For direct_response or multi-agent, fall back to the existing non-streaming execute() logic and return the full content. The method should return the same dict shape as execute() but with content already streamed. Include conversation_history management and pending_action handling same as execute().",
+    "3. In backend/app/main.py: Update the WebSocket handler's chat message branch. Instead of calling orchestrator.execute() and then sending one {type:'text'} frame, call orchestrator.execute_streaming() with a send_chunk callback that sends {type:'text_chunk', content: chunk_text, message_id: uuid} frames. After streaming completes, send {type:'text_end', message_id: uuid}. Generate a message_id (uuid4) before streaming starts. Keep the existing non-streaming path as fallback: if execute_streaming is not available or if the orchestrator determines it should not stream (direct_response, multi-agent), send the regular {type:'text'} frame. Also keep the voice path unchanged. The status callback should still fire before streaming.",
+    "4. In frontend/lib/ws.ts: Add 'text_chunk' and 'text_end' to the ResponsePayload type union. Add optional `message_id?: string` field to ResponsePayload.",
+    "5. In frontend/hooks/useChatSocket.ts: Update the IncomingMessage interface to include 'text_chunk' and 'text_end' types, and add optional message_id field. Handle 'text_chunk': look for an existing message with a matching message_id in state; if found, append content to it; if not found, create a new AI message with that message_id, streaming:true, and the chunk as initial content. Handle 'text_end': find the message by message_id and set streaming:false. Keep existing 'text' handler for non-streamed fallback responses.",
+    "6. In frontend/components/chat/MessageBubble.tsx: Update the component to handle real-time streaming. When message.streaming is true AND the message content is being updated externally (chunks arriving), skip the client-side typewriter interval and just render the current content directly. The key insight: if the message content changes externally (props update), always show the latest content. The typewriter effect should only apply to non-streamed messages that arrive complete (the existing 'text' type messages). Add logic: if the message content grows externally between renders, set revealed = message.content directly instead of running the interval.",
+    "7. Update backend/tests/test_websocket.py: Add a test for the streaming path - mock orchestrator.execute_streaming to send chunks and verify the WebSocket client receives text_chunk and text_end frames in order."
+  ],
+  "acceptance_criteria": [
+    "Backend base.py has generate_stream() async generator method that yields text chunks",
+    "Orchestrator has execute_streaming() method that streams single-agent responses via callback",
+    "WebSocket handler sends {type:'text_chunk', content, message_id} frames followed by {type:'text_end', message_id}",
+    "Non-streaming fallback (direct_response, multi-agent) still sends {type:'text', content} as before",
+    "Frontend ResponsePayload type includes 'text_chunk' and 'text_end'",
+    "useChatSocket handles text_chunk by building up message content incrementally",
+    "useChatSocket handles text_end by marking message as not streaming",
+    "MessageBubble renders streamed content in real-time without artificial typewriter delay",
+    "pnpm lint passes in frontend/",
+    "pnpm build passes in frontend/",
+    "pytest passes in backend/tests/"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build",
+    "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -x -q"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

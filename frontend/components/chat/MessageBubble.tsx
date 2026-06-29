@@ -109,6 +109,9 @@ function MarkdownContent({ content }: { content: string }) {
 /**
  * Reveals AI text token-by-token to create a calm "streaming" feel, even though
  * the backend delivers the full answer in one frame. User messages render instantly.
+ *
+ * For truly streamed messages (content growing via chunks from the backend),
+ * the typewriter interval is skipped and revealed content tracks props directly.
  */
 export default function MessageBubble({
   message,
@@ -118,6 +121,27 @@ export default function MessageBubble({
   const shouldStream = !isUser && message.streaming;
   const [revealed, setRevealed] = useState(shouldStream ? "" : message.content);
   const completedRef = useRef(false);
+  const prevContentRef = useRef(message.content);
+  const isExternallyStreamingRef = useRef(false);
+
+  // Detect externally streamed messages: if content grows between renders while
+  // streaming is true, we are receiving real-time chunks from the backend.
+  useEffect(() => {
+    if (shouldStream && message.content !== prevContentRef.current) {
+      // Content changed externally (new chunk arrived) -- render directly
+      isExternallyStreamingRef.current = true;
+      setRevealed(message.content);
+    }
+    prevContentRef.current = message.content;
+  }, [message.content, shouldStream]);
+
+  // When streaming becomes false (text_end received), fire onStreamComplete
+  useEffect(() => {
+    if (!message.streaming && isExternallyStreamingRef.current && !completedRef.current) {
+      completedRef.current = true;
+      onStreamComplete?.(message.id);
+    }
+  }, [message.streaming, message.id, onStreamComplete]);
 
   useEffect(() => {
     if (!shouldStream) {
@@ -125,6 +149,12 @@ export default function MessageBubble({
       return;
     }
 
+    // If this message is being externally streamed, don't run the interval
+    if (isExternallyStreamingRef.current) {
+      return;
+    }
+
+    // Client-side typewriter for non-streamed full responses
     const tokens = message.content.split(/(\s+)/); // keep whitespace tokens
     let i = 0;
     let current = "";
