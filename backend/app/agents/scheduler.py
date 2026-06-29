@@ -191,7 +191,8 @@ class SchedulerAgent(AgentBase):
             return await self._complete_pending(message, pending_action, auth_token, user_id)
 
         # Fresh request: ask Gemini to classify and extract details.
-        plan = await self._analyze_scheduling_request(message)
+        memory_context = self._format_relevant_memories(task)
+        plan = await self._analyze_scheduling_request(message, memory_context=memory_context)
         return await self._dispatch_plan(plan, auth_token, user_id, source_text=message)
 
     # ------------------------------------------------------------------
@@ -1013,12 +1014,12 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
     # Gemini analysis
     # ------------------------------------------------------------------
 
-    async def _analyze_scheduling_request(self, message: str) -> dict:
+    async def _analyze_scheduling_request(self, message: str, memory_context: str = "") -> dict:
         """Use Gemini (grounded in IST) to analyze a scheduling request."""
         prompt = f"""{time_context_string()}
 
 {SCHEDULER_PROMPT}
-
+{memory_context}
 Scheduling request: {message}"""
 
         text = await self.generate(

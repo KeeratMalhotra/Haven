@@ -127,7 +127,8 @@ class PlannerAgent(AgentBase):
             plan = await self._complete_pending(message, pending_action)
         else:
             # Classify intent (READ vs WRITE) and, if writing, decompose the goal.
-            plan = await self._analyze_request(message)
+            memory_context = self._format_relevant_memories(task)
+            plan = await self._analyze_request(message, memory_context=memory_context)
 
         action = plan.get("action", "create_tasks")
 
@@ -279,11 +280,12 @@ class PlannerAgent(AgentBase):
                 )
         return failed_count
 
-    async def _analyze_request(self, message: str) -> dict:
+    async def _analyze_request(self, message: str, memory_context: str = "") -> dict:
         """Classify the request as READ or WRITE and build a plan if writing.
 
         Args:
             message: The user's task-related message.
+            memory_context: Optional relevant memories context string.
 
         Returns:
             Plan dictionary with 'action' ("list_tasks" | "create_tasks" |
@@ -292,7 +294,7 @@ class PlannerAgent(AgentBase):
         prompt = f"""{time_context_string()}
 
 {PLANNER_PROMPT}
-
+{memory_context}
 User request: {message}"""
 
         text = await self.generate(

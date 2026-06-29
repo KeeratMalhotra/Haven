@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add embedding generation to observations and implement semantic retrieval of relevant memories. Modify the orchestrator to retrieve relevant memories before dispatching and pass them to specialist agents which include them in their prompts.",
+  "status": "in_progress",
+  "steps": [
+    "In backend/app/agents/memory.py, add a helper function `async def _generate_embedding(text: str) -> list[float] | None` that uses `vertexai.language_models.TextEmbeddingModel` with model `text-embedding-004` to embed the given text. It should return a 768-dimensional float list or None on failure (graceful degradation: log warning, return None).",
+    "In backend/app/agents/memory.py, modify `record_observation()` so that after calling `_normalize_observation()`, it constructs a text representation of the observation (e.g. 'task_completed: finish report at 10 AM') and calls `_generate_embedding()`. If embedding succeeds, store it as `observation['embedding']` before passing to `MemoryRepository.record_observation()`. If embedding fails, continue without it (existing behavior preserved).",
+    "In backend/app/agents/memory.py, add a helper function `_cosine_similarity(a: list[float], b: list[float]) -> float` that computes cosine similarity (dot product of normalized vectors) using pure Python or numpy if available.",
+    "In backend/app/agents/memory.py, add `async def retrieve_relevant_memories(user_id: str, query: str, top_k: int = 5) -> list[str]` that: (a) calls `_generate_embedding(query)` to get the query vector, (b) fetches the user's memory via `MemoryRepository.get_memory(user_id)`, (c) iterates over `memory.observations` looking for ones with an 'embedding' field, (d) computes cosine similarity between the query embedding and each observation's embedding, (e) returns the top-k most relevant observation text representations as a list of strings. Graceful degradation: if embedding fails or no observations have embeddings, return empty list.",
+    "In backend/app/agents/orchestrator.py, in the `execute()` method, after intent analysis and before dispatching to specialist agents (around line where coroutines are built for parallel dispatch), call `retrieve_relevant_memories(user_id, message)` (imported from memory module). Add the returned list as `relevant_memories` key to each specialist agent's task dict (alongside message, original_message, auth_token, user_id).",
+    "In backend/app/agents/orchestrator.py, do the same in `execute_streaming()` for both single-agent and multi-agent paths: retrieve relevant memories and pass them in the task dict.",
+    "In backend/app/agents/base.py, add a helper method `def _format_relevant_memories(self, task: dict) -> str` that checks `task.get('relevant_memories', [])` and if non-empty, returns a formatted string like 'Haven remembers these relevant patterns from your history:\\n- memory1\\n- memory2\\n...' or empty string if no memories.",
+    "In each specialist agent's execute() method (at minimum planner.py, scheduler.py, priority.py, habits.py, email.py, review.py, notification.py), prepend the relevant memories context to the prompt if present. The simplest approach: in base.py's generate() method or as a prompt-building utility. Since each agent constructs its own prompt differently, the cleanest approach is to have each agent call `self._format_relevant_memories(task)` and include it in their prompt string. Alternatively, modify just the top agents that benefit most: planner, scheduler, priority, and review. Start with injecting into the prompt construction of planner.py, scheduler.py, priority.py, and review.py as they benefit most from historical context.",
+    "Add comprehensive tests in backend/tests/test_memory.py (or a new test_memory_rag.py): (a) test _generate_embedding is called during record_observation (mock the embedding model), (b) test that observations with embeddings are stored correctly, (c) test retrieve_relevant_memories returns ranked results based on cosine similarity (mock the embedding model to return deterministic vectors), (d) test graceful degradation when embedding fails."
+  ],
+  "acceptance_criteria": [
+    "record_observation() attempts to embed each observation on write; failure does not prevent the observation from being stored",
+    "retrieve_relevant_memories() returns the top-k most semantically similar observations as text strings",
+    "The orchestrator passes relevant_memories in the task dict to specialist agents before dispatch",
+    "Specialist agents (at minimum planner, scheduler, priority, review) include relevant memories in their prompts when available",
+    "All existing tests in test_memory.py still pass",
+    "New RAG-specific tests pass and exercise the embedding/retrieval logic with mocked embedding models",
+    "Frontend build (pnpm build) succeeds without errors"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ --no-header -q` and confirm all tests pass",
+    "Run `cd /projects/sandbox/ChronAI/frontend && pnpm build` and confirm it completes successfully"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

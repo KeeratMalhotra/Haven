@@ -94,8 +94,11 @@ class PriorityAgent(AgentBase):
         # Get user context for importance weighting
         user_context = await get_user_context(user_id)
 
+        # Include relevant memories for personalization
+        memory_context = self._format_relevant_memories(task)
+
         # Use Gemini to rank
-        priorities = await self._rank_priorities(tasks_list, events_list, user_context)
+        priorities = await self._rank_priorities(tasks_list, events_list, user_context, memory_context)
 
         # Format the response
         content = self._format_priorities(priorities)
@@ -138,7 +141,7 @@ class PriorityAgent(AgentBase):
             return []
 
     async def _rank_priorities(
-        self, tasks: list, events: list, user_context: str
+        self, tasks: list, events: list, user_context: str, memory_context: str = ""
     ) -> dict:
         """Use Gemini to rank tasks and events by priority."""
         prompt = f"""{time_context_string()}
@@ -146,7 +149,7 @@ class PriorityAgent(AgentBase):
 {PRIORITY_PROMPT}
 
 {user_context}
-
+{memory_context}
 User's current tasks:
 {json.dumps(tasks, default=str)}
 

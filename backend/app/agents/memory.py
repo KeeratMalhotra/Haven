@@ -23,6 +23,7 @@ Design principles:
 import asyncio
 import json
 import logging
+import math
 import uuid
 from collections import Counter
 from datetime import datetime, timedelta
@@ -55,6 +56,107 @@ VALID_OBSERVATION_TYPES = {
 # has accumulated.
 _DISTILL_MIN_OBSERVATIONS = 4
 _DISTILL_INTERVAL = timedelta(hours=6)
+
+
+# ---------------------------------------------------------------------------
+# Embedding & semantic retrieval (RAG)
+# ---------------------------------------------------------------------------
+
+
+async def _generate_embedding(
+    text: str, task_type: str = "RETRIEVAL_DOCUMENT"
+) -> list[float] | None:
+    """Generate a text embedding using Vertex AI text-embedding-004.
+
+    Args:
+        text: The text to embed.
+        task_type: One of "RETRIEVAL_DOCUMENT" (for stored observations) or
+            "RETRIEVAL_QUERY" (for search queries).
+
+    Returns:
+        A 768-dimensional float list, or None on any failure (graceful degradation).
+    """
+    try:
+        from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
+
+        model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+        inputs = [TextEmbeddingInput(text, task_type)]
+        embeddings = model.get_embeddings(inputs)
+        if embeddings and len(embeddings) > 0:
+            return embeddings[0].values
+        return None
+    except Exception as e:
+        logger.warning(f"[memory] _generate_embedding failed: {e}")
+        return None
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Compute cosine similarity between two vectors using pure Python.
+
+    Returns 0.0 if either vector has zero magnitude.
+    """
+    if len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    mag_a = math.sqrt(sum(x * x for x in a))
+    mag_b = math.sqrt(sum(x * x for x in b))
+    if mag_a == 0.0 or mag_b == 0.0:
+        return 0.0
+    return dot / (mag_a * mag_b)
+
+
+def _observation_text_repr(obs: dict) -> str:
+    """Build a short text representation of an observation for embedding/display."""
+    obs_type = obs.get("type", "observation")
+    title = obs.get("title", "")
+    hour = obs.get("hour")
+    parts = [obs_type]
+    if title:
+        parts.append(title)
+    if hour is not None:
+        parts.append(f"at {hour}h")
+    return ": ".join(parts[:2]) + (f" {parts[2]}" if len(parts) > 2 else "")
+
+
+async def retrieve_relevant_memories(
+    user_id: str, query: str, top_k: int = 5
+) -> list[str]:
+    """Retrieve the most semantically relevant observations for a query.
+
+    Uses cosine similarity between the query embedding and stored observation
+    embeddings. Returns up to ``top_k`` observation text representations.
+
+    Graceful degradation: returns an empty list if embedding fails, the user
+    has no memory, or no observations have embeddings.
+    """
+    if not user_id or not query:
+        return []
+    try:
+        query_embedding = await _generate_embedding(query, task_type="RETRIEVAL_QUERY")
+        if query_embedding is None:
+            return []
+
+        memory = await MemoryRepository.get_memory(user_id)
+        if not memory or not memory.observations:
+            return []
+
+        scored: list[tuple[float, str]] = []
+        for obs in memory.observations:
+            obs_embedding = obs.get("embedding")
+            if not obs_embedding or not isinstance(obs_embedding, list):
+                continue
+            sim = _cosine_similarity(query_embedding, obs_embedding)
+            text_repr = _observation_text_repr(obs)
+            scored.append((sim, text_repr))
+
+        if not scored:
+            return []
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [text for _, text in scored[:top_k]]
+    except Exception as e:
+        logger.warning(f"[memory] retrieve_relevant_memories failed: {e}")
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -150,8 +252,16 @@ async def record_observation(
         return None
     try:
         observation = _normalize_observation(obs_type, data or {}, timestamp)
+
+        # Attempt to embed the observation for semantic retrieval (RAG).
+        # Failure is non-blocking: we proceed without the embedding.
+        text_repr = _observation_text_repr(observation)
+        embedding = await _generate_embedding(text_repr, task_type="RETRIEVAL_DOCUMENT")
+        if embedding is not None:
+            observation["embedding"] = embedding
+
         memory = await MemoryRepository.record_observation(user_id, observation)
-        # Recompute deterministic structure synchronously — it's cheap and keeps
+        # Recompute deterministic structure synchronously -- it's cheap and keeps
         # stats accurate even when Gemini is unavailable.
         _recompute(memory)
         await MemoryRepository.save_memory(memory)

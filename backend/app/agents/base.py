@@ -272,6 +272,22 @@ class AgentBase(ABC):
         """
         self._tools.update(tool_definitions)
 
+    def _format_relevant_memories(self, task: dict) -> str:
+        """Format relevant memories from the task dict for prompt injection.
+
+        Args:
+            task: The task dict which may contain a 'relevant_memories' key.
+
+        Returns:
+            A formatted string to include in the agent prompt, or empty string
+            if no relevant memories are available.
+        """
+        memories = task.get("relevant_memories", [])
+        if not memories:
+            return ""
+        lines = "\n".join(f"  - {m}" for m in memories)
+        return f"\nHaven remembers these relevant patterns from your history:\n{lines}\n"
+
     def get_tool_descriptions(self) -> str:
         """Get formatted tool descriptions for LLM context.
 

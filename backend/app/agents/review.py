@@ -36,7 +36,7 @@ If data is limited, acknowledge it and encourage the user to keep using Haven.""
 
 
 async def generate_weekly_review(
-    user_id: str, auth_token: str, mcp_client: Any = None
+    user_id: str, auth_token: str, mcp_client: Any = None, memory_context: str = ""
 ) -> str:
     """Generate a weekly productivity review for the user.
 
@@ -48,6 +48,7 @@ async def generate_weekly_review(
         user_id: The user's ID.
         auth_token: Google OAuth access token for MCP calls.
         mcp_client: Optional MCP client instance for calendar/tasks queries.
+        memory_context: Optional relevant memories context for personalization.
 
     Returns:
         Markdown-formatted weekly review text.
@@ -108,7 +109,7 @@ async def generate_weekly_review(
     model = GenerativeModel(settings.GEMINI_MODEL)
 
     prompt = f"""{REVIEW_PROMPT}
-
+{memory_context}
 Here is the user's data from the past week:
 {json.dumps(data_context, indent=2, default=str)}
 
@@ -220,7 +221,10 @@ class ReviewAgent(AgentBase):
         auth_token = task.get("auth_token", "")
         user_id = task.get("user_id", "")
 
-        review = await generate_weekly_review(user_id, auth_token, self.mcp_client)
+        memory_context = self._format_relevant_memories(task)
+        review = await generate_weekly_review(
+            user_id, auth_token, self.mcp_client, memory_context=memory_context
+        )
 
         return {
             "content": review,

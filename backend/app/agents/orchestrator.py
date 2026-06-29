@@ -15,6 +15,7 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 
 from app.agents.base import AgentBase, AgentRegistry, _stream_callback_var
+from app.agents.memory import retrieve_relevant_memories
 from app.config import settings
 from app.utils.timectx import time_context_string
 from app.utils.user_context import get_user_context
@@ -191,6 +192,10 @@ class OrchestratorAgent(AgentBase):
             }
 
         # Route to specialist agents (parallel dispatch)
+        # Retrieve relevant memories for personalization (graceful degradation).
+        user_id = task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else ""
+        relevant_memories = await retrieve_relevant_memories(user_id, message) if user_id else []
+
         # Emit all status callbacks first, then dispatch concurrently.
         coroutines = []
         for agent_task in routing.get("tasks", []):
@@ -219,6 +224,7 @@ class OrchestratorAgent(AgentBase):
                             "original_message": message,
                             "auth_token": auth_token,
                             "user_id": task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else "",
+                            "relevant_memories": relevant_memories,
                         }
                     )
                 )
@@ -344,6 +350,9 @@ class OrchestratorAgent(AgentBase):
 
         tasks_list = routing.get("tasks", [])
 
+        # Retrieve relevant memories for personalization (graceful degradation).
+        relevant_memories = await retrieve_relevant_memories(user_id, message) if user_id else []
+
         # Single-agent routing -- use streaming
         if len(tasks_list) == 1:
             agent_task = tasks_list[0]
@@ -386,6 +395,7 @@ class OrchestratorAgent(AgentBase):
                             "original_message": message,
                             "auth_token": auth_token,
                             "user_id": user_id,
+                            "relevant_memories": relevant_memories,
                         }
                     )
                 finally:
@@ -447,6 +457,7 @@ class OrchestratorAgent(AgentBase):
                             "original_message": message,
                             "auth_token": auth_token,
                             "user_id": user_id,
+                            "relevant_memories": relevant_memories,
                         }
                     )
                 )
