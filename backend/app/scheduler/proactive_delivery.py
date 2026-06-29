@@ -205,6 +205,7 @@ async def deliver_interventions(
                     user_id,
                     {
                         "type": "proactive_nudge",
+                        "title": notification.title,
                         "content": notification.message,
                         "notification_id": str(notification.id),
                         "tier": tier,

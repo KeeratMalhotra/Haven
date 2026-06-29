@@ -53,16 +53,12 @@ export function useNotificationSocket() {
             return;
           }
 
-          if (message.type === "notification" || message.type === "proactive_nudge") {
+          if (message.type === "notification") {
             addNotification({
               id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
               text: message.content,
-              type: message.type === "proactive_nudge"
-                ? (message.tier >= 3 ? "warning" : "info")
-                : (message.metadata?.urgency === "critical" ? "warning" : "info"),
-              actions: message.type === "proactive_nudge" && message.action
-                ? [{ label: message.action.label, action: message.action.kind }]
-                : [],
+              type: message.metadata?.urgency === "critical" ? "warning" : "info",
+              actions: [],
               timestamp: Date.now(),
               dismissed: false,
             });
@@ -76,6 +72,9 @@ export function useNotificationSocket() {
               // Non-critical.
             }
           }
+          // proactive_nudge messages are handled exclusively by
+          // ProactiveListener via the chat socket CustomEvent bridge.
+          // Handling them here would cause duplicate notifications.
         } catch {
           // Ignore malformed messages
         }

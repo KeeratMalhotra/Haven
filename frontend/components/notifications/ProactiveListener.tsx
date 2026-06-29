@@ -58,7 +58,13 @@ export default function ProactiveListener() {
       const detail = (event as CustomEvent).detail;
       if (!detail || !detail.content) return;
 
-      const nudgeId = detail.notification_id || `push-${Date.now()}`;
+      // Defense-in-depth: suppress non-emergency nudges if the frontend is in
+      // focus mode, even if the backend's stored state drifted momentarily.
+      if (focusActiveRef.current && (detail.tier || 0) < 3) return;
+
+      const nudgeId =
+        detail.notification_id ||
+        `push-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       if (shownRef.current.has(nudgeId)) return;
       shownRef.current.add(nudgeId);
 
