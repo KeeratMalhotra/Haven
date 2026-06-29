@@ -151,7 +151,7 @@ function flushQueuesOnReconnect(
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-[var(--text-tertiary)]">Loading settings...</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">Loading settings...</div>}>
       <SettingsContent />
     </Suspense>
   );
@@ -552,9 +552,9 @@ function SettingsContent() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/10">
-          <Settings size={20} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
+          <Settings size={20} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
         </div>
-        <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+        <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
           Settings
         </h1>
       </div>
@@ -562,8 +562,8 @@ function SettingsContent() {
       {/* Profile Section */}
       <Card hover={false} className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <User size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <User size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             Profile
           </h2>
         </div>
@@ -609,13 +609,13 @@ function SettingsContent() {
               />
             </div>
             <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">
+              <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                 {user?.name || "User"}
               </p>
-              <p className="text-xs text-[var(--text-tertiary)]">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                 {user?.email || "No email"}
               </p>
-              <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+              <p className="mt-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                 {connectedCount} service{connectedCount !== 1 ? "s" : ""} connected
               </p>
               {customProfilePicture && (
@@ -635,7 +635,7 @@ function SettingsContent() {
           {/* Editable fields */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] mb-1.5">
                 Display Name
               </label>
               <input
@@ -643,11 +643,11 @@ function SettingsContent() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={user?.name || "Your name"}
-                className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-accent-500"
+                className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:ring-1 focus:ring-accent-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
                   <Globe size={12} strokeWidth={1.5} />
                   Timezone
@@ -656,7 +656,7 @@ function SettingsContent() {
               <select
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-accent-500 appearance-none"
+                className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] focus:outline-none focus:ring-1 focus:ring-accent-500 appearance-none"
               >
                 {TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>
@@ -694,8 +694,8 @@ function SettingsContent() {
       {/* Appearance Section */}
       <Card hover={false} className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Palette size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <Palette size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             Appearance
           </h2>
         </div>
@@ -703,13 +703,13 @@ function SettingsContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {theme === "dark" ? (
-                <Moon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
+                <Moon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
               ) : (
-                <Sun size={16} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
+                <Sun size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
               )}
               <div>
-                <p className="text-sm text-[var(--text-primary)]">Theme</p>
-                <p className="text-xs text-[var(--text-tertiary)]">
+                <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">Theme</p>
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   {theme === "dark" ? "Dark mode" : "Light mode"}
                 </p>
               </div>
@@ -725,15 +725,15 @@ function SettingsContent() {
       {/* AI Preferences Section */}
       <Card hover={false} className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Sparkles size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <Sparkles size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             AI Preferences
           </h2>
         </div>
         <div className="space-y-5">
           {/* Tone selector */}
           <div>
-            <p className="text-sm text-[var(--text-primary)] mb-2">AI Tone</p>
+            <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4] mb-2">AI Tone</p>
             <div className="flex gap-2">
               {(["professional", "casual", "friendly"] as AiTone[]).map(
                 (tone) => (
@@ -743,7 +743,7 @@ function SettingsContent() {
                     className={`rounded-lg px-4 py-2 text-sm font-medium capitalize transition-colors ${
                       aiTone === tone
                         ? "bg-accent-500 text-white"
-                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
                     }`}
                   >
                     {tone}
@@ -756,10 +756,10 @@ function SettingsContent() {
           {/* Suggestions toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-[var(--text-primary)]">
+              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                 AI Suggestions
               </p>
-              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
                 Show AI-powered suggestions throughout the app
               </p>
             </div>
@@ -772,10 +772,10 @@ function SettingsContent() {
           {/* Proactive notifications */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-[var(--text-primary)]">
+              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                 Proactive Notifications
               </p>
-              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
                 Let AI proactively suggest actions and reminders
               </p>
             </div>
@@ -790,10 +790,10 @@ function SettingsContent() {
             <div className="flex items-center gap-2.5">
               <Zap size={16} strokeWidth={1.5} className="text-accent-500" />
               <div>
-                <p className="text-sm text-[var(--text-primary)]">
+                <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Auto-Pilot Mode
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
                   {autopilotMode === "full_auto"
                     ? "Full Auto: AI plans and executes automatically"
                     : "Ask Permission: AI shows plan for your approval"}
@@ -814,8 +814,8 @@ function SettingsContent() {
       {/* Integrations Section */}
       <Card hover={false} className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Link2 size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <Link2 size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             Integrations
           </h2>
         </div>
@@ -849,10 +849,10 @@ function SettingsContent() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">
+                <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Google Account
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   {user?.email || "Not connected"}
                 </p>
               </div>
@@ -887,10 +887,10 @@ function SettingsContent() {
                     <IconComponent size={18} strokeWidth={1.5} className={colorClass} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                    <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                       {service.name}
                     </p>
-                    <p className="text-xs text-[var(--text-tertiary)]">
+                    <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                       {service.description}
                     </p>
                   </div>
@@ -903,7 +903,7 @@ function SettingsContent() {
                     </span>
                   )}
                   {!isConnected && !isLoading && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-tertiary)] mr-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] mr-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
                       Not Connected
                     </span>
@@ -935,10 +935,10 @@ function SettingsContent() {
                 <Music size={18} strokeWidth={1.5} className="text-emerald-500" />
               </div>
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">
+                <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Spotify
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   Paste a Spotify playlist URL for your focus music
                 </p>
               </div>
@@ -947,7 +947,7 @@ function SettingsContent() {
             {/* Playlist URL input (always shown) */}
             <div className="pl-11 space-y-3">
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] mb-1.5">
                   Playlist URL
                 </label>
                 <input
@@ -955,34 +955,34 @@ function SettingsContent() {
                   value={spotifyPlaylistUrl}
                   onChange={(e) => handlePlaylistUrlChange(e.target.value)}
                   placeholder="https://open.spotify.com/playlist/..."
-                  className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-accent-500"
+                  className="w-full rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:ring-1 focus:ring-accent-500"
                 />
-                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                <p className="mt-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   The mini player will appear once you set a playlist URL
                 </p>
               </div>
 
               {/* Suggested playlists */}
               <div>
-                <label className="block text-xs text-[var(--text-secondary)] mb-1.5">
+                <label className="block text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] mb-1.5">
                   Suggested Playlists
                 </label>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handlePlaylistUrlChange("https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn")}
-                    className="rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-accent-500/30 transition-colors"
+                    className="rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] hover:border-accent-500/30 transition-colors"
                   >
                     Lo-fi Beats
                   </button>
                   <button
                     onClick={() => handlePlaylistUrlChange("https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ")}
-                    className="rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-accent-500/30 transition-colors"
+                    className="rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] hover:border-accent-500/30 transition-colors"
                   >
                     Deep Focus
                   </button>
                   <button
                     onClick={() => handlePlaylistUrlChange("https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0")}
-                    className="rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-accent-500/30 transition-colors"
+                    className="rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] hover:border-accent-500/30 transition-colors"
                   >
                     Classical Focus
                   </button>
@@ -996,8 +996,8 @@ function SettingsContent() {
       {/* Notifications Section */}
       <Card hover={false} className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Bell size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <Bell size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             Notifications
           </h2>
         </div>
@@ -1005,10 +1005,10 @@ function SettingsContent() {
           {/* Email Deadline Reminders */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-[var(--text-primary)]">
+              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                 Email Deadline Reminders
               </p>
-              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
                 Receive an email reminder 4 hours before task deadlines
               </p>
             </div>
@@ -1023,10 +1023,10 @@ function SettingsContent() {
           {/* Daily Digest */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-[var(--text-primary)]">
+              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                 Daily Digest Email
               </p>
-              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
                 Get a morning summary of your tasks and schedule for the day
               </p>
             </div>
@@ -1041,10 +1041,10 @@ function SettingsContent() {
           {/* Weekly Review */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-[var(--text-primary)]">
+              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                 Weekly Review Email
               </p>
-              <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
                 Receive a weekly productivity review with insights and trends
               </p>
             </div>
@@ -1061,8 +1061,8 @@ function SettingsContent() {
       {/* Keyboard Shortcuts Section */}
       <Card hover={false} className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Keyboard size={18} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <Keyboard size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             Keyboard Shortcuts
           </h2>
         </div>
@@ -1072,10 +1072,10 @@ function SettingsContent() {
               key={s.keys}
               className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-3"
             >
-              <span className="text-sm text-[var(--text-primary)]">
+              <span className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                 {s.description}
               </span>
-              <kbd className="rounded-md bg-[var(--surface-hover)] px-2.5 py-1 text-xs font-mono text-[var(--text-secondary)] border border-[var(--border)]">
+              <kbd className="rounded-md bg-[var(--surface-hover)] px-2.5 py-1 text-xs font-mono text-[var(--text-secondary)] dark:text-[#a8a39c] border border-[var(--border)]">
                 {s.keys}
               </kbd>
             </div>

@@ -38,7 +38,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-[13px] font-medium text-[var(--text-secondary)]"
+            className="text-[13px] font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]"
           >
             {label}
           </label>
@@ -49,8 +49,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           transition={springTransition}
           className={`
             h-10 w-full rounded-lg border px-3 text-sm
-            bg-[var(--surface)] text-[var(--text-primary)]
-            border-[var(--border)] placeholder:text-[var(--text-tertiary)]
+            bg-[var(--surface)] text-[var(--text-primary)] dark:text-[#ece9e4]
+            border-[var(--border)] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76]
             focus:outline-none focus:border-[var(--border-focus)]
             focus:ring-2 focus:ring-[var(--accent)]/10
             transition-colors duration-200

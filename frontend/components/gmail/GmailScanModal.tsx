@@ -94,17 +94,17 @@ export function GmailScanModal({
             <Mail size={16} className="text-accent-500" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               Scan Inbox
             </h2>
-            <p className="text-xs text-[var(--text-tertiary)]">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
               AI extracts action items from your recent emails
             </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="h-7 w-7 rounded-lg hover:bg-[var(--surface-hover)] flex items-center justify-center text-[var(--text-tertiary)] transition-colors"
+          className="h-7 w-7 rounded-lg hover:bg-[var(--surface-hover)] flex items-center justify-center text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
         >
           <X size={14} />
         </button>
@@ -116,7 +116,7 @@ export function GmailScanModal({
           <div className="h-14 w-14 rounded-2xl bg-accent-500/10 flex items-center justify-center">
             <Inbox size={24} className="text-accent-500" />
           </div>
-          <p className="text-sm text-[var(--text-secondary)] text-center max-w-xs">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] text-center max-w-xs">
             Scan your inbox to find emails that need action. AI will suggest
             tasks based on email content.
           </p>
@@ -130,10 +130,10 @@ export function GmailScanModal({
       {state === "scanning" && (
         <div className="flex flex-col items-center justify-center py-10 gap-3">
           <Loader2 size={28} className="text-accent-500 animate-spin" />
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Scanning your inbox...
           </p>
-          <p className="text-xs text-[var(--text-tertiary)]">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
             Reading emails and extracting action items
           </p>
         </div>
@@ -156,7 +156,7 @@ export function GmailScanModal({
           {visibleItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Check size={24} className="text-success-500" />
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 {items.length === 0
                   ? "No action items found in your recent emails."
                   : "All items handled!"}
@@ -175,19 +175,19 @@ export function GmailScanModal({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                      <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
                         {item.suggested_title}
                       </p>
-                      <p className="text-xs text-[var(--text-tertiary)] truncate mt-0.5">
+                      <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] truncate mt-0.5">
                         From: {item.email_from}
                       </p>
-                      <p className="text-xs text-[var(--text-tertiary)] truncate">
+                      <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] truncate">
                         Subject: {item.email_subject}
                       </p>
                     </div>
                   </div>
                   {item.suggested_notes && (
-                    <p className="text-xs text-[var(--text-secondary)] line-clamp-2">
+                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] line-clamp-2">
                       {item.suggested_notes}
                     </p>
                   )}
@@ -247,12 +247,12 @@ export function GmailScanModal({
             className="mt-3 p-3 rounded-xl border border-accent-500/30 bg-accent-500/5 space-y-2"
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-[var(--text-secondary)]">
+              <p className="text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Reply to: {replyTarget.email_from}
               </p>
               <button
                 onClick={() => setReplyTarget(null)}
-                className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                className="text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
               >
                 <X size={12} />
               </button>
@@ -268,7 +268,7 @@ export function GmailScanModal({
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type your reply..."
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
                 />
                 <div className="flex justify-end">
                   <Button

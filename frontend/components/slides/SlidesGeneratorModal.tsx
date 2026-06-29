@@ -97,17 +97,17 @@ export function SlidesGeneratorModal({
             <Presentation size={16} className="text-accent-500" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               Create Presentation
             </h2>
-            <p className="text-xs text-[var(--text-tertiary)]">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
               AI generates slides from your task context
             </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="h-7 w-7 rounded-lg hover:bg-[var(--surface-hover)] flex items-center justify-center text-[var(--text-tertiary)] transition-colors"
+          className="h-7 w-7 rounded-lg hover:bg-[var(--surface-hover)] flex items-center justify-center text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
         >
           <X size={14} />
         </button>
@@ -117,10 +117,10 @@ export function SlidesGeneratorModal({
       {state === "generating" && (
         <div className="flex flex-col items-center justify-center py-10 gap-3">
           <Loader2 size={28} className="text-accent-500 animate-spin" />
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Generating presentation outline...
           </p>
-          <p className="text-xs text-[var(--text-tertiary)]">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
             Creating slides from &quot;{taskTitle}&quot;
           </p>
         </div>
@@ -145,7 +145,7 @@ export function SlidesGeneratorModal({
             <p className="text-xs font-medium text-accent-500 uppercase tracking-wider mb-1">
               Presentation Title
             </p>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               {outline.title}
             </p>
           </div>
@@ -162,7 +162,7 @@ export function SlidesGeneratorModal({
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-xs font-medium text-[var(--text-tertiary)] flex-shrink-0">
+                    <span className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] flex-shrink-0">
                       Slide {i + 1}
                     </span>
                     {editingSlide === i ? (
@@ -174,7 +174,7 @@ export function SlidesGeneratorModal({
                             if (e.key === "Enter") handleEditSlideTitle(i, editTitle);
                             if (e.key === "Escape") setEditingSlide(null);
                           }}
-                          className="flex-1 text-sm bg-transparent border-b border-accent-400 text-[var(--text-primary)] outline-none"
+                          className="flex-1 text-sm bg-transparent border-b border-accent-400 text-[var(--text-primary)] dark:text-[#ece9e4] outline-none"
                           autoFocus
                         />
                         <button
@@ -185,7 +185,7 @@ export function SlidesGeneratorModal({
                         </button>
                       </div>
                     ) : (
-                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                      <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
                         {slide.title}
                       </p>
                     )}
@@ -196,7 +196,7 @@ export function SlidesGeneratorModal({
                         setEditingSlide(i);
                         setEditTitle(slide.title);
                       }}
-                      className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] flex-shrink-0"
+                      className="text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] flex-shrink-0"
                     >
                       <Pencil size={11} />
                     </button>
@@ -207,9 +207,9 @@ export function SlidesGeneratorModal({
                     {slide.bullets.map((bullet, bi) => (
                       <li
                         key={bi}
-                        className="text-xs text-[var(--text-secondary)] flex items-start gap-1.5"
+                        className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] flex items-start gap-1.5"
                       >
-                        <span className="text-[var(--text-tertiary)] mt-0.5 flex-shrink-0">
+                        <span className="text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5 flex-shrink-0">
                           -
                         </span>
                         {bullet}
@@ -237,7 +237,7 @@ export function SlidesGeneratorModal({
       {state === "creating" && (
         <div className="flex flex-col items-center justify-center py-10 gap-3">
           <Loader2 size={28} className="text-accent-500 animate-spin" />
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Creating presentation in Google Slides...
           </p>
         </div>
@@ -248,7 +248,7 @@ export function SlidesGeneratorModal({
           <div className="h-14 w-14 rounded-2xl bg-success-500/10 flex items-center justify-center">
             <Check size={24} className="text-success-500" />
           </div>
-          <p className="text-sm font-medium text-[var(--text-primary)]">
+          <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
             Presentation created!
           </p>
           <a

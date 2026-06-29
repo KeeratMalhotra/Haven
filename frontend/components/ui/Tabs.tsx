@@ -101,7 +101,7 @@ export function TabsTrigger({ value, children, className = "" }: TabsTriggerProp
         relative px-3 py-1.5 text-sm font-medium rounded-lg
         transition-colors duration-200 ease-spring
         focus-ring select-none cursor-pointer
-        ${isActive ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"}
+        ${isActive ? "text-[var(--text-primary)] dark:text-[#ece9e4]" : "text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"}
         ${className}
       `}
     >

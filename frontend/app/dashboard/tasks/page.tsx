@@ -139,8 +139,8 @@ function PrioritySelector({
           onClick={() => onChange(opt.value)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             value === opt.value
-              ? "bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)]"
-              : "text-[var(--text-tertiary)] border border-transparent hover:border-[var(--border)]"
+              ? "bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)] dark:text-[#ece9e4]"
+              : "text-[var(--text-tertiary)] dark:text-[#847e76] border border-transparent hover:border-[var(--border)]"
           }`}
         >
           <span
@@ -193,8 +193,8 @@ function RecurrenceSelector({
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               currentType === opt.val || (opt.val === "none" && !value)
-                ? "bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)]"
-                : "text-[var(--text-tertiary)] border border-transparent hover:border-[var(--border)]"
+                ? "bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-primary)] dark:text-[#ece9e4]"
+                : "text-[var(--text-tertiary)] dark:text-[#847e76] border border-transparent hover:border-[var(--border)]"
             }`}
           >
             {opt.val !== "none" && <Repeat size={10} />}
@@ -205,7 +205,7 @@ function RecurrenceSelector({
       {currentType === "custom" && (
         <div className="space-y-2 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)]">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--text-secondary)]">Every</span>
+            <span className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c]">Every</span>
             <input
               type="number"
               min={1}
@@ -216,9 +216,9 @@ function RecurrenceSelector({
                 setCustomInterval(val);
                 onChange({ type: "custom", interval: val, days: customDays });
               }}
-              className="w-14 h-7 px-2 rounded border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-primary)] text-center focus:outline-none focus:border-accent-400"
+              className="w-14 h-7 px-2 rounded border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text-primary)] dark:text-[#ece9e4] text-center focus:outline-none focus:border-accent-400"
             />
-            <span className="text-xs text-[var(--text-secondary)]">day(s)</span>
+            <span className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c]">day(s)</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {dayNames.map((day, idx) => (
@@ -234,7 +234,7 @@ function RecurrenceSelector({
                 className={`h-7 w-9 rounded text-xs font-medium transition-colors ${
                   customDays.includes(idx)
                     ? "bg-accent-500 text-white"
-                    : "bg-[var(--surface)] text-[var(--text-tertiary)] border border-[var(--border)] hover:border-accent-400"
+                    : "bg-[var(--surface)] text-[var(--text-tertiary)] dark:text-[#847e76] border border-[var(--border)] hover:border-accent-400"
                 }`}
               >
                 {day}
@@ -304,10 +304,10 @@ const KanbanColumn = memo(function KanbanColumn({
     <div className="flex-1 md:min-w-[280px]">
       <div className="flex items-center gap-2 mb-3 px-1">
         <div className={`h-2.5 w-2.5 rounded-full ${color}`} />
-        <h3 className="text-sm font-medium text-[var(--text-secondary)]">
+        <h3 className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
           {title}
         </h3>
-        <span className="text-xs text-[var(--text-tertiary)] bg-[var(--surface-hover)] rounded-full px-2 py-0.5">
+        <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] bg-[var(--surface-hover)] rounded-full px-2 py-0.5">
           {tasks.length}
         </span>
       </div>
@@ -397,7 +397,7 @@ const SortableTaskCard = memo(function SortableTaskCard({
           {task.recurrence && (
             <Repeat size={11} className="text-accent-400 flex-shrink-0" />
           )}
-          <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2">
+          <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] line-clamp-2">
             {task.title}
           </p>
           {(task.id.startsWith("task-gmail-") || task.source === "gmail") && (
@@ -428,7 +428,7 @@ const SortableTaskCard = memo(function SortableTaskCard({
           </div>
         )}
         {task.notes && (
-          <p className="text-xs text-[var(--text-tertiary)] mb-2 line-clamp-1">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mb-2 line-clamp-1">
             {task.notes}
           </p>
         )}
@@ -456,7 +456,7 @@ function DragOverlayCard({ task }: { task: LocalTask }) {
   return (
     <div className="rotate-2 shadow-xl">
       <Card hover={false} className="border-accent-400/40">
-        <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
+        <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] mb-1">
           {task.title}
         </p>
         {task.due && (
@@ -555,7 +555,7 @@ const ListRow = memo(function ListRow({
         </button>
       )}
       <button
-        className="text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        className="text-[var(--text-tertiary)] dark:text-[#847e76] opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
         {...attributes}
         {...listeners}
       >
@@ -602,7 +602,7 @@ const ListRow = memo(function ListRow({
                 setIsEditing(false);
               }
             }}
-            className="w-full text-sm bg-transparent text-[var(--text-primary)] border-none outline-none focus:ring-0 p-0"
+            className="w-full text-sm bg-transparent text-[var(--text-primary)] dark:text-[#ece9e4] border-none outline-none focus:ring-0 p-0"
           />
         ) : (
           <div className="flex items-center gap-1.5">
@@ -620,8 +620,8 @@ const ListRow = memo(function ListRow({
               onDoubleClick={onTaskClick}
               className={`text-sm text-left truncate w-full ${
                 task.status === "done"
-                  ? "text-[var(--text-tertiary)] line-through"
-                  : "text-[var(--text-primary)]"
+                  ? "text-[var(--text-tertiary)] dark:text-[#847e76] line-through"
+                  : "text-[var(--text-primary)] dark:text-[#ece9e4]"
               }`}
             >
               {task.title}
@@ -648,7 +648,7 @@ const ListRow = memo(function ListRow({
         </div>
       )}
       {task.due && (
-        <span className="text-xs text-[var(--text-tertiary)] flex-shrink-0">
+        <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] flex-shrink-0">
           {format(new Date(task.due), "MMM d")}
         </span>
       )}
@@ -657,7 +657,7 @@ const ListRow = memo(function ListRow({
           e.stopPropagation();
           onDelete();
         }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-tertiary)] hover:text-danger-500 flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-0 md:min-w-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-danger-500 flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center md:min-h-0 md:min-w-0"
         aria-label="Delete task"
       >
         <Trash2 size={14} strokeWidth={1.5} />
@@ -764,19 +764,19 @@ function TaskDetailPanel({
       className="fixed top-0 right-0 h-full w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-50 flex flex-col"
     >
       <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)]">
+        <h3 className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
           Task Details
         </h3>
         <div className="flex items-center gap-1">
           <button
             onClick={onDelete}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-danger-500/10 text-[var(--text-tertiary)] hover:text-danger-500 transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-danger-500/10 text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-danger-500 transition-colors"
           >
             <Trash2 size={16} strokeWidth={1.5} />
           </button>
           <button
             onClick={onClose}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
           >
             <X size={16} />
           </button>
@@ -784,18 +784,18 @@ function TaskDetailPanel({
       </div>
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Title
           </label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={handleSave}
-            className="w-full text-lg font-semibold bg-transparent text-[var(--text-primary)] border-none outline-none focus:ring-0 p-0"
+            className="w-full text-lg font-semibold bg-transparent text-[var(--text-primary)] dark:text-[#ece9e4] border-none outline-none focus:ring-0 p-0"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Priority
           </label>
           <PrioritySelector
@@ -807,7 +807,7 @@ function TaskDetailPanel({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Due Date
           </label>
           <input
@@ -818,11 +818,11 @@ function TaskDetailPanel({
               setDue(val);
               onUpdate({ ...task, title, notes, due: val || null, status, priority, recurrence, labels: taskLabels });
             }}
-            className="w-full h-9 px-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
+            className="w-full h-9 px-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] dark:text-[#ece9e4] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Labels
           </label>
           <LabelSelector
@@ -832,7 +832,7 @@ function TaskDetailPanel({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Repeat
           </label>
           <RecurrenceSelector
@@ -844,7 +844,7 @@ function TaskDetailPanel({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Notes
           </label>
           <textarea
@@ -853,18 +853,18 @@ function TaskDetailPanel({
             onBlur={handleNotesSave}
             rows={6}
             placeholder="Add notes..."
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-1.5 block">
+          <label className="text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] uppercase tracking-wider mb-1.5 block">
             Subtasks {task.subtasks && task.subtasks.length > 0 && `(${task.subtasks.length})`}
           </label>
           <div className="space-y-1.5">
             {(task.subtasks || []).map((sub, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]"
               >
                 <button
                   onClick={() => handleToggleSubtask(i)}
@@ -893,7 +893,7 @@ function TaskDetailPanel({
                 </button>
                 <span
                   className={
-                    sub.completed ? "line-through text-[var(--text-tertiary)]" : ""
+                    sub.completed ? "line-through text-[var(--text-tertiary)] dark:text-[#847e76]" : ""
                   }
                 >
                   {sub.title}
@@ -908,7 +908,7 @@ function TaskDetailPanel({
                   if (e.key === "Enter") handleAddSubtask();
                 }}
                 placeholder="Add subtask..."
-                className="flex-1 text-sm bg-transparent text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] border-none outline-none focus:ring-0 p-0"
+                className="flex-1 text-sm bg-transparent text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] border-none outline-none focus:ring-0 p-0"
               />
               {newSubtask.trim() && (
                 <button
@@ -926,7 +926,7 @@ function TaskDetailPanel({
           <button
             onClick={handleResearch}
             disabled={researchLoading}
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:text-accent-500 hover:bg-accent-500/5 border border-[var(--border)] hover:border-accent-500/30 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-accent-500 hover:bg-accent-500/5 border border-[var(--border)] hover:border-accent-500/30 transition-colors disabled:opacity-50"
           >
             <Search size={15} strokeWidth={1.5} />
             Research
@@ -951,15 +951,15 @@ function TaskDetailPanel({
                 disabled={slidesDisconnected}
                 className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium border border-[var(--border)] transition-colors ${
                   slidesDisconnected
-                    ? "text-[var(--text-tertiary)] opacity-50 cursor-not-allowed"
-                    : "text-[var(--text-secondary)] hover:text-accent-500 hover:bg-accent-500/5 hover:border-accent-500/30"
+                    ? "text-[var(--text-tertiary)] dark:text-[#847e76] opacity-50 cursor-not-allowed"
+                    : "text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-accent-500 hover:bg-accent-500/5 hover:border-accent-500/30"
                 }`}
               >
                 <Presentation size={15} strokeWidth={1.5} />
                 Create Presentation
               </button>
               {slidesDisconnected && (
-                <div className="absolute bottom-full mb-1 left-0 z-50 hidden group-hover/slides:block whitespace-nowrap rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] shadow-lg">
+                <div className="absolute bottom-full mb-1 left-0 z-50 hidden group-hover/slides:block whitespace-nowrap rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] shadow-lg">
                   Connect Google Slides in Settings to use this feature
                 </div>
               )}
@@ -1654,7 +1654,7 @@ function TasksPageContent() {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-500/10">
             <CheckSquare size={20} strokeWidth={1.5} className="text-warning-500" />
           </div>
-          <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
             Tasks
           </h1>
         </div>
@@ -1666,7 +1666,7 @@ function TasksPageContent() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === "board"
                   ? "bg-accent-500/10 text-accent-500"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                  : "text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
               }`}
             >
               <LayoutGrid size={14} />
@@ -1677,7 +1677,7 @@ function TasksPageContent() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 viewMode === "list"
                   ? "bg-accent-500/10 text-accent-500"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                  : "text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
               }`}
             >
               <List size={14} />
@@ -1733,7 +1733,7 @@ function TasksPageContent() {
               Scan Inbox
             </Button>
             {gmailDisconnected && (
-              <div className="absolute top-full mt-1 right-0 z-50 hidden group-hover/gmail:block whitespace-nowrap rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] shadow-lg">
+              <div className="absolute top-full mt-1 right-0 z-50 hidden group-hover/gmail:block whitespace-nowrap rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] shadow-lg">
                 Connect Gmail in Settings
               </div>
             )}
@@ -1756,14 +1756,14 @@ function TasksPageContent() {
       <div className="mb-4 relative">
         <Search
           size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] dark:text-[#847e76] pointer-events-none"
         />
         <input
           type="text"
           placeholder="Search tasks..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 transition-colors"
+          className="w-full h-9 pl-9 pr-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 transition-colors"
         />
       </div>
 
@@ -1787,7 +1787,7 @@ function TasksPageContent() {
       {/* Connect Google Tasks Banner */}
       {tasksDisconnected && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Google Tasks is not connected. Your changes are saved locally.
           </p>
           <Link
@@ -1822,7 +1822,7 @@ function TasksPageContent() {
         </div>
       ) : tasks.length === 0 ? (
         <EmptyState
-          icon={<CheckSquare size={28} strokeWidth={1.5} className="text-[var(--text-tertiary)]" />}
+          icon={<CheckSquare size={28} strokeWidth={1.5} className="text-[var(--text-tertiary)] dark:text-[#847e76]" />}
           title="No tasks yet"
           description="Create your first task to get started. Organize them in a kanban board or list view."
           action={
@@ -1925,7 +1925,7 @@ function TasksPageContent() {
       {/* Create Task Modal */}
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)}>
         <div className="p-5">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-4">
             New Task
           </h2>
           <div className="space-y-4">
@@ -1939,7 +1939,7 @@ function TasksPageContent() {
               }}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--text-secondary)]">
+              <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Notes
               </label>
               <textarea
@@ -1947,7 +1947,7 @@ function TasksPageContent() {
                 onChange={(e) => setNewNotes(e.target.value)}
                 placeholder="Add any details..."
                 rows={3}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
               />
             </div>
             <Input
@@ -1957,13 +1957,13 @@ function TasksPageContent() {
               onChange={(e) => setNewDue(e.target.value)}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--text-secondary)]">
+              <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Priority
               </label>
               <PrioritySelector value={newPriority} onChange={setNewPriority} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--text-secondary)]">
+              <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Repeat
               </label>
               <RecurrenceSelector value={newRecurrence} onChange={setNewRecurrence} />
@@ -2013,10 +2013,10 @@ function TasksPageContent() {
       {/* Delete Confirmation Modal */}
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <div className="p-5">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-2">
             Delete Task
           </h2>
-          <p className="text-sm text-[var(--text-secondary)] mb-5">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] mb-5">
             Are you sure you want to delete &ldquo;{deleteTarget?.title}&rdquo;? This action cannot be undone.
           </p>
           <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
@@ -2067,7 +2067,7 @@ function TasksPageContent() {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl"
           >
-            <span className="text-xs font-medium text-[var(--text-secondary)] mr-2">
+            <span className="text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] mr-2">
               {selectedTasks.size} selected
             </span>
             <button
@@ -2087,40 +2087,40 @@ function TasksPageContent() {
             <div className="relative">
               <button
                 onClick={() => setOpenMenu(openMenu === "move" ? null : "move")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] dark:text-[#ece9e4] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
               >
                 <ArrowRight size={13} />
                 Move to
               </button>
               {openMenu === "move" && (
                 <div className="absolute bottom-full left-0 mb-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[120px]">
-                  <button onClick={() => { handleBulkMove("todo"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">To Do</button>
-                  <button onClick={() => { handleBulkMove("inprogress"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">In Progress</button>
-                  <button onClick={() => { handleBulkMove("done"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Done</button>
+                  <button onClick={() => { handleBulkMove("todo"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">To Do</button>
+                  <button onClick={() => { handleBulkMove("inprogress"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">In Progress</button>
+                  <button onClick={() => { handleBulkMove("done"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">Done</button>
                 </div>
               )}
             </div>
             <div className="relative">
               <button
                 onClick={() => setOpenMenu(openMenu === "priority" ? null : "priority")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] dark:text-[#ece9e4] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
               >
                 <Flag size={13} />
                 Priority
               </button>
               {openMenu === "priority" && (
                 <div className="absolute bottom-full left-0 mb-1 flex flex-col bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl py-1 min-w-[100px]">
-                  <button onClick={() => { handleBulkPriority("high"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">High</button>
-                  <button onClick={() => { handleBulkPriority("medium"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Medium</button>
-                  <button onClick={() => { handleBulkPriority("low"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Low</button>
-                  <button onClick={() => { handleBulkPriority("none"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">None</button>
+                  <button onClick={() => { handleBulkPriority("high"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">High</button>
+                  <button onClick={() => { handleBulkPriority("medium"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">Medium</button>
+                  <button onClick={() => { handleBulkPriority("low"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">Low</button>
+                  <button onClick={() => { handleBulkPriority("none"); setOpenMenu(null); }} className="px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]">None</button>
                 </div>
               )}
             </div>
             <div className="relative">
               <button
                 onClick={() => setOpenMenu(openMenu === "label" ? null : "label")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-primary)] dark:text-[#ece9e4] bg-[var(--surface-hover)] hover:bg-[var(--border)] transition-colors"
               >
                 <Tag size={13} />
                 Label
@@ -2131,7 +2131,7 @@ function TasksPageContent() {
                     <button
                       key={label.id}
                       onClick={() => { handleBulkLabel(label); setOpenMenu(null); }}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]"
                     >
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
                       {label.name}

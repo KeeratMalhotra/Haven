@@ -69,7 +69,7 @@ export default function RootLayout({
       lang="en"
       className={`dark ${inter.variable} ${mono.variable} ${pixel.variable} ${terminal.variable}`}
     >
-      <body className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] font-sans antialiased">
+      <body className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] dark:text-[#ece9e4] font-sans antialiased">
         <Providers>
           <ThemeProvider>{children}</ThemeProvider>
         </Providers>

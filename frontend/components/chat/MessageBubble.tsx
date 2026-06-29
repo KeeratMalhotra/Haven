@@ -18,17 +18,17 @@ function MarkdownContent({ content }: { content: string }) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 className="mb-3 mt-4 text-xl font-bold text-[var(--text-primary)] first:mt-0">
+          <h1 className="mb-3 mt-4 text-xl font-bold text-[var(--text-primary)] dark:text-[#ece9e4] first:mt-0">
             {children}
           </h1>
         ),
         h2: ({ children }) => (
-          <h2 className="mb-2 mt-3 text-lg font-semibold text-[var(--text-primary)] first:mt-0">
+          <h2 className="mb-2 mt-3 text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] first:mt-0">
             {children}
           </h2>
         ),
         h3: ({ children }) => (
-          <h3 className="mb-2 mt-3 text-base font-semibold text-[var(--text-primary)] first:mt-0">
+          <h3 className="mb-2 mt-3 text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] first:mt-0">
             {children}
           </h3>
         ),
@@ -77,7 +77,7 @@ function MarkdownContent({ content }: { content: string }) {
           </a>
         ),
         blockquote: ({ children }) => (
-          <blockquote className="mb-2 border-l-2 border-accent-500/40 pl-3 italic text-[var(--text-secondary)] last:mb-0">
+          <blockquote className="mb-2 border-l-2 border-accent-500/40 pl-3 italic text-[var(--text-secondary)] dark:text-[#a8a39c] last:mb-0">
             {children}
           </blockquote>
         ),
@@ -154,7 +154,7 @@ export default function MessageBubble({
       className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
     >
       {isUser ? (
-        <div className="max-w-[78%] rounded-2xl rounded-br-md border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-2.5 text-[15px] leading-relaxed text-[var(--text-primary)]">
+        <div className="max-w-[78%] rounded-2xl rounded-br-md border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-2.5 text-[15px] leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4]">
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
       ) : (
@@ -165,7 +165,7 @@ export default function MessageBubble({
             className={`text-[15px] leading-relaxed ${
               message.isError
                 ? "text-rose-400"
-                : "text-[var(--text-primary)]"
+                : "text-[var(--text-primary)] dark:text-[#ece9e4]"
             }`}
           >
             <div

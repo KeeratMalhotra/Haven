@@ -80,11 +80,11 @@ export default function VoiceMode({
       {/* Status / hint */}
       <div className="mb-8 flex h-8 items-center">
         {thinking || phase === "processing" ? (
-          <span className="text-sm font-medium tracking-tight text-[var(--text-secondary)]">
+          <span className="text-sm font-medium tracking-tight text-[var(--text-secondary)] dark:text-[#a8a39c]">
             {statusLabel || "One moment"}
           </span>
         ) : (
-          <span className="text-sm text-[var(--text-tertiary)]">
+          <span className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
             {hint}
           </span>
         )}
@@ -108,14 +108,14 @@ export default function VoiceMode({
           size={28}
           className={
             phase === "listening"
-              ? "relative z-10 text-[var(--text-primary)]"
-              : "relative z-10 text-[var(--text-secondary)]"
+              ? "relative z-10 text-[var(--text-primary)] dark:text-[#ece9e4]"
+              : "relative z-10 text-[var(--text-secondary)] dark:text-[#a8a39c]"
           }
         />
       </motion.button>
 
       {/* Phase indicator */}
-      <p className="mt-6 text-xs text-[var(--text-tertiary)]">
+      <p className="mt-6 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
         {phase === "listening"
           ? "Speak now"
           : phase === "processing"

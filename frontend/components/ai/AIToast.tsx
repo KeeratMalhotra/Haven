@@ -100,9 +100,9 @@ function ToastItem({
       className={`bg-[var(--surface)] border border-[var(--border)] border-l-[3px] ${borderColor} rounded-xl shadow-lg p-4 max-w-sm w-full`}
     >
       <div className="flex items-start gap-3">
-        <Icon className="w-4 h-4 text-[var(--text-tertiary)] mt-0.5 shrink-0" />
+        <Icon className="w-4 h-4 text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] leading-relaxed">
             {suggestion.text}
           </p>
           {suggestion.actions && suggestion.actions.length > 0 && (
@@ -111,7 +111,7 @@ function ToastItem({
                 <button
                   key={i}
                   onClick={onDismiss}
-                  className="text-xs text-[var(--text-primary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                  className="text-xs text-[var(--text-primary)] dark:text-[#ece9e4] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] transition-colors cursor-pointer"
                 >
                   Got it
                 </button>
@@ -121,7 +121,7 @@ function ToastItem({
         </div>
         <button
           onClick={onDismiss}
-          className="rounded-md p-1 text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors shrink-0 cursor-pointer"
+          className="rounded-md p-1 text-[var(--text-tertiary)] dark:text-[#847e76] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] transition-colors shrink-0 cursor-pointer"
           aria-label="Dismiss"
         >
           <X className="w-4 h-4" />

@@ -790,7 +790,7 @@ export default function CalendarPage() {
               <CalendarIcon size={20} strokeWidth={1.5} className="text-accent-500" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+              <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
                 {effectiveView === "month" && format(currentDate, "MMMM yyyy")}
                 {effectiveView === "week" &&
                   `${format(startOfWeek(currentDate), "MMM d")} - ${format(
@@ -805,20 +805,20 @@ export default function CalendarPage() {
           <div className="flex items-center gap-1">
             <button
               onClick={navigatePrev}
-              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
               aria-label="Previous"
             >
               <ChevronLeft size={16} strokeWidth={1.5} />
             </button>
             <button
               onClick={goToToday}
-              className="px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
+              className="px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:bg-[var(--surface-hover)] transition-colors"
             >
               Today
             </button>
             <button
               onClick={navigateNext}
-              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
               aria-label="Next"
             >
               <ChevronRight size={16} strokeWidth={1.5} />
@@ -835,7 +835,7 @@ export default function CalendarPage() {
                 className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-colors ${
                   view === v
                     ? "bg-accent-500/10 text-accent-500"
-                    : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                    : "text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
                 }`}
               >
                 {v}
@@ -869,7 +869,7 @@ export default function CalendarPage() {
       {/* Connect Google Calendar Banner */}
       {calendarDisconnected && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Google Calendar is not connected. Connect in Settings to sync your events.
           </p>
           <Link
@@ -916,7 +916,7 @@ export default function CalendarPage() {
                   (day) => (
                     <div
                       key={day}
-                      className="text-center text-xs font-medium text-[var(--text-tertiary)] py-2"
+                      className="text-center text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] py-2"
                     >
                       {day}
                     </div>
@@ -942,7 +942,7 @@ export default function CalendarPage() {
                         className={`text-xs font-medium mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full ${
                           today
                             ? "bg-accent-500 text-white"
-                            : "text-[var(--text-secondary)]"
+                            : "text-[var(--text-secondary)] dark:text-[#a8a39c]"
                         }`}
                       >
                         {format(day, "d")}
@@ -956,7 +956,7 @@ export default function CalendarPage() {
                           />
                         ))}
                         {dayEvents.length > 3 && (
-                          <span className="text-[10px] text-[var(--text-tertiary)] px-1">
+                          <span className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76] px-1">
                             +{dayEvents.length - 3} more
                           </span>
                         )}
@@ -986,12 +986,12 @@ export default function CalendarPage() {
                     key={day.toISOString()}
                     className="text-center py-2 border-l border-[var(--border)]"
                   >
-                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase">
+                    <p className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76] uppercase">
                       {format(day, "EEE")}
                     </p>
                     <p
                       className={`text-sm font-semibold mt-0.5 ${
-                        isToday(day) ? "text-accent-500" : "text-[var(--text-primary)]"
+                        isToday(day) ? "text-accent-500" : "text-[var(--text-primary)] dark:text-[#ece9e4]"
                       }`}
                     >
                       {format(day, "d")}
@@ -1003,7 +1003,7 @@ export default function CalendarPage() {
               {weekDays.some((day) => getAllDayEventsForDay(day).length > 0) && (
                 <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-[var(--border)]">
                   <div className="flex items-center justify-end pr-2 py-1">
-                    <span className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">
+                    <span className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
                       All day
                     </span>
                   </div>
@@ -1041,7 +1041,7 @@ export default function CalendarPage() {
                           key={hour}
                           className="h-16 flex items-start justify-end pr-2"
                         >
-                          <span className="text-[10px] text-[var(--text-tertiary)] -translate-y-[7px]">
+                          <span className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76] -translate-y-[7px]">
                             {format(setHours(new Date(), hour), "h a")}
                           </span>
                         </div>
@@ -1103,7 +1103,7 @@ export default function CalendarPage() {
               {getAllDayEventsForDay(currentDate).length > 0 && (
                 <div className="grid grid-cols-[56px_1fr] border-b border-[var(--border)] mb-0">
                   <div className="flex items-center justify-end pr-2 py-1">
-                    <span className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">
+                    <span className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
                       All day
                     </span>
                   </div>
@@ -1135,7 +1135,7 @@ export default function CalendarPage() {
                           key={hour}
                           className="h-16 flex items-start justify-end pr-2"
                         >
-                          <span className="text-[10px] text-[var(--text-tertiary)] -translate-y-[7px]">
+                          <span className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76] -translate-y-[7px]">
                             {format(setHours(new Date(), hour), "h a")}
                           </span>
                         </div>
@@ -1178,7 +1178,7 @@ export default function CalendarPage() {
               {/* Day events list */}
               {getEventsForDay(currentDate).length === 0 && (
                 <div className="py-8 text-center">
-                  <p className="text-sm text-[var(--text-tertiary)]">
+                  <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                     No events scheduled for this day
                   </p>
                 </div>
@@ -1191,7 +1191,7 @@ export default function CalendarPage() {
       {/* Edit Event Modal */}
       <Modal open={showEditModal} onClose={() => { setShowEditModal(false); setSelectedEvent(null); }}>
         <div className="p-5">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-4">
             Edit Event
           </h2>
           <div className="space-y-4">
@@ -1217,7 +1217,7 @@ export default function CalendarPage() {
               onChange={(e) => setEditTime(e.target.value)}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--text-secondary)]">
+              <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Duration
               </label>
               <div className="flex flex-wrap gap-2">
@@ -1228,7 +1228,7 @@ export default function CalendarPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                       editDuration === opt.value
                         ? "bg-accent-500/10 text-accent-500 border-accent-500/30"
-                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] border-transparent hover:border-[var(--border)]"
+                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] border-transparent hover:border-[var(--border)]"
                     }`}
                   >
                     {opt.label}
@@ -1271,7 +1271,7 @@ export default function CalendarPage() {
       {/* Create Event Modal */}
       <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)}>
         <div className="p-5">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-4">
             New Event
           </h2>
           <div className="space-y-4">
@@ -1297,7 +1297,7 @@ export default function CalendarPage() {
               onChange={(e) => setNewTime(e.target.value)}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--text-secondary)]">
+              <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Duration
               </label>
               <div className="flex flex-wrap gap-2">
@@ -1308,7 +1308,7 @@ export default function CalendarPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                       newDuration === opt.value
                         ? "bg-accent-500/10 text-accent-500 border-accent-500/30"
-                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] border-transparent hover:border-[var(--border)]"
+                        : "bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] border-transparent hover:border-[var(--border)]"
                     }`}
                   >
                     {opt.label}

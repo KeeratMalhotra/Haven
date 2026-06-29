@@ -210,14 +210,14 @@ export default function QuickCapture() {
                   onKeyDown={handleInputKeyDown}
                   placeholder="Capture a task or event... e.g. call dentist tomorrow 3pm"
                   aria-label="Capture a task or event"
-                  className="h-14 w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none disabled:opacity-60"
+                  className="h-14 w-full bg-transparent text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] outline-none disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={() => void handleSubmit()}
                   disabled={submitting || value.trim().length === 0}
                   aria-label="Capture"
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] transition-colors duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-tertiary)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <CornerDownLeft size={13} strokeWidth={1.5} />
                   Add
@@ -225,10 +225,10 @@ export default function QuickCapture() {
               </div>
 
               <div className="flex items-center justify-between px-4 py-2">
-                <span className="text-xs text-[var(--text-tertiary)]">
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   Type naturally — Haven figures out the rest
                 </span>
-                <span className="text-xs text-[var(--text-tertiary)]">
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   <kbd className="rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px]">
                     Esc
                   </kbd>{" "}

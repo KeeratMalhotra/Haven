@@ -324,10 +324,10 @@ export default function DashboardPage() {
         className="space-y-6"
       >
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] md:text-3xl">
             {getGreeting()}
           </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-tertiary)] font-normal">
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-tertiary)] dark:text-[#847e76] font-normal">
             {format(new Date(), "EEEE, MMMM d")}
           </p>
         </div>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
         animate={{ opacity: 1 }}
         className="flex items-center justify-center h-full"
       >
-        <p className="text-sm text-[var(--text-tertiary)]">Redirecting to login...</p>
+        <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">Redirecting to login...</p>
       </motion.div>
     );
   }
@@ -465,7 +465,7 @@ export default function DashboardPage() {
             {/* Warm subheading */}
             <motion.p
               variants={reducedWelcomeItemVariants}
-              className="text-sm leading-relaxed text-[var(--text-secondary)]"
+              className="text-sm leading-relaxed text-[var(--text-secondary)] dark:text-[#a8a39c]"
             >
               Let&apos;s get your day started. Here are some things you can do:
             </motion.p>
@@ -493,10 +493,10 @@ export default function DashboardPage() {
                         />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                        <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                           {action.title}
                         </p>
-                        <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                        <p className="mt-0.5 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                           {action.description}
                         </p>
                       </div>
@@ -522,10 +522,10 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                    <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                       Talk to AI
                     </p>
-                    <p className="mt-0.5 text-xs text-[var(--text-tertiary)]">
+                    <p className="mt-0.5 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                       Ask your AI assistant for help with anything
                     </p>
                   </div>
@@ -542,7 +542,7 @@ export default function DashboardPage() {
                 <button
                   key={chip}
                   onClick={() => {/* Chat handled by layout FAB */}}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
                 >
                   {index === 0 && (
                     <Sparkles size={12} className="text-accent-500" />
@@ -558,16 +558,16 @@ export default function DashboardPage() {
                 <Card hover={false} className="p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                      <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                         Getting Started
                       </h3>
-                      <span className="text-xs text-[var(--text-tertiary)]">
+                      <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                         {checklistProgress}/{checklistItems.length}
                       </span>
                     </div>
                     <button
                       onClick={handleDismissChecklist}
-                      className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+                      className="rounded-md p-1 text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
                       aria-label="Dismiss checklist"
                     >
                       <X size={14} strokeWidth={1.5} />
@@ -600,14 +600,14 @@ export default function DashboardPage() {
                           <Square
                             size={16}
                             strokeWidth={1.5}
-                            className="flex-shrink-0 text-[var(--text-tertiary)]"
+                            className="flex-shrink-0 text-[var(--text-tertiary)] dark:text-[#847e76]"
                           />
                         )}
                         <span
                           className={`text-sm ${
                             item.done
-                              ? "text-[var(--text-tertiary)] line-through"
-                              : "text-[var(--text-primary)]"
+                              ? "text-[var(--text-tertiary)] dark:text-[#847e76] line-through"
+                              : "text-[var(--text-primary)] dark:text-[#ece9e4]"
                           }`}
                         >
                           {item.label}
@@ -651,14 +651,14 @@ export default function DashboardPage() {
                         />
                       </div>
                       <div>
-                        <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
+                        <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)] dark:text-[#ece9e4]">
                           {dataLoading ? (
                             <span className="inline-block h-7 w-6 animate-pulse rounded bg-[var(--surface-hover)]" />
                           ) : (
                             stat.count
                           )}
                         </p>
-                        <p className="text-xs text-[var(--text-tertiary)]">
+                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                           {stat.label}
                         </p>
                       </div>
@@ -682,17 +682,17 @@ export default function DashboardPage() {
                     <Zap size={20} strokeWidth={1.5} className="text-accent-500" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                    <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                       Plan My Day
                     </p>
-                    <p className="text-xs text-[var(--text-tertiary)]">
+                    <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                       Let AI optimize your schedule, block focus time, and organize tasks
                     </p>
                   </div>
                   <ArrowRight
                     size={16}
                     strokeWidth={1.5}
-                    className="text-[var(--text-tertiary)] transition-transform group-hover:translate-x-1"
+                    className="text-[var(--text-tertiary)] dark:text-[#847e76] transition-transform group-hover:translate-x-1"
                   />
                 </Card>
               </button>
@@ -701,7 +701,7 @@ export default function DashboardPage() {
             {/* AI Suggestions */}
             {suggestions.length > 0 && (
               <motion.section variants={reducedItemVariants}>
-                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] flex items-center gap-2">
+                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] flex items-center gap-2">
                   <Sparkles size={16} className="text-accent-500" />
                   AI Suggestions
                 </h2>
@@ -739,7 +739,7 @@ export default function DashboardPage() {
                           strokeWidth={1.5}
                           className={`flex-shrink-0 ${iconColor}`}
                         />
-                        <span className="text-sm text-[var(--text-primary)]">
+                        <span className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                           {suggestion.text}
                         </span>
                       </motion.div>
@@ -752,12 +752,12 @@ export default function DashboardPage() {
             {/* Today's Schedule */}
             <motion.section variants={reducedItemVariants}>
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
+                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Today&apos;s Schedule
                 </h2>
                 <Link
                   href="/dashboard/calendar"
-                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] transition-colors hover:text-accent-500"
+                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-accent-500"
                 >
                   View all{" "}
                   <ArrowRight
@@ -779,9 +779,9 @@ export default function DashboardPage() {
                     <Calendar
                       size={24}
                       strokeWidth={1.5}
-                      className="mx-auto mb-2 text-[var(--text-tertiary)]"
+                      className="mx-auto mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
-                    <p className="text-sm text-[var(--text-tertiary)]">
+                    <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                       No events scheduled for today
                     </p>
                   </Card>
@@ -799,10 +799,10 @@ export default function DashboardPage() {
                       >
                         <div className="h-9 w-[3px] rounded-full bg-gradient-to-b from-accent-400 to-accent-600" />
                         <div className="flex-1 min-w-0">
-                          <p className="truncate text-sm font-medium text-[var(--text-primary)]">
+                          <p className="truncate text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                             {event.summary}
                           </p>
-                          <p className="text-xs text-[var(--text-tertiary)]">
+                          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                             {safeFormat(event.start, "h:mm a")}
                             {safeFormat(event.end, "h:mm a") &&
                               ` - ${safeFormat(event.end, "h:mm a")}`}
@@ -818,12 +818,12 @@ export default function DashboardPage() {
             {/* Recent Tasks */}
             <motion.section variants={reducedItemVariants}>
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
+                <h2 className="text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Recent Tasks
                 </h2>
                 <Link
                   href="/dashboard/tasks"
-                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] transition-colors hover:text-accent-500"
+                  className="group flex items-center gap-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-accent-500"
                 >
                   View all{" "}
                   <ArrowRight
@@ -845,9 +845,9 @@ export default function DashboardPage() {
                     <Sparkles
                       size={24}
                       strokeWidth={1.5}
-                      className="mx-auto mb-2 text-[var(--text-tertiary)]"
+                      className="mx-auto mb-2 text-[var(--text-tertiary)] dark:text-[#847e76]"
                     />
-                    <p className="text-sm text-[var(--text-tertiary)]">
+                    <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                       No tasks yet. Ask the AI to create some!
                     </p>
                   </Card>
@@ -874,14 +874,14 @@ export default function DashboardPage() {
                           <p
                             className={`truncate text-sm ${
                               task.completed
-                                ? "text-[var(--text-tertiary)] line-through"
-                                : "text-[var(--text-primary)] font-medium"
+                                ? "text-[var(--text-tertiary)] dark:text-[#847e76] line-through"
+                                : "text-[var(--text-primary)] dark:text-[#ece9e4] font-medium"
                             }`}
                           >
                             {task.title}
                           </p>
                           {task.due && (
-                            <p className="text-xs text-[var(--text-tertiary)]">
+                            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                               {safeFormat(task.due, "MMM d") &&
                                 `Due ${safeFormat(task.due, "MMM d")}`}
                             </p>

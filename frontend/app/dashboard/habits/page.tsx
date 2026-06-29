@@ -179,7 +179,7 @@ function HabitCard({
         {/* Header row */}
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-[var(--text-primary)] truncate">
+            <h3 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
               {habit.name}
             </h3>
             <div className="mt-1 flex items-center gap-2">
@@ -187,7 +187,7 @@ function HabitCard({
                 {habit.frequency}
               </Badge>
               {habit.last_completed && (
-                <span className="text-xs text-[var(--text-tertiary)]">
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   {formatDistanceToNow(new Date(habit.last_completed), {
                     addSuffix: true,
                   })}
@@ -200,7 +200,7 @@ function HabitCard({
           <div className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+              className="rounded-md p-1 text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] hover:bg-[var(--surface-hover)]"
             >
               <MoreHorizontal size={16} strokeWidth={1.5} />
             </button>
@@ -231,10 +231,10 @@ function HabitCard({
         {/* Streak display */}
         <div className="flex items-center gap-2">
           <Flame size={18} strokeWidth={1.5} className="text-orange-400" />
-          <span className="text-xl font-bold text-[var(--text-primary)] tabular-nums">
+          <span className="text-xl font-bold text-[var(--text-primary)] dark:text-[#ece9e4] tabular-nums">
             {streakDisplay}
           </span>
-          <span className="text-sm text-[var(--text-tertiary)]">day streak</span>
+          <span className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">day streak</span>
         </div>
 
         {/* Heat Map */}
@@ -273,10 +273,10 @@ function HabitCard({
       {/* Delete confirmation modal */}
       <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             Delete Habit
           </h3>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">
+          <p className="mt-2 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Are you sure you want to delete &quot;{habit.name}&quot;? This action
             cannot be undone.
           </p>
@@ -374,7 +374,7 @@ export default function HabitsPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success-500/10">
               <Flame size={20} strokeWidth={1.5} className="text-success-500" />
             </div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
               Habits
             </h1>
           </div>
@@ -405,10 +405,10 @@ export default function HabitsPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10">
               <Flame size={28} strokeWidth={1.5} className="text-emerald-500" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
+            <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               No habits yet
             </h3>
-            <p className="mt-1 max-w-sm text-sm font-normal leading-relaxed text-[var(--text-tertiary)]">
+            <p className="mt-1 max-w-sm text-sm font-normal leading-relaxed text-[var(--text-tertiary)] dark:text-[#847e76]">
               Start building positive routines. Create your first habit and track
               your streaks over time.
             </p>
@@ -452,10 +452,10 @@ export default function HabitsPage() {
       {/* Create Habit Modal */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)}>
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
             New Habit
           </h3>
-          <p className="mt-1 text-sm text-[var(--text-tertiary)]">
+          <p className="mt-1 text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
             Create a new habit to track consistently.
           </p>
 
@@ -468,7 +468,7 @@ export default function HabitsPage() {
             />
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[var(--text-secondary)]">
+              <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                 Frequency
               </label>
               <div className="flex gap-2">
@@ -477,7 +477,7 @@ export default function HabitsPage() {
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     newFrequency === "daily"
                       ? "bg-accent-500 text-white"
-                      : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      : "bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
                   }`}
                 >
                   Daily
@@ -487,7 +487,7 @@ export default function HabitsPage() {
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     newFrequency === "weekly"
                       ? "bg-accent-500 text-white"
-                      : "bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      : "bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
                   }`}
                 >
                   Weekly

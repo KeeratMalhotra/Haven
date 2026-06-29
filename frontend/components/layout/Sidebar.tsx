@@ -99,7 +99,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
           ${
             active
               ? "bg-[var(--accent-subtle,rgba(99,102,241,0.08))] text-accent-500"
-              : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+              : "text-[var(--text-secondary)] dark:text-[#a8a39c] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
           }
         `}
       >
@@ -141,7 +141,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
         {/* Tooltip for collapsed state */}
         {collapsed && (
-          <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg bg-[var(--surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] opacity-0 shadow-lg ring-1 ring-[var(--border)] transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 -translate-x-1">
+          <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg bg-[var(--surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] dark:text-[#ece9e4] opacity-0 shadow-lg ring-1 ring-[var(--border)] transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 -translate-x-1">
             {item.label}
           </span>
         )}
@@ -165,7 +165,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="overflow-hidden whitespace-nowrap text-base font-semibold tracking-tight text-[var(--text-primary)]"
+              className="overflow-hidden whitespace-nowrap text-base font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]"
             >
               Haven
             </motion.span>
@@ -186,7 +186,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[var(--text-secondary)] transition-all duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[var(--text-secondary)] dark:text-[#a8a39c] transition-all duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
           aria-label="Toggle theme"
         >
           <motion.div
@@ -220,7 +220,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         {/* Collapse toggle (hidden on mobile) */}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[var(--text-secondary)] transition-all duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] md:flex"
+          className="hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[var(--text-secondary)] dark:text-[#a8a39c] transition-all duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] md:flex"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <motion.div
@@ -281,7 +281,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               <div className="absolute right-3 top-4">
                 <button
                   onClick={onMobileClose}
-                  className="rounded-lg p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                  className="rounded-lg p-1.5 text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
                   aria-label="Close menu"
                 >
                   <X size={20} />

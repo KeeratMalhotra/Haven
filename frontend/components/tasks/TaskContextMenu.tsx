@@ -275,13 +275,13 @@ function MenuItem({
       className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
         danger
           ? "text-danger-500 hover:bg-danger-500/10"
-          : "text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+          : "text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)]"
       }`}
     >
       {icon && <span className="flex-shrink-0 flex items-center">{icon}</span>}
       <span className="flex-1 text-left">{label}</span>
       {hasSubmenu && (
-        <ChevronRight size={12} className="text-[var(--text-tertiary)]" />
+        <ChevronRight size={12} className="text-[var(--text-tertiary)] dark:text-[#847e76]" />
       )}
     </button>
   );
@@ -301,7 +301,7 @@ function SubMenuHeader({
   return (
     <button
       onClick={onBack}
-      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)] transition-colors border-b border-[var(--border)] mb-1"
+      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[var(--text-tertiary)] dark:text-[#847e76] hover:bg-[var(--surface-hover)] transition-colors border-b border-[var(--border)] mb-1"
     >
       <ChevronRight size={10} className="rotate-180" />
       {label}

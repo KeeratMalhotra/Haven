@@ -29,8 +29,8 @@ export default function AISuggestionBanner({
       className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 px-4"
     >
       <div className="flex items-center gap-3">
-        <Sparkles className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
-        <p className="flex-1 text-sm text-[var(--text-secondary)]">
+        <Sparkles className="w-4 h-4 text-[var(--text-tertiary)] dark:text-[#847e76] shrink-0" />
+        <p className="flex-1 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
           {suggestion}
         </p>
         {actions && actions.length > 0 && (
@@ -39,7 +39,7 @@ export default function AISuggestionBanner({
               <button
                 key={i}
                 onClick={action.onClick}
-                className="text-xs text-[var(--text-primary)] hover:text-[var(--text-secondary)] transition-colors"
+                className="text-xs text-[var(--text-primary)] dark:text-[#ece9e4] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] transition-colors"
               >
                 {action.label}
               </button>
@@ -48,7 +48,7 @@ export default function AISuggestionBanner({
         )}
         <button
           onClick={onDismiss}
-          className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0"
+          className="text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] transition-colors shrink-0"
         >
           <X className="w-3.5 h-3.5" />
         </button>

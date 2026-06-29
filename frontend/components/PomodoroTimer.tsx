@@ -426,13 +426,13 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                   className="flex flex-col items-center gap-6 mt-4"
                 >
                   {taskName && (
-                    <p className="text-base text-[var(--text-tertiary)] font-medium">{taskName}</p>
+                    <p className="text-base text-[var(--text-tertiary)] dark:text-[#847e76] font-medium">{taskName}</p>
                   )}
                   <div className="text-center space-y-2">
-                    <p className="text-2xl font-medium text-[var(--text-primary)]">
+                    <p className="text-2xl font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                       Choose Focus Duration
                     </p>
-                    <p className="text-sm text-[var(--text-tertiary)]">
+                    <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                       Select how long you want to focus
                     </p>
                   </div>
@@ -441,12 +441,12 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                       <button
                         key={mins}
                         onClick={() => selectDuration(mins)}
-                        className="flex flex-col items-center justify-center gap-1 px-6 py-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] hover:border-amber-500/40 transition-all duration-200 group"
+                        className="flex flex-col items-center justify-center gap-1 px-6 py-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] dark:text-[#ece9e4] hover:bg-[var(--surface-hover)] hover:border-amber-500/40 transition-all duration-200 group"
                       >
                         <span className="text-2xl font-semibold group-hover:text-amber-500 transition-colors">
                           {mins}
                         </span>
-                        <span className="text-xs text-[var(--text-tertiary)] group-hover:text-amber-500/70 transition-colors">
+                        <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] group-hover:text-amber-500/70 transition-colors">
                           minutes
                         </span>
                       </button>
@@ -454,7 +454,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                   </div>
                   <button
                     onClick={onStop}
-                    className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition"
+                    className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[var(--text-tertiary)] dark:text-[#847e76] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] hover:bg-[var(--surface-hover)] transition"
                   >
                     <StopCircle size={16} strokeWidth={1.5} />
                     Cancel
@@ -478,7 +478,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.5 }}
-                      className="text-base text-[var(--text-tertiary)] font-medium"
+                      className="text-base text-[var(--text-tertiary)] dark:text-[#847e76] font-medium"
                     >
                       {taskName}
                     </motion.p>
@@ -500,7 +500,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                             : "bg-amber-400"
                       }`}
                     />
-                    <span className="text-sm font-medium text-[var(--text-secondary)]">
+                    <span className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                       {isFocus ? "Focus" : isBreak ? "Break" : "Session Complete"}
                     </span>
                   </motion.div>
@@ -549,10 +549,10 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                       transition={{ delay: 0.4 }}
                       className="flex flex-col items-center"
                     >
-                      <p className="text-6xl font-light tabular-nums tracking-wider text-[var(--text-primary)]">
+                      <p className="text-6xl font-light tabular-nums tracking-wider text-[var(--text-primary)] dark:text-[#ece9e4]">
                         {timeDisplay}
                       </p>
-                      <p className="mt-2 text-sm text-[var(--text-tertiary)]">
+                      <p className="mt-2 text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                         {paused
                           ? "Paused"
                           : isFocus
@@ -565,10 +565,10 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                   {/* Done state */}
                   {isDone && (
                     <div className="text-center space-y-2">
-                      <p className="text-2xl font-medium text-[var(--text-primary)]">
+                      <p className="text-2xl font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                         Break complete!
                       </p>
-                      <p className="text-sm text-[var(--text-tertiary)]">
+                      <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                         Ready for another session?
                       </p>
                     </div>
@@ -579,7 +579,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.6 }}
-                    className="text-sm text-[var(--text-tertiary)]"
+                    className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]"
                   >
                     <span className="font-medium text-amber-500 dark:text-amber-400">
                       {completedToday}
@@ -598,7 +598,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                       <>
                         <button
                           onClick={togglePause}
-                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-primary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)]"
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-primary)] dark:text-[#ece9e4] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)]"
                           aria-label={paused ? "Resume" : "Pause"}
                         >
                           {paused ? (
@@ -616,7 +616,7 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                         </button>
                         <button
                           onClick={openAIChat}
-                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-tertiary)] ring-1 ring-[var(--border)] transition hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface)]"
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] ring-1 ring-[var(--border)] transition hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface)]"
                           aria-label="Ask AI"
                           title="Ask AI"
                         >
@@ -635,14 +635,14 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
                         </button>
                         <button
                           onClick={onStop}
-                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[var(--surface-hover)] text-[var(--text-secondary)] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)] text-sm font-medium"
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] ring-1 ring-[var(--border)] transition hover:bg-[var(--surface)] text-sm font-medium"
                         >
                           <StopCircle size={16} strokeWidth={1.5} />
                           Done
                         </button>
                         <button
                           onClick={openAIChat}
-                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-tertiary)] ring-1 ring-[var(--border)] transition hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface)]"
+                          className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] ring-1 ring-[var(--border)] transition hover:text-amber-500 hover:ring-amber-500/30 hover:bg-[var(--surface)]"
                           aria-label="Ask AI"
                           title="Ask AI"
                         >

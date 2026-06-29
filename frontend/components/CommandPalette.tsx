@@ -203,16 +203,16 @@ export default function CommandPalette({
             >
               {/* Search input */}
               <div className="flex items-center gap-2 border-b border-[var(--border-subtle)] px-4">
-                <Search size={16} className="text-[var(--text-tertiary)]" />
+                <Search size={16} className="text-[var(--text-tertiary)] dark:text-[#847e76]" />
                 <Command.Input
                   placeholder="Type a command or search..."
-                  className="h-12 w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none"
+                  className="h-12 w-full bg-transparent text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] outline-none"
                 />
               </div>
 
               {/* Results list */}
               <Command.List className="max-h-80 overflow-y-auto p-2">
-                <Command.Empty className="px-4 py-8 text-center text-sm text-[var(--text-tertiary)]">
+                <Command.Empty className="px-4 py-8 text-center text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                   No results found.
                 </Command.Empty>
 
@@ -220,7 +220,7 @@ export default function CommandPalette({
                   <Command.Group
                     key={group}
                     heading={group}
-                    className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-[var(--text-tertiary)]"
+                    className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-[var(--text-tertiary)] dark:text-[#847e76]"
                   >
                     {items
                       .filter((a) => a.group === group)
@@ -229,9 +229,9 @@ export default function CommandPalette({
                           key={item.id}
                           value={`${item.label} ${item.keywords || ""}`}
                           onSelect={item.action}
-                          className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[var(--text-secondary)] transition data-[selected=true]:bg-[var(--surface-hover)] data-[selected=true]:text-[var(--text-primary)]"
+                          className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] transition data-[selected=true]:bg-[var(--surface-hover)] data-[selected=true]:text-[var(--text-primary)] dark:text-[#ece9e4]"
                         >
-                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-secondary)] dark:text-[#a8a39c]">
                             {item.icon}
                           </span>
                           {item.label}
@@ -243,10 +243,10 @@ export default function CommandPalette({
 
               {/* Footer hint */}
               <div className="flex items-center justify-between border-t border-[var(--border-subtle)] px-4 py-2">
-                <span className="text-xs text-[var(--text-tertiary)]">
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   Navigate with arrow keys
                 </span>
-                <span className="text-xs text-[var(--text-tertiary)]">
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   <kbd className="rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px]">
                     Esc
                   </kbd>{" "}

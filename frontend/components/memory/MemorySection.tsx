@@ -40,7 +40,7 @@ const CATEGORY_STYLES: Record<string, string> = {
 };
 
 function categoryStyle(category: string): string {
-  return CATEGORY_STYLES[category] ?? "text-[var(--text-secondary)] bg-[var(--surface-hover)]";
+  return CATEGORY_STYLES[category] ?? "text-[var(--text-secondary)] dark:text-[#a8a39c] bg-[var(--surface-hover)]";
 }
 
 interface StatChipProps {
@@ -51,8 +51,8 @@ interface StatChipProps {
 function StatChip({ label, value }: StatChipProps) {
   return (
     <div className="rounded-lg bg-[var(--bg-tertiary)] px-3 py-2">
-      <p className="text-base font-semibold text-[var(--text-primary)]">{value}</p>
-      <p className="text-xs text-[var(--text-tertiary)]">{label}</p>
+      <p className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">{value}</p>
+      <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">{label}</p>
     </div>
   );
 }
@@ -189,10 +189,10 @@ export function MemorySection({ authToken }: { authToken: string }) {
             <Brain size={18} strokeWidth={1.5} className="text-accent-500" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               What Haven knows about you
             </h2>
-            <p className="text-xs text-[var(--text-tertiary)] leading-relaxed">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
               Learned from how you actually work. You&apos;re always in control.
             </p>
           </div>
@@ -200,7 +200,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
         <button
           onClick={handleRefresh}
           disabled={refreshing || loading}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] transition-colors disabled:opacity-50"
         >
           <RefreshCw
             size={13}
@@ -218,16 +218,16 @@ export function MemorySection({ authToken }: { authToken: string }) {
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--text-tertiary)] py-6 text-center">
+        <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] py-6 text-center">
           Loading what Haven has learned...
         </p>
       ) : !hasAnything ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
-          <Sparkles size={22} strokeWidth={1.5} className="text-[var(--text-tertiary)]" />
-          <p className="text-sm text-[var(--text-secondary)]">
+          <Sparkles size={22} strokeWidth={1.5} className="text-[var(--text-tertiary)] dark:text-[#847e76]" />
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             Haven hasn&apos;t learned anything about you yet.
           </p>
-          <p className="text-xs text-[var(--text-tertiary)] max-w-sm">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] max-w-sm">
             As you complete tasks, run focus sessions, and reschedule events,
             Haven builds a private picture of how you work — and uses it to
             plan smarter days.
@@ -239,8 +239,8 @@ export function MemorySection({ authToken }: { authToken: string }) {
           {stats && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <BarChart3 size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                <BarChart3 size={14} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Your numbers
                 </h3>
               </div>
@@ -270,7 +270,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Clock size={14} strokeWidth={1.5} className="text-emerald-500" />
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                       Most productive
                     </h3>
                   </div>
@@ -290,7 +290,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp size={14} strokeWidth={1.5} className="text-amber-500 rotate-180" />
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                       Tends to avoid
                     </h3>
                   </div>
@@ -313,8 +313,8 @@ export function MemorySection({ authToken }: { authToken: string }) {
           {memory!.insights.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Lightbulb size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                <Lightbulb size={14} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Insights
                 </h3>
               </div>
@@ -337,13 +337,13 @@ export function MemorySection({ authToken }: { authToken: string }) {
                         >
                           {insight.category}
                         </span>
-                        <p className="text-sm text-[var(--text-primary)] leading-snug">
+                        <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4] leading-snug">
                           {insight.text}
                         </p>
                       </div>
                       <button
                         onClick={() => handleForgetInsight(insight)}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
                         aria-label="Forget this insight"
                       >
                         <X size={12} strokeWidth={1.5} />
@@ -360,8 +360,8 @@ export function MemorySection({ authToken }: { authToken: string }) {
           {memory!.task_patterns.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Repeat size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                <Repeat size={14} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Patterns
                 </h3>
               </div>
@@ -376,12 +376,12 @@ export function MemorySection({ authToken }: { authToken: string }) {
                       exit={{ opacity: 0, x: -8 }}
                       className="group flex items-start justify-between gap-3 rounded-lg bg-[var(--bg-tertiary)] px-3 py-2.5"
                     >
-                      <p className="text-sm text-[var(--text-primary)] leading-snug">
+                      <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4] leading-snug">
                         {pattern}
                       </p>
                       <button
                         onClick={() => handleForgetPattern(pattern)}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
                         aria-label="Forget this pattern"
                       >
                         <X size={12} strokeWidth={1.5} />
@@ -398,8 +398,8 @@ export function MemorySection({ authToken }: { authToken: string }) {
           {Object.keys(memory!.learned_preferences || {}).length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                <Sparkles size={14} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Preferences
                 </h3>
               </div>
@@ -409,15 +409,15 @@ export function MemorySection({ authToken }: { authToken: string }) {
                     key={key}
                     className="group flex items-center justify-between gap-3 rounded-lg bg-[var(--bg-tertiary)] px-3 py-2.5"
                   >
-                    <p className="text-sm text-[var(--text-primary)]">
-                      <span className="text-[var(--text-secondary)]">
+                    <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
+                      <span className="text-[var(--text-secondary)] dark:text-[#a8a39c]">
                         {key.replace(/_/g, " ")}:
                       </span>{" "}
                       {String(value)}
                     </p>
                     <button
                       onClick={() => handleForgetPreference(key)}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                      className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
                       aria-label="Forget this preference"
                     >
                       <X size={12} strokeWidth={1.5} />
@@ -433,8 +433,8 @@ export function MemorySection({ authToken }: { authToken: string }) {
           {Object.keys(memory!.vocabulary || {}).length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <BookOpen size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                <BookOpen size={14} strokeWidth={1.5} className="text-[var(--text-secondary)] dark:text-[#a8a39c]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Vocabulary
                 </h3>
               </div>
@@ -444,13 +444,13 @@ export function MemorySection({ authToken }: { authToken: string }) {
                     key={key}
                     className="group flex items-center justify-between gap-3 rounded-lg bg-[var(--bg-tertiary)] px-3 py-2.5"
                   >
-                    <p className="text-sm text-[var(--text-primary)]">
+                    <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
                       <span className="font-medium">&ldquo;{key}&rdquo;</span>{" "}
-                      <span className="text-[var(--text-tertiary)]">means</span> {value}
+                      <span className="text-[var(--text-tertiary)] dark:text-[#847e76]">means</span> {value}
                     </p>
                     <button
                       onClick={() => handleForgetVocab(key)}
-                      className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                      className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--text-tertiary)] dark:text-[#847e76] opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 transition-all"
                       aria-label="Forget this alias"
                     >
                       <X size={12} strokeWidth={1.5} />
@@ -464,7 +464,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
 
           {/* Footer: observation count + clear all */}
           <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
-            <p className="text-xs text-[var(--text-tertiary)]">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
               {memory!.observation_count} signal
               {memory!.observation_count === 1 ? "" : "s"} learned from
             </p>
@@ -478,7 +478,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--text-secondary)]">Are you sure?</span>
+                <span className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c]">Are you sure?</span>
                 <button
                   onClick={handleClearAll}
                   disabled={clearing}
@@ -488,7 +488,7 @@ export function MemorySection({ authToken }: { authToken: string }) {
                 </button>
                 <button
                   onClick={() => setConfirmClear(false)}
-                  className="rounded-lg bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                  className="rounded-lg bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] transition-colors"
                 >
                   Cancel
                 </button>

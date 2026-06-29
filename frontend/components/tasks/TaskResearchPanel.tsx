@@ -33,7 +33,7 @@ function ResearchCard({ result }: { result: ResearchResult }) {
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-start gap-2 p-3 text-left hover:bg-[var(--surface-hover)] transition-colors"
       >
-        <span className="mt-0.5 flex-shrink-0 text-[var(--text-tertiary)]">
+        <span className="mt-0.5 flex-shrink-0 text-[var(--text-tertiary)] dark:text-[#847e76]">
           {expanded ? (
             <ChevronDown size={14} strokeWidth={1.5} />
           ) : (
@@ -41,14 +41,14 @@ function ResearchCard({ result }: { result: ResearchResult }) {
           )}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[var(--text-primary)] line-clamp-2">
+          <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] line-clamp-2">
             {result.title}
           </p>
-          <p className="text-xs text-[var(--text-tertiary)] mt-0.5 line-clamp-1">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5 line-clamp-1">
             {result.relevance_snippet}
           </p>
         </div>
-        <Globe size={14} strokeWidth={1.5} className="text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
+        <Globe size={14} strokeWidth={1.5} className="text-[var(--text-tertiary)] dark:text-[#847e76] flex-shrink-0 mt-0.5" />
       </button>
       <AnimatePresence>
         {expanded && (
@@ -60,7 +60,7 @@ function ResearchCard({ result }: { result: ResearchResult }) {
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-0 pl-8 space-y-2">
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] leading-relaxed">
                 {result.summary}
               </p>
               {result.source_url && (
@@ -73,7 +73,7 @@ function ResearchCard({ result }: { result: ResearchResult }) {
                 >
                   <ExternalLink size={11} strokeWidth={1.5} />
                   <span className="truncate max-w-[200px]">{result.source_url}</span>
-                  <span className="text-[var(--text-tertiary)] ml-1">(AI-suggested)</span>
+                  <span className="text-[var(--text-tertiary)] dark:text-[#847e76] ml-1">(AI-suggested)</span>
                 </a>
               )}
             </div>
@@ -94,7 +94,7 @@ export default function TaskResearchPanel({
     return (
       <div className="flex items-center gap-2 py-4 justify-center">
         <Loader2 size={16} strokeWidth={1.5} className="animate-spin text-accent-500" />
-        <span className="text-sm text-[var(--text-tertiary)]">Researching...</span>
+        <span className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">Researching...</span>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function TaskResearchPanel({
   if (results.length === 0) {
     return (
       <div className="py-4 text-center">
-        <p className="text-sm text-[var(--text-tertiary)]">
+        <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
           No research results yet. Click &quot;Research&quot; to find relevant resources.
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function TaskResearchPanel({
     <div className="space-y-2">
       {disclaimer && (
         <div className="py-2 px-3 rounded-lg bg-warning-500/5 border border-warning-500/20 mb-2">
-          <p className="text-xs text-[var(--text-tertiary)] italic">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] italic">
             {disclaimer}
           </p>
         </div>

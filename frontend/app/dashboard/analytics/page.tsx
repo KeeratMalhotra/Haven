@@ -312,10 +312,10 @@ function RingChart({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-[var(--text-primary)]">
+        <span className="text-2xl font-bold text-[var(--text-primary)] dark:text-[#ece9e4]">
           {Math.round(percentage)}%
         </span>
-        <span className="text-[10px] text-[var(--text-tertiary)]">
+        <span className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76]">
           completed
         </span>
       </div>
@@ -330,7 +330,7 @@ function ProductivityScore({ score }: { score: number }) {
       ? "text-success-500"
       : clampedScore >= 50
         ? "text-warning-500"
-        : "text-[var(--text-tertiary)]";
+        : "text-[var(--text-tertiary)] dark:text-[#847e76]";
   const bgColor =
     clampedScore >= 75
       ? "bg-success-500/10"
@@ -348,10 +348,10 @@ function ProductivityScore({ score }: { score: number }) {
         </span>
       </div>
       <div className="text-center">
-        <p className="text-sm font-medium text-[var(--text-primary)]">
+        <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
           Productivity Score
         </p>
-        <p className="text-xs text-[var(--text-tertiary)]">
+        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
           {clampedScore >= 75
             ? "Excellent!"
             : clampedScore >= 50
@@ -389,7 +389,7 @@ function TimePeriodSelector({
             ${
               value === opt.value
                 ? "bg-accent-500 text-white shadow-sm"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]"
+                : "text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] hover:bg-[var(--surface-hover)]"
             }
           `}
         >
@@ -611,7 +611,7 @@ export default function AnalyticsPage() {
         className="space-y-6"
       >
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] md:text-3xl">
             Analytics
           </h1>
           <TimePeriodSelector value={period} onChange={setPeriod} />
@@ -621,7 +621,7 @@ export default function AnalyticsPage() {
             <BarChart3
               size={24}
               strokeWidth={1.5}
-              className="text-[var(--text-tertiary)]"
+              className="text-[var(--text-tertiary)] dark:text-[#847e76]"
             />
           }
           title="No data yet"
@@ -643,7 +643,7 @@ export default function AnalyticsPage() {
         variants={reducedItemVariants}
         className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] md:text-3xl">
           Analytics
         </h1>
         <TimePeriodSelector value={period} onChange={setPeriod} />
@@ -655,10 +655,10 @@ export default function AnalyticsPage() {
           variants={reducedItemVariants}
           className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-3 text-center"
         >
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             No activity in this period
           </p>
-          <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+          <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5">
             Try selecting a different time range to see your data.
           </p>
         </motion.div>
@@ -678,10 +678,10 @@ export default function AnalyticsPage() {
                 />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Tasks Completed
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)]">Per day</p>
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">Per day</p>
               </div>
             </div>
             <div className="h-36">
@@ -691,7 +691,7 @@ export default function AnalyticsPage() {
                 maxValue={maxTasksPerDay}
               />
             </div>
-            <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+            <p className="mt-2 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
               Total: {tasksPerDay.reduce((a, b) => a + b, 0)} tasks
             </p>
           </Card>
@@ -709,10 +709,10 @@ export default function AnalyticsPage() {
                 />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Focus Hours
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   Time in Pomodoro
                 </p>
               </div>
@@ -724,7 +724,7 @@ export default function AnalyticsPage() {
                 maxValue={maxFocusHours}
               />
             </div>
-            <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+            <p className="mt-2 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
               Total:{" "}
               {Math.round(
                 focusHoursPerDay.reduce((a, b) => a + b, 0) * 10
@@ -746,10 +746,10 @@ export default function AnalyticsPage() {
                 />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Habit Completion
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   Overall rate
                 </p>
               </div>
@@ -772,10 +772,10 @@ export default function AnalyticsPage() {
                 />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Productivity
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)]">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                   Overall score
                 </p>
               </div>

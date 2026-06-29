@@ -51,7 +51,7 @@ export function Toggle({
         />
       </button>
       {label && (
-        <span className="text-sm text-[var(--text-secondary)]">{label}</span>
+        <span className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">{label}</span>
       )}
     </label>
   );

@@ -213,17 +213,17 @@ export default function AutoPilotPanel({
               <Zap size={20} strokeWidth={1.5} className="text-accent-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                 Auto-Pilot
               </h2>
-              <p className="text-xs text-[var(--text-tertiary)]">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                 AI-powered day planning
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="rounded-lg p-2 text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="rounded-lg p-2 text-[var(--text-tertiary)] dark:text-[#847e76] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <X size={18} strokeWidth={1.5} />
           </button>
@@ -248,10 +248,10 @@ export default function AutoPilotPanel({
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500/10 mb-3">
               <Eye size={16} strokeWidth={1.5} className="text-accent-500" />
             </div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               Suggest Mode
             </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1 leading-relaxed">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mt-1 leading-relaxed">
               AI plans your day and asks for your approval before making changes
             </p>
           </button>
@@ -273,10 +273,10 @@ export default function AutoPilotPanel({
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-500/10 mb-3">
               <Zap size={16} strokeWidth={1.5} className="text-warning-500" />
             </div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               Auto Mode
             </p>
-            <p className="text-xs text-[var(--text-tertiary)] mt-1 leading-relaxed">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mt-1 leading-relaxed">
               AI automatically plans and executes changes
             </p>
           </button>
@@ -326,7 +326,7 @@ export default function AutoPilotPanel({
             animate={{ opacity: 1 }}
             className="space-y-4"
           >
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] leading-relaxed">
               Let AI analyze your tasks, events, and priorities to create an
               optimal schedule for today.
             </p>
@@ -354,10 +354,10 @@ export default function AutoPilotPanel({
                 className="text-danger-500 flex-shrink-0 mt-0.5"
               />
               <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">
+                <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                   Full Auto Mode Warning
                 </p>
-                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                <p className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] mt-1 leading-relaxed">
                   This may change your current schedules in the calendar. AI will
                   plan and immediately execute changes to your calendar and tasks
                   without asking for confirmation.
@@ -367,7 +367,7 @@ export default function AutoPilotPanel({
             <div className="flex gap-3">
               <button
                 onClick={() => setPhase("idle")}
-                className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
+                className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:bg-[var(--surface-hover)] transition-colors"
               >
                 Cancel
               </button>
@@ -394,7 +394,7 @@ export default function AutoPilotPanel({
               strokeWidth={1.5}
               className="text-accent-500 animate-spin"
             />
-            <p className="mt-4 text-sm text-[var(--text-secondary)]">
+            <p className="mt-4 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
               Analyzing your day and generating plan...
             </p>
           </motion.div>
@@ -412,7 +412,7 @@ export default function AutoPilotPanel({
               strokeWidth={1.5}
               className="text-success-500 animate-spin"
             />
-            <p className="mt-4 text-sm text-[var(--text-secondary)]">
+            <p className="mt-4 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
               Executing plan changes...
             </p>
           </motion.div>
@@ -427,7 +427,7 @@ export default function AutoPilotPanel({
           >
             {/* Plan summary */}
             <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
-              <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4] leading-relaxed">
                 {plan.summary}
               </p>
             </div>
@@ -454,7 +454,7 @@ export default function AutoPilotPanel({
                     >
                       <Icon size={16} strokeWidth={1.5} className={color} />
                     </div>
-                    <p className="flex-1 text-sm text-[var(--text-primary)] truncate">
+                    <p className="flex-1 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
                       {getActionLabel(action)}
                     </p>
                     <Toggle
@@ -470,7 +470,7 @@ export default function AutoPilotPanel({
             <div className="flex gap-3 pt-2">
               <button
                 onClick={resetState}
-                className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
+                className="flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:bg-[var(--surface-hover)] transition-colors"
               >
                 Reject
               </button>
@@ -498,7 +498,7 @@ export default function AutoPilotPanel({
                 <p className="text-2xl font-bold text-success-500">
                   {executeResult.executed}
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mt-1">
                   Executed
                 </p>
               </div>
@@ -507,7 +507,7 @@ export default function AutoPilotPanel({
                   <p className="text-2xl font-bold text-danger-500">
                     {executeResult.failed}
                   </p>
-                  <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                  <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] mt-1">
                     Failed
                   </p>
                 </div>
@@ -517,7 +517,7 @@ export default function AutoPilotPanel({
             {/* Plan summary */}
             {plan && (
               <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
-                <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4] leading-relaxed">
                   {plan.summary}
                 </p>
               </div>
@@ -545,7 +545,7 @@ export default function AutoPilotPanel({
                         className="text-danger-500 flex-shrink-0"
                       />
                     )}
-                    <p className="text-xs text-[var(--text-secondary)] truncate">
+                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] truncate">
                       {change.summary || change.task_title || change.action}
                       {change.start_time && ` at ${change.start_time}`}
                       {change.reason && ` - ${change.reason}`}

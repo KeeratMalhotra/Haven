@@ -47,18 +47,18 @@ export default function GreetingHero({ name }: { name?: string }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15, duration: 0.5 }}
-        className="mb-5 font-mono text-xs uppercase tracking-[0.35em] text-[var(--text-tertiary)]"
+        className="mb-5 font-mono text-xs uppercase tracking-[0.35em] text-[var(--text-tertiary)] dark:text-[#847e76]"
       >
         {firstName ? `${timeGreeting}, ${firstName}` : timeGreeting}
       </motion.p>
-      <h1 className="text-[var(--text-primary)] max-w-3xl text-balance text-2xl font-semibold leading-[1.12] tracking-tight sm:text-3xl md:text-4xl">
+      <h1 className="text-[var(--text-primary)] dark:text-[#ece9e4] max-w-3xl text-balance text-2xl font-semibold leading-[1.12] tracking-tight sm:text-3xl md:text-4xl">
         {greeting}
       </h1>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.25, duration: 0.5 }}
-        className="mt-6 max-w-md text-base text-[var(--text-tertiary)]"
+        className="mt-6 max-w-md text-base text-[var(--text-tertiary)] dark:text-[#847e76]"
       >
         Ask anything, or open a panel to see your day take shape.
       </motion.p>

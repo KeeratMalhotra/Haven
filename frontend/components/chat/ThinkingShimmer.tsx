@@ -34,11 +34,11 @@ export default function ThinkingShimmer({ label }: { label?: string }) {
 
       {/* Status label */}
       {label ? (
-        <span className="truncate text-sm font-medium tracking-tight text-[var(--text-secondary)]">
+        <span className="truncate text-sm font-medium tracking-tight text-[var(--text-secondary)] dark:text-[#a8a39c]">
           {label}
         </span>
       ) : (
-        <span className="text-sm font-medium tracking-tight text-[var(--text-secondary)]">
+        <span className="text-sm font-medium tracking-tight text-[var(--text-secondary)] dark:text-[#a8a39c]">
           One moment
         </span>
       )}

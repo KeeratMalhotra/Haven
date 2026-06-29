@@ -34,10 +34,10 @@ export function EmptyState({
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface-hover)] border border-[var(--border)] mb-5 shadow-xs">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1.5">
+      <h3 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-1.5">
         {title}
       </h3>
-      <p className="text-sm text-[var(--text-tertiary)] max-w-xs mb-6 leading-relaxed">
+      <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] max-w-xs mb-6 leading-relaxed">
         {description}
       </p>
       {action && <div>{action}</div>}

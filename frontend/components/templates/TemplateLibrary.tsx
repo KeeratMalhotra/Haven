@@ -114,7 +114,7 @@ export function TemplateLibrary({
       case "low":
         return "text-indigo-500";
       default:
-        return "text-[var(--text-tertiary)]";
+        return "text-[var(--text-tertiary)] dark:text-[#847e76]";
     }
   };
 
@@ -126,20 +126,20 @@ export function TemplateLibrary({
           {view !== "grid" && view !== "success" && (
             <button
               onClick={handleBack}
-              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+              className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
             >
               <ArrowLeft size={16} />
             </button>
           )}
           <div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
               {view === "grid" && "Template Library"}
               {view === "preview" && selectedTemplate?.title}
               {view === "custom" && "Create Custom Template"}
               {view === "success" && "Tasks Created!"}
             </h2>
             {view === "grid" && (
-              <p className="text-sm text-[var(--text-tertiary)] mt-0.5">
+              <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5">
                 Pre-built workflows to get you started fast
               </p>
             )}
@@ -147,7 +147,7 @@ export function TemplateLibrary({
         </div>
         <button
           onClick={onClose}
-          className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
         >
           <X size={16} />
         </button>
@@ -179,10 +179,10 @@ export function TemplateLibrary({
                         <Icon size={18} className="text-accent-500" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-0.5">
+                        <h3 className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] mb-0.5">
                           {template.title}
                         </h3>
-                        <p className="text-xs text-[var(--text-tertiary)] line-clamp-2 mb-2">
+                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] line-clamp-2 mb-2">
                           {template.description}
                         </p>
                         <div className="flex items-center gap-2">
@@ -208,10 +208,10 @@ export function TemplateLibrary({
                   <Sparkles size={18} className="text-accent-500" />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-sm font-medium text-[var(--text-primary)]">
+                  <h3 className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
                     Create Custom Template
                   </h3>
-                  <p className="text-xs text-[var(--text-tertiary)]">
+                  <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                     Describe your goal and AI will generate a task plan
                   </p>
                 </div>
@@ -229,7 +229,7 @@ export function TemplateLibrary({
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
+            <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] mb-4">
               {selectedTemplate.description}
             </p>
 
@@ -245,7 +245,7 @@ export function TemplateLibrary({
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                      <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
                         {task.title}
                       </p>
                       <span
@@ -254,11 +254,11 @@ export function TemplateLibrary({
                         {task.priority !== "none" && task.priority}
                       </span>
                     </div>
-                    <p className="text-xs text-[var(--text-tertiary)] line-clamp-1">
+                    <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] line-clamp-1">
                       {task.notes}
                     </p>
                     {task.due_days_from_now > 0 && (
-                      <span className="text-[10px] text-[var(--text-tertiary)] mt-1 inline-block">
+                      <span className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76] mt-1 inline-block">
                         Due in {task.due_days_from_now} day{task.due_days_from_now !== 1 ? "s" : ""}
                       </span>
                     )}
@@ -294,13 +294,13 @@ export function TemplateLibrary({
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
+            <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] mb-4">
               Describe your goal and AI will create a step-by-step task plan for you.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">
+                <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] mb-1.5 block">
                   What do you want to accomplish?
                 </label>
                 <textarea
@@ -314,7 +314,7 @@ export function TemplateLibrary({
                   }}
                   placeholder="e.g., Plan a wedding, Learn a new programming language, Start a podcast..."
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder:text-[var(--text-tertiary)] dark:text-[#847e76] focus:outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 resize-none"
                 />
               </div>
 
@@ -366,10 +366,10 @@ export function TemplateLibrary({
             >
               <Check size={24} className="text-success-500" />
             </motion.div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
+            <h3 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] mb-1">
               {tasksCreatedCount} tasks created!
             </h3>
-            <p className="text-sm text-[var(--text-tertiary)] mb-5">
+            <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] mb-5">
               Your template has been applied to your task list.
             </p>
             <Button size="sm" onClick={onClose}>

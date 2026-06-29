@@ -69,15 +69,15 @@ function NotificationRow({
         />
         <div className="min-w-0 flex-1">
           {title && (
-            <p className="text-[13px] font-medium text-[var(--text-primary)]">
+            <p className="text-[13px] font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
               {title}
             </p>
           )}
-          <p className="mt-0.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+          <p className="mt-0.5 text-[13px] leading-relaxed text-[var(--text-secondary)] dark:text-[#a8a39c]">
             {message}
           </p>
           <div className="mt-1.5 flex items-center gap-3">
-            <span className="text-[11px] text-[var(--text-tertiary)]">
+            <span className="text-[11px] text-[var(--text-tertiary)] dark:text-[#847e76]">
               {relativeTime(created_at)}
             </span>
             {action && action.kind !== "none" && (
@@ -92,7 +92,7 @@ function NotificationRow({
             {!read && (
               <button
                 onClick={() => onMarkRead(notification.id)}
-                className="text-[12px] text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
+                className="text-[12px] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
               >
                 Mark read
               </button>
@@ -102,7 +102,7 @@ function NotificationRow({
         {/* Delete */}
         <button
           onClick={() => onRemove(notification.id)}
-          className="shrink-0 rounded-md p-1 text-[var(--text-tertiary)] opacity-0 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] group-hover:opacity-100"
+          className="shrink-0 rounded-md p-1 text-[var(--text-tertiary)] dark:text-[#847e76] opacity-0 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] group-hover:opacity-100"
           aria-label="Remove notification"
         >
           <X size={13} strokeWidth={1.5} />
@@ -213,7 +213,7 @@ export default function NotificationBell() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className={`relative flex items-center justify-center rounded-lg p-2 border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-hover)] ${
-          open ? "text-accent-500" : "text-[var(--text-secondary)]"
+          open ? "text-accent-500" : "text-[var(--text-secondary)] dark:text-[#a8a39c]"
         }`}
         aria-label={
           unreadCount > 0
@@ -255,7 +255,7 @@ export default function NotificationBell() {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                       Notifications
                     </h3>
                     {unreadCount > 0 && (
@@ -269,7 +269,7 @@ export default function NotificationBell() {
                       <button
                         onClick={markAllRead}
                         title="Mark all read"
-                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
                       >
                         <CheckCheck size={13} strokeWidth={1.5} />
                       </button>
@@ -278,7 +278,7 @@ export default function NotificationBell() {
                       <button
                         onClick={clearAll}
                         title="Clear all"
-                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
                       >
                         <Trash2 size={13} strokeWidth={1.5} />
                       </button>
@@ -294,13 +294,13 @@ export default function NotificationBell() {
                         <Check
                           size={18}
                           strokeWidth={1.5}
-                          className="text-[var(--text-tertiary)]"
+                          className="text-[var(--text-tertiary)] dark:text-[#847e76]"
                         />
                       </div>
-                      <p className="text-sm text-[var(--text-secondary)]">
+                      <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
                         You&apos;re all caught up
                       </p>
-                      <p className="text-xs text-[var(--text-tertiary)]">
+                      <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                         I&apos;ll let you know if anything needs you.
                       </p>
                     </div>
@@ -308,7 +308,7 @@ export default function NotificationBell() {
                     <div className="space-y-3">
                       {todays.length > 0 && (
                         <div className="space-y-1.5">
-                          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+                          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
                             Today
                           </p>
                           <AnimatePresence mode="popLayout">
@@ -326,7 +326,7 @@ export default function NotificationBell() {
                       )}
                       {earlier.length > 0 && (
                         <div className="space-y-1.5">
-                          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+                          <p className="px-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
                             Earlier
                           </p>
                           <AnimatePresence mode="popLayout">

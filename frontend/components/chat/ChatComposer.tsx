@@ -75,7 +75,7 @@ export default function ChatComposer({
           }}
           onKeyDown={handleKeyDown}
           placeholder="Message Haven"
-          className="max-h-[200px] flex-1 resize-none self-center bg-transparent py-2.5 text-[15px] leading-relaxed text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none scroll-thin"
+          className="max-h-[200px] flex-1 resize-none self-center bg-transparent py-2.5 text-[15px] leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none scroll-thin"
         />
 
         <div className="flex items-center gap-1.5">
@@ -84,7 +84,7 @@ export default function ChatComposer({
               type="button"
               onClick={onVoice}
               aria-label="Start voice conversation"
-              className="grid h-10 w-10 place-items-center rounded-xl text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-accent-500"
+              className="grid h-10 w-10 place-items-center rounded-xl text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:bg-[var(--surface-hover)] hover:text-accent-500"
             >
               <AudioLines size={19} strokeWidth={1.8} />
             </button>
@@ -100,7 +100,7 @@ export default function ChatComposer({
           </button>
         </div>
       </div>
-      <p className="mt-2.5 text-center font-mono text-[10px] tracking-wide text-[var(--text-tertiary)]">
+      <p className="mt-2.5 text-center font-mono text-[10px] tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
         Haven can make mistakes. Press the wave to talk.
       </p>
     </motion.div>

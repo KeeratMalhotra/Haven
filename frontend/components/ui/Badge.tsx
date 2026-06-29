@@ -12,7 +12,7 @@ interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, string> = {
   default:
-    "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border)]",
+    "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] dark:text-[#a8a39c] border-[var(--border)]",
   success:
     "bg-success-50 text-success-700 border-success-200 dark:bg-success-500/10 dark:text-success-400 dark:border-success-500/20",
   warning:

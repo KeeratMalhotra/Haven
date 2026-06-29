@@ -492,7 +492,7 @@ export default function OnboardingPage() {
         <button
           onClick={handleSkip}
           disabled={submitting}
-          className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-[var(--text-secondary)] dark:text-[#a8a39c] disabled:opacity-50"
+          className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c] disabled:opacity-50"
         >
           Skip for now
         </button>

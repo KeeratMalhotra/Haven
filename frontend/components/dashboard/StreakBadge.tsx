@@ -31,7 +31,7 @@ export default function StreakBadge({ streak, longestStreak }: StreakBadgeProps)
       >
         <Flame size={16} strokeWidth={1.5} className="text-warning-500" />
       </motion.span>
-      <span className="text-sm font-medium text-[var(--text-primary)]">
+      <span className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
         You&apos;ve planned{" "}
         <span className="font-semibold text-warning-500">{streak}</span>{" "}
         {streak === 1 ? "day" : "days"} straight

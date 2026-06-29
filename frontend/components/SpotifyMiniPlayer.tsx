@@ -293,7 +293,7 @@ export default function SpotifyMiniPlayer() {
             >
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-medium text-[var(--text-secondary)]">
+                <span className="text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Now Playing
                 </span>
               </div>
@@ -306,7 +306,7 @@ export default function SpotifyMiniPlayer() {
                 <X
                   size={14}
                   strokeWidth={1.5}
-                  className="text-[var(--text-tertiary)]"
+                  className="text-[var(--text-tertiary)] dark:text-[#847e76]"
                 />
               </button>
             </div>

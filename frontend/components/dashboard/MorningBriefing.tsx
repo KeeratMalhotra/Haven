@@ -85,10 +85,10 @@ export default function MorningBriefing({
           <TimeIcon size={22} strokeWidth={1.5} className="text-accent-400" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] md:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] md:text-3xl">
             {greeting}.
           </h1>
-          <p className="mt-1 text-sm text-[var(--text-tertiary)]">
+          <p className="mt-1 text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
             {date} · Here&apos;s your day.
           </p>
         </div>
@@ -102,7 +102,7 @@ export default function MorningBriefing({
             <div className="h-3.5 w-4/5 animate-pulse rounded bg-[var(--surface-hover)]" />
           </div>
         ) : (
-          <p className="text-[15px] leading-relaxed text-[var(--text-secondary)]">
+          <p className="text-[15px] leading-relaxed text-[var(--text-secondary)] dark:text-[#a8a39c]">
             {briefing?.narrative ||
               "You're all set. Add a few tasks or events and I'll help you shape your day."}
           </p>
@@ -125,8 +125,8 @@ export default function MorningBriefing({
           className="relative mt-4 flex items-center gap-2.5 rounded-xl border border-accent-500/20 bg-accent-500/[0.06] px-4 py-3"
         >
           <Flag size={15} strokeWidth={1.5} className="flex-shrink-0 text-accent-400" />
-          <p className="text-sm text-[var(--text-primary)]">
-            <span className="text-[var(--text-tertiary)]">Top priority · </span>
+          <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
+            <span className="text-[var(--text-tertiary)] dark:text-[#847e76]">Top priority · </span>
             {briefing.top_priority}
           </p>
         </motion.div>
@@ -141,7 +141,7 @@ export default function MorningBriefing({
               className="flex items-center gap-2.5 rounded-xl border border-warning-500/20 bg-warning-500/[0.06] px-4 py-2.5"
             >
               <AlertTriangle size={14} strokeWidth={1.5} className="flex-shrink-0 text-warning-500" />
-              <p className="text-sm text-[var(--text-secondary)]">{w}</p>
+              <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">{w}</p>
             </div>
           ))}
         </motion.div>
@@ -152,7 +152,7 @@ export default function MorningBriefing({
         <motion.div variants={itemVariants} className="relative mt-5 grid gap-4 sm:grid-cols-2">
           {meetings.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
                 Meetings
               </p>
               <div className="space-y-1.5">
@@ -160,9 +160,9 @@ export default function MorningBriefing({
                   <div key={i} className="flex items-center gap-2.5">
                     <div className="h-7 w-[3px] flex-shrink-0 rounded-full bg-gradient-to-b from-accent-400 to-accent-600" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-[var(--text-primary)]">{m.summary}</p>
+                      <p className="truncate text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">{m.summary}</p>
                       {m.start_label && (
-                        <p className="text-xs text-[var(--text-tertiary)]">{m.start_label}</p>
+                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">{m.start_label}</p>
                       )}
                     </div>
                   </div>
@@ -172,7 +172,7 @@ export default function MorningBriefing({
           )}
           {deadlines.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
                 Deadlines
               </p>
               <div className="space-y-1.5">
@@ -180,9 +180,9 @@ export default function MorningBriefing({
                   <div key={i} className="flex items-center gap-2.5">
                     <div className="h-7 w-[3px] flex-shrink-0 rounded-full bg-gradient-to-b from-warning-400 to-warning-600" />
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-[var(--text-primary)]">{d.title}</p>
+                      <p className="truncate text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">{d.title}</p>
                       {d.due_label && (
-                        <p className="text-xs text-[var(--text-tertiary)]">{d.due_label}</p>
+                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">{d.due_label}</p>
                       )}
                     </div>
                   </div>
@@ -225,7 +225,7 @@ export default function MorningBriefing({
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onPlanDay}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
         >
           <Zap size={15} strokeWidth={1.5} className="text-accent-400" />
           Plan my day
@@ -234,7 +234,7 @@ export default function MorningBriefing({
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onAdjust}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
         >
           <SlidersHorizontal size={15} strokeWidth={1.5} />
           Adjust
@@ -258,8 +258,8 @@ function StatChip({
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-1.5">
       <Icon size={14} strokeWidth={1.5} className={color} />
-      <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">{value}</span>
-      <span className="text-xs text-[var(--text-tertiary)]">{label}</span>
+      <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)] dark:text-[#ece9e4]">{value}</span>
+      <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">{label}</span>
     </div>
   );
 }

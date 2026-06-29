@@ -20,9 +20,9 @@ const variantStyles: Record<Variant, string> = {
   primary:
     "bg-accent-500 text-white hover:bg-accent-600 active:bg-accent-700",
   secondary:
-    "bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--text-tertiary)]/30 active:bg-[var(--bg-tertiary)]",
+    "bg-[var(--surface)] text-[var(--text-primary)] dark:text-[#ece9e4] border border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--text-tertiary)]/30 active:bg-[var(--bg-tertiary)]",
   ghost:
-    "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] active:bg-[var(--bg-tertiary)]",
+    "text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4] hover:bg-[var(--surface-hover)] active:bg-[var(--bg-tertiary)]",
   danger:
     "bg-danger-500 text-white hover:bg-danger-600 active:bg-danger-700",
 };

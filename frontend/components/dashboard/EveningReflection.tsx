@@ -40,7 +40,7 @@ export default function EveningReflection({
       <button
         onClick={() => setDismissed(true)}
         aria-label="Dismiss"
-        className="absolute right-4 top-4 rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)]"
+        className="absolute right-4 top-4 rounded-md p-1 text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] dark:hover:text-[#a8a39c]"
       >
         <X size={15} strokeWidth={1.5} />
       </button>
@@ -50,15 +50,15 @@ export default function EveningReflection({
           <Moon size={20} strokeWidth={1.5} className="text-accent-400" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+          <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
             How did today go?
           </h2>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
             {totalCount > 0 ? (
               <>
                 You completed{" "}
                 <span className="font-semibold text-success-500">{doneCount}</span> of{" "}
-                <span className="font-semibold text-[var(--text-primary)]">{totalCount}</span>{" "}
+                <span className="font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">{totalCount}</span>{" "}
                 tasks.
                 {allDone
                   ? " Everything done — beautifully cleared."
@@ -104,7 +104,7 @@ export default function EveningReflection({
           </AnimatePresence>
           <button
             onClick={() => setDismissed(true)}
-            className="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+            className="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
           >
             Not now
           </button>

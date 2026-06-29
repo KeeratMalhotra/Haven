@@ -108,7 +108,7 @@ function DraggableTask({ task }: { task: LocalTask }) {
         isDragging ? "opacity-50 ring-2 ring-accent-500/30" : ""
       }`}
     >
-      <GripVertical size={14} className="text-[var(--text-tertiary)] flex-shrink-0" />
+      <GripVertical size={14} className="text-[var(--text-tertiary)] dark:text-[#847e76] flex-shrink-0" />
       {task.priority && task.priority !== "none" && (
         <span
           className="inline-block h-[7px] w-[7px] rounded-full flex-shrink-0"
@@ -116,11 +116,11 @@ function DraggableTask({ task }: { task: LocalTask }) {
         />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+        <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
           {task.title}
         </p>
         {task.due && (
-          <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+          <p className="text-[11px] text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5">
             Due: {format(new Date(task.due), "MMM d")}
           </p>
         )}
@@ -136,7 +136,7 @@ function DraggableTask({ task }: { task: LocalTask }) {
 function TaskDragOverlay({ task }: { task: LocalTask }) {
   return (
     <div className="rotate-2 shadow-xl px-3 py-2.5 rounded-xl border border-accent-500/30 bg-[var(--surface)] max-w-[260px]">
-      <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+      <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4] truncate">
         {task.title}
       </p>
     </div>
@@ -468,10 +468,10 @@ export default function PlannerPage() {
             <CalendarClock size={20} strokeWidth={1.5} className="text-accent-500" />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4]">
               Planner
             </h1>
-            <p className="text-xs text-[var(--text-tertiary)]">
+            <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
               Drag tasks onto the calendar to schedule them
             </p>
           </div>
@@ -479,25 +479,25 @@ export default function PlannerPage() {
         <div className="flex items-center gap-1">
           <button
             onClick={navigatePrev}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
             aria-label="Previous"
           >
             <ChevronLeft size={16} strokeWidth={1.5} />
           </button>
           <button
             onClick={goToToday}
-            className="px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] hover:bg-[var(--surface-hover)] transition-colors"
           >
             Today
           </button>
           <button
             onClick={navigateNext}
-            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] transition-colors"
+            className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors"
             aria-label="Next"
           >
             <ChevronRight size={16} strokeWidth={1.5} />
           </button>
-          <span className="ml-2 text-sm font-medium text-[var(--text-primary)]">
+          <span className="ml-2 text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
             {format(currentDate, "EEEE, MMMM d, yyyy")}
           </span>
         </div>
@@ -528,21 +528,21 @@ export default function PlannerPage() {
           {/* Left Panel: Task List */}
           <div className="w-[320px] flex-shrink-0 flex flex-col overflow-hidden border border-[var(--border)] rounded-xl bg-[var(--surface)]">
             <div className="px-4 py-3 border-b border-[var(--border)]">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] flex items-center gap-2">
                 <CheckSquare size={14} className="text-warning-500" />
                 Tasks
-                <span className="text-xs text-[var(--text-tertiary)] font-normal">
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] font-normal">
                   ({activeTasks.length})
                 </span>
               </h2>
-              <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+              <p className="text-[11px] text-[var(--text-tertiary)] dark:text-[#847e76] mt-0.5">
                 Drag a task onto a time slot
               </p>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {activeTasks.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-[var(--text-tertiary)]">
+                  <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
                     No pending tasks
                   </p>
                 </div>
@@ -557,7 +557,7 @@ export default function PlannerPage() {
           {/* Right Panel: Day Calendar */}
           <div className="flex-1 flex flex-col overflow-hidden border border-[var(--border)] rounded-xl bg-[var(--surface)]">
             <div className="px-4 py-3 border-b border-[var(--border)]">
-              <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4] flex items-center gap-2">
                 <Clock size={14} className="text-accent-500" />
                 {format(currentDate, "EEEE, MMMM d")}
               </h2>
@@ -578,7 +578,7 @@ export default function PlannerPage() {
                         key={hour}
                         className="h-16 flex items-start justify-end pr-2"
                       >
-                        <span className="text-[10px] text-[var(--text-tertiary)] -translate-y-[7px]">
+                        <span className="text-[10px] text-[var(--text-tertiary)] dark:text-[#847e76] -translate-y-[7px]">
                           {format(setHours(new Date(), hour), "h a")}
                         </span>
                       </div>
@@ -624,10 +624,10 @@ export default function PlannerPage() {
               <CalendarClock size={20} className="text-accent-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                 Schedule Task
               </h2>
-              <p className="text-xs text-[var(--text-tertiary)]">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
                 AI confirmation
               </p>
             </div>
@@ -636,13 +636,13 @@ export default function PlannerPage() {
           {pendingSchedule && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-[var(--surface-hover)] border border-[var(--border)]">
-                <p className="text-sm text-[var(--text-secondary)] mb-1">
+                <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] mb-1">
                   Schedule
                 </p>
-                <p className="text-base font-semibold text-[var(--text-primary)]">
+                <p className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
                   &ldquo;{pendingSchedule.task.title}&rdquo;
                 </p>
-                <p className="text-sm text-[var(--text-secondary)] mt-2">
+                <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c] mt-2">
                   for{" "}
                   <span className="font-medium text-accent-500">
                     {formatSlotTime(pendingSchedule.date, pendingSchedule.hour)}
@@ -652,7 +652,7 @@ export default function PlannerPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-[var(--text-secondary)]">
+                <label className="text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
                   Duration
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -663,7 +663,7 @@ export default function PlannerPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                         scheduleDuration === opt.value
                           ? "bg-accent-500/10 text-accent-500 border-accent-500/30"
-                          : "bg-[var(--surface-hover)] text-[var(--text-secondary)] border-transparent hover:border-[var(--border)]"
+                          : "bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:text-[#a8a39c] border-transparent hover:border-[var(--border)]"
                       }`}
                     >
                       {opt.label}
