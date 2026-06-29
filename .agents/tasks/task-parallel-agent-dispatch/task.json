@@ -1,0 +1,7 @@
+{
+  "task_id": "task-parallel-agent-dispatch",
+  "task_description": "Replace sequential multi-agent dispatch in OrchestratorAgent with asyncio.gather for 2-3x faster multi-intent query resolution",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}

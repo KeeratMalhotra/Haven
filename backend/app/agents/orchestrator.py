@@ -190,15 +190,15 @@ class OrchestratorAgent(AgentBase):
                 "pending_action": None,
             }
 
-        # Route to specialist agents
-        results = []
+        # Route to specialist agents (parallel dispatch)
+        # Emit all status callbacks first, then dispatch concurrently.
+        coroutines = []
         for agent_task in routing.get("tasks", []):
             agent_name = agent_task.get("agent", "")
             instruction = agent_task.get("instruction", message)
             agent = AgentRegistry.get(agent_name)
 
             if agent:
-                # Emit a real-time status update before the slow agent work.
                 if status_callback:
                     try:
                         await status_callback(
@@ -212,16 +212,20 @@ class OrchestratorAgent(AgentBase):
                         logger.warning(f"[orchestrator] status_callback failed: {e}")
 
                 logger.info(f"[orchestrator] Dispatching to '{agent_name}': {instruction}")
-                result = await agent.execute(
-                    {
-                        "message": instruction,
-                        "original_message": message,
-                        "auth_token": auth_token,
-                        "user_id": task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else "",
-                    }
+                coroutines.append(
+                    agent.execute(
+                        {
+                            "message": instruction,
+                            "original_message": message,
+                            "auth_token": auth_token,
+                            "user_id": task.get("user", {}).get("sub", "") if isinstance(task.get("user"), dict) else "",
+                        }
+                    )
                 )
-                logger.info(f"[orchestrator] '{agent_name}' responded with {len(result.get('content', ''))} chars")
-                results.append(result)
+
+        results = list(await asyncio.gather(*coroutines)) if coroutines else []
+        for result in results:
+            logger.info(f"[orchestrator] '{result.get('agent', '?')}' responded with {len(result.get('content', ''))} chars")
 
         # An agent may ask for clarification or confirmation; capture the first
         # pending action so the caller can remember it for the next turn.
@@ -410,8 +414,9 @@ class OrchestratorAgent(AgentBase):
                     "_chunks_sent": chunks_sent,
                 }
 
-        # Multi-agent routing -- fall back to non-streaming
-        results = []
+        # Multi-agent routing -- fall back to non-streaming (parallel dispatch)
+        # Emit all status callbacks first, then dispatch concurrently.
+        coroutines = []
         for agent_task in tasks_list:
             agent_name = agent_task.get("agent", "")
             instruction = agent_task.get("instruction", message)
@@ -430,15 +435,18 @@ class OrchestratorAgent(AgentBase):
                     except Exception:
                         pass
 
-                result = await agent.execute(
-                    {
-                        "message": instruction,
-                        "original_message": message,
-                        "auth_token": auth_token,
-                        "user_id": user_id,
-                    }
+                coroutines.append(
+                    agent.execute(
+                        {
+                            "message": instruction,
+                            "original_message": message,
+                            "auth_token": auth_token,
+                            "user_id": user_id,
+                        }
+                    )
                 )
-                results.append(result)
+
+        results = list(await asyncio.gather(*coroutines)) if coroutines else []
 
         new_pending = next(
             (r.get("pending_action") for r in results if r.get("pending_action")),

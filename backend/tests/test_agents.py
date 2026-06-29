@@ -1022,3 +1022,199 @@ class TestSubtaskDecomposition:
         assert len(result["tasks"]) <= 6
         # MCP should have been called at most 6 times
         assert self.mock_mcp.call_tool.call_count <= 6
+
+
+class TestParallelAgentDispatch:
+    """Tests for parallel multi-agent dispatch via asyncio.gather."""
+
+    @pytest.fixture(autouse=True)
+    def setup_orchestrator(self, mock_vertexai_model, mock_mcp_client):
+        """Set up the orchestrator agent with mocked dependencies."""
+        from app.agents.base import AgentRegistry
+
+        AgentRegistry._agents.clear()
+
+        with patch("app.agents.orchestrator.vertexai.init"), \
+             patch("app.agents.orchestrator.GenerativeModel", return_value=mock_vertexai_model):
+            from app.agents.orchestrator import OrchestratorAgent
+
+            self.agent = OrchestratorAgent(mcp_client=mock_mcp_client)
+            self.mock_model = mock_vertexai_model
+            yield
+            AgentRegistry._agents.clear()
+
+    async def test_multi_agent_dispatch_runs_concurrently(self):
+        """Two agents with a delay each should complete in ~1x delay, not 2x."""
+        import asyncio
+        import time
+
+        from app.agents.base import AgentRegistry
+
+        delay = 0.2  # seconds each agent "works"
+
+        async def slow_execute_a(task):
+            await asyncio.sleep(delay)
+            return {"content": "Agent A done", "agent": "agent_a"}
+
+        async def slow_execute_b(task):
+            await asyncio.sleep(delay)
+            return {"content": "Agent B done", "agent": "agent_b"}
+
+        mock_agent_a = AsyncMock()
+        mock_agent_a.execute = AsyncMock(side_effect=slow_execute_a)
+        mock_agent_b = AsyncMock()
+        mock_agent_b.execute = AsyncMock(side_effect=slow_execute_b)
+
+        AgentRegistry._agents["agent_a"] = mock_agent_a
+        AgentRegistry._agents["agent_b"] = mock_agent_b
+
+        # Configure model to route to both agents
+        self.mock_model.generate_content.return_value = MagicMock(
+            text=json.dumps({
+                "intent": "multi_intent",
+                "agents": ["agent_a", "agent_b"],
+                "tasks": [
+                    {"agent": "agent_a", "instruction": "Do task A"},
+                    {"agent": "agent_b", "instruction": "Do task B"},
+                ],
+                "direct_response": None,
+            })
+        )
+
+        start = time.monotonic()
+        result = await self.agent.execute({
+            "message": "Do task A and task B",
+            "auth_token": "test-token",
+            "conversation_history": [],
+        })
+        elapsed = time.monotonic() - start
+
+        # Both agents should have been called
+        mock_agent_a.execute.assert_called_once()
+        mock_agent_b.execute.assert_called_once()
+
+        # If sequential, elapsed would be >= 2*delay (0.4s).
+        # If parallel, elapsed should be close to 1*delay (0.2s).
+        # We allow up to 1.5x delay as the threshold to prove parallelism.
+        assert elapsed < delay * 1.5, (
+            f"Expected parallel execution (~{delay}s) but took {elapsed:.3f}s "
+            f"(sequential would be ~{delay * 2}s)"
+        )
+
+    async def test_multi_agent_dispatch_emits_all_status_callbacks(self):
+        """Status callbacks are emitted for every agent in multi-agent dispatch."""
+        import asyncio
+
+        from app.agents.base import AgentRegistry
+
+        async def execute_a(task):
+            return {"content": "A result", "agent": "agent_a"}
+
+        async def execute_b(task):
+            return {"content": "B result", "agent": "agent_b"}
+
+        mock_agent_a = AsyncMock()
+        mock_agent_a.execute = AsyncMock(side_effect=execute_a)
+        mock_agent_b = AsyncMock()
+        mock_agent_b.execute = AsyncMock(side_effect=execute_b)
+
+        AgentRegistry._agents["agent_a"] = mock_agent_a
+        AgentRegistry._agents["agent_b"] = mock_agent_b
+
+        self.mock_model.generate_content.return_value = MagicMock(
+            text=json.dumps({
+                "intent": "multi_intent",
+                "agents": ["agent_a", "agent_b"],
+                "tasks": [
+                    {"agent": "agent_a", "instruction": "Do A"},
+                    {"agent": "agent_b", "instruction": "Do B"},
+                ],
+                "direct_response": None,
+            })
+        )
+
+        statuses = []
+
+        async def status_callback(payload):
+            statuses.append(payload)
+
+        await self.agent.execute(
+            {
+                "message": "Do A and B",
+                "auth_token": "test-token",
+                "conversation_history": [],
+            },
+            status_callback=status_callback,
+        )
+
+        # A status callback should have been emitted for each agent
+        assert len(statuses) == 2
+        agent_names_in_status = {s["agent"] for s in statuses}
+        assert "agent_a" in agent_names_in_status
+        assert "agent_b" in agent_names_in_status
+        for s in statuses:
+            assert s["type"] == "status"
+            assert s["content"]  # non-empty
+
+    async def test_multi_agent_streaming_dispatch_runs_concurrently(self):
+        """Parallel dispatch also works in execute_streaming() multi-agent path."""
+        import asyncio
+        import time
+
+        from app.agents.base import AgentRegistry
+
+        delay = 0.2
+
+        async def slow_execute_a(task):
+            await asyncio.sleep(delay)
+            return {"content": "Stream A done", "agent": "agent_a"}
+
+        async def slow_execute_b(task):
+            await asyncio.sleep(delay)
+            return {"content": "Stream B done", "agent": "agent_b"}
+
+        mock_agent_a = AsyncMock()
+        mock_agent_a.execute = AsyncMock(side_effect=slow_execute_a)
+        mock_agent_b = AsyncMock()
+        mock_agent_b.execute = AsyncMock(side_effect=slow_execute_b)
+
+        AgentRegistry._agents["agent_a"] = mock_agent_a
+        AgentRegistry._agents["agent_b"] = mock_agent_b
+
+        self.mock_model.generate_content.return_value = MagicMock(
+            text=json.dumps({
+                "intent": "multi_intent",
+                "agents": ["agent_a", "agent_b"],
+                "tasks": [
+                    {"agent": "agent_a", "instruction": "Do task A"},
+                    {"agent": "agent_b", "instruction": "Do task B"},
+                ],
+                "direct_response": None,
+            })
+        )
+
+        chunks = []
+
+        async def send_chunk(text):
+            chunks.append(text)
+
+        start = time.monotonic()
+        result = await self.agent.execute_streaming(
+            {
+                "message": "Do task A and task B",
+                "auth_token": "test-token",
+                "conversation_history": [],
+            },
+            send_chunk=send_chunk,
+        )
+        elapsed = time.monotonic() - start
+
+        mock_agent_a.execute.assert_called_once()
+        mock_agent_b.execute.assert_called_once()
+
+        # Parallel: elapsed should be closer to 1x delay, not 2x.
+        assert elapsed < delay * 1.5, (
+            f"Expected parallel execution (~{delay}s) but took {elapsed:.3f}s"
+        )
+        # Multi-agent path does not stream chunks (falls back to non-streaming)
+        assert result["_streamed"] is False

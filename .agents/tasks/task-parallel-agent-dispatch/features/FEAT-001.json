@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Replace sequential agent dispatch with asyncio.gather in both execute() and execute_streaming() multi-agent paths, and add tests verifying parallel behavior.",
+  "status": "in_progress",
+  "steps": [
+    "In backend/app/agents/orchestrator.py execute() method: Replace the sequential for-loop (around line 152-175) that iterates over routing.get('tasks', []) with parallel dispatch using asyncio.gather(). Send all status callbacks before the gather call. Collect results from gather.",
+    "In backend/app/agents/orchestrator.py execute_streaming() method: Replace the sequential for-loop in the 'Multi-agent routing -- fall back to non-streaming' section (around line 413-435) with the same asyncio.gather pattern. Send all status callbacks before gather.",
+    "Ensure the pending_action extraction, _consolidate_responses, and _suggest_followup logic continues to work unchanged with the gathered results list.",
+    "Do NOT modify single-agent dispatch paths (they're already optimized and streaming-capable).",
+    "Do NOT modify the _handle_pending multi-intent loop (it has sequential dependency on pending resolution).",
+    "Add a test in backend/tests/test_agents.py (or a new test file) that verifies multi-agent dispatch runs concurrently: register two mock agents that each sleep/delay, dispatch to both, and assert total wall-clock time is closer to 1x delay than 2x delay (proving parallelism).",
+    "Add a test that verifies all status callbacks are still emitted for each agent even with parallel dispatch.",
+    "Run the existing test suite (python -m pytest tests/ -v from backend/) to confirm nothing is broken.",
+    "Commit the changes with message 'feat: parallel agent dispatch with asyncio.gather for multi-intent queries'."
+  ],
+  "acceptance_criteria": [
+    "Multi-agent dispatch in execute() uses asyncio.gather instead of sequential awaits",
+    "Multi-agent dispatch in execute_streaming() uses asyncio.gather instead of sequential awaits",
+    "Single-agent streaming path is unchanged",
+    "Status callbacks are emitted for each agent before dispatch",
+    "All existing tests in test_agents.py pass",
+    "New test proves parallel execution (wall-clock time assertion)",
+    "New test proves status callbacks still fire for all agents",
+    "Frontend builds successfully (pnpm build)"
+  ],
+  "verification": [
+    "cd /projects/sandbox/ChronAI/backend && python -m pytest tests/ -v",
+    "cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,22 @@
+{
+  "project_type": "FastAPI backend + Next.js 15 frontend monorepo",
+  "language": "Python (backend), TypeScript (frontend)",
+  "build_system": "pip + pnpm",
+  "test_framework": "pytest with pytest-asyncio (asyncio_mode=auto), conftest.py fixtures for mocking Vertex AI, MCP, Firestore",
+  "build_command": "cd frontend && pnpm build",
+  "test_command": "cd backend && python -m pytest tests/ -v",
+  "verification_instructions": "1. Run pytest in backend/tests to verify existing + new tests pass. 2. Run pnpm build in frontend to confirm frontend is unaffected.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "pip install -r backend/requirements.txt && cd frontend && pnpm install",
+  "environment_constraints": "OPEN_INTERNET - full network access available",
+  "contribution_requirements": "No specific CONTRIBUTING.md found. Follow existing patterns.",
+  "key_patterns": "Agents inherit from AgentBase. OrchestratorAgent.execute() and execute_streaming() both have sequential for-loops dispatching to multiple agents. Tests mock agents via AgentRegistry._agents and use AsyncMock. Status callbacks are sent before each agent dispatch. _consolidate_responses handles multi-agent result merging. Single-agent paths are separate and should not be changed.",
+  "relevant_files": [
+    "backend/app/agents/orchestrator.py",
+    "backend/app/agents/base.py",
+    "backend/tests/test_agents.py",
+    "backend/tests/conftest.py",
+    "backend/tests/test_intelligence.py"
+  ],
+  "directory_structure": "backend/app/agents/ - all agent implementations; backend/tests/ - all test files; frontend/ - Next.js app"
+}
