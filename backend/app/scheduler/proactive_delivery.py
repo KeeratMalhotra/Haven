@@ -204,17 +204,11 @@ async def deliver_interventions(
                 await manager.send_to_user(
                     user_id,
                     {
-                        "type": "notification",
+                        "type": "proactive_nudge",
                         "content": notification.message,
-                        "agent": "proactive",
-                        "metadata": {
-                            "notification_id": notification.id,
-                            "title": notification.title,
-                            "tier": tier,
-                            "source": itype,
-                            "urgency": "critical" if tier >= 3 else "info",
-                            "action": notification.action,
-                        },
+                        "notification_id": str(notification.id),
+                        "tier": tier,
+                        "action": notification.action,
                     },
                 )
             except Exception as e:

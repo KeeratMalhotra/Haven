@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add proactive_nudge message type to the WebSocket push path on the backend and handle it on the frontend chat WebSocket, then reduce polling interval to 10 minutes as a fallback.",
+  "status": "in_progress",
+  "steps": [
+    "Step 1 - Backend: In backend/app/scheduler/proactive_delivery.py, change the WebSocket push message type from 'notification' to 'proactive_nudge'. Update the payload structure to match the required format: {type: 'proactive_nudge', content: 'nudge message text', notification_id: '...', tier: N, action: {...}}. The delivery function already has push=True support with manager.send_to_user() - just change the message format sent.",
+    "Step 2 - Frontend ws.ts: In frontend/lib/ws.ts, add 'proactive_nudge' to the ResponsePayload type union. The type field should become: 'text' | 'audio' | 'task_update' | 'status' | 'error' | 'text_chunk' | 'text_end' | 'proactive_nudge'. Also add optional fields: notification_id?: string, tier?: number, action?: { label: string; kind: string } | null.",
+    "Step 3 - Frontend useChatSocket.ts: In frontend/hooks/useChatSocket.ts, add handling for the 'proactive_nudge' message type in the ws.on('message') handler. It should NOT add the nudge as a chat message. Instead, dispatch a CustomEvent 'chronai-proactive-nudge' on the window with the nudge data as detail, so the ProactiveListener can pick it up. This keeps separation of concerns clean - the chat hook handles receiving, the ProactiveListener handles displaying.",
+    "Step 4 - Frontend ProactiveListener.tsx: In frontend/components/notifications/ProactiveListener.tsx, add a useEffect that listens for the 'chronai-proactive-nudge' window event. When received, call addNotification with the nudge data (same format currently used for polled interventions). Also update shownRef to track it. Dispatch 'chronai-notifications-changed' event to refresh the bell.",
+    "Step 5 - Frontend ProactiveListener.tsx: Reduce CHECK_INTERVAL_MS from 3 * 60_000 (3 minutes) to 10 * 60_000 (10 minutes) since real-time pushes now handle the immediate case. Keep the polling as a fallback for when WebSocket is disconnected.",
+    "Step 6 - Frontend useNotificationSocket.ts: Update the useNotificationSocket hook to also handle 'proactive_nudge' type messages (in addition to the existing 'notification' type), since the backend now sends 'proactive_nudge' type. This ensures nudges arrive even through the separate notification socket path."
+  ],
+  "acceptance_criteria": [
+    "Backend proactive_delivery.py sends messages with type 'proactive_nudge' when push=True",
+    "Frontend ResponsePayload type includes 'proactive_nudge'",
+    "useChatSocket.ts dispatches a window event when a proactive_nudge message arrives (does not add it as a chat message)",
+    "ProactiveListener.tsx listens for proactive_nudge window events and shows them as notifications via addNotification",
+    "ProactiveListener.tsx polling interval is 10 minutes instead of 3 minutes",
+    "useNotificationSocket.ts handles 'proactive_nudge' type messages",
+    "pnpm build passes without errors",
+    "pnpm lint passes without errors",
+    "Existing notification handling (type 'notification') still works in useNotificationSocket.ts",
+    "Focus/Pomodoro suppression still works (backend governance unchanged)"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/ChronAI/frontend && pnpm build` and confirm it succeeds",
+    "Run `cd /projects/sandbox/ChronAI/frontend && pnpm lint` and confirm it passes"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

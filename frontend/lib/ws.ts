@@ -11,10 +11,13 @@ type MessagePayload = {
 };
 
 type ResponsePayload = {
-  type: "text" | "audio" | "task_update" | "status" | "error" | "text_chunk" | "text_end";
+  type: "text" | "audio" | "task_update" | "status" | "error" | "text_chunk" | "text_end" | "proactive_nudge";
   content: string;
   agent?: string;
   message_id?: string;
+  notification_id?: string;
+  tier?: number;
+  action?: { label: string; kind: string } | null;
 };
 
 type EventType = "open" | "close" | "message" | "error";

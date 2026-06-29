@@ -1,0 +1,27 @@
+{
+  "project_type": "Full-stack app: FastAPI (Python) backend + Next.js 15 (TypeScript) frontend",
+  "language": "Python (backend), TypeScript (frontend)",
+  "build_system": "pnpm for frontend, pip for backend",
+  "test_framework": "jest with passWithNoTests (frontend), pytest (backend)",
+  "build_command": "cd /projects/sandbox/ChronAI/frontend && pnpm build",
+  "test_command": "cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+  "verification_instructions": "1. Run pnpm build in frontend to verify TypeScript compiles. 2. Run pnpm lint for linting. 3. Verify no import errors or type mismatches.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "Frontend: cd frontend && pnpm install. Backend: cd backend && pip install -r requirements.txt",
+  "environment_constraints": "OPEN_INTERNET. Commit but do NOT push.",
+  "contribution_requirements": "Do not break existing polling fallback. Do not break chat WebSocket functionality. Nudges must still be suppressed during Pomodoro (focus state).",
+  "key_patterns": "Backend: ConnectionManager in ws_manager.py uses send_to_user(user_id, dict) to push JSON. proactive_delivery.py already supports push=True mode with type 'notification'. Frontend: useChatSocket.ts uses WebSocketClient class from lib/ws.ts with IncomingMessage type union. useNotificationSocket.ts is a separate WebSocket for notifications. ProactiveListener.tsx polls /api/proactive/check every 3 min and uses addNotification from AIContextProvider.",
+  "relevant_files": [
+    "backend/app/ws_manager.py",
+    "backend/app/scheduler/proactive_delivery.py",
+    "backend/app/scheduler/proactive.py",
+    "backend/app/api/proactive.py",
+    "backend/app/main.py",
+    "frontend/lib/ws.ts",
+    "frontend/hooks/useChatSocket.ts",
+    "frontend/hooks/useNotificationSocket.ts",
+    "frontend/components/notifications/ProactiveListener.tsx",
+    "frontend/components/ai/AIContextProvider.tsx"
+  ],
+  "directory_structure": "backend/app/ contains FastAPI app with agents/, scheduler/, api/, db/ dirs. frontend/ is Next.js 15 app with components/, hooks/, lib/ dirs."
+}

@@ -53,12 +53,16 @@ export function useNotificationSocket() {
             return;
           }
 
-          if (message.type === "notification") {
+          if (message.type === "notification" || message.type === "proactive_nudge") {
             addNotification({
               id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
               text: message.content,
-              type: message.metadata?.urgency === "critical" ? "warning" : "info",
-              actions: [],
+              type: message.type === "proactive_nudge"
+                ? (message.tier >= 3 ? "warning" : "info")
+                : (message.metadata?.urgency === "critical" ? "warning" : "info"),
+              actions: message.type === "proactive_nudge" && message.action
+                ? [{ label: message.action.label, action: message.action.kind }]
+                : [],
               timestamp: Date.now(),
               dismissed: false,
             });

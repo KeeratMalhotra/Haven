@@ -16,10 +16,13 @@ export interface ChatMessage {
 export type ConnectionState = "connecting" | "connected" | "disconnected";
 
 interface IncomingMessage {
-  type: "text" | "audio" | "status" | "error" | "task_update" | "text_chunk" | "text_end";
+  type: "text" | "audio" | "status" | "error" | "task_update" | "text_chunk" | "text_end" | "proactive_nudge";
   content: string;
   agent?: string;
   message_id?: string;
+  notification_id?: string;
+  tier?: number;
+  action?: { label: string; kind: string } | null;
 }
 
 /**
@@ -172,6 +175,19 @@ export function useChatSocket({ accessToken, onAudio }: UseChatSocketOptions) {
       } else if (data.type === "audio") {
         if (onAudioRef.current) onAudioRef.current(data.content);
         else playAudioBase64(data.content);
+      } else if (data.type === "proactive_nudge") {
+        // Don't add nudges as chat messages. Instead, dispatch a window event
+        // so ProactiveListener can surface them as notifications.
+        window.dispatchEvent(
+          new CustomEvent("chronai-proactive-nudge", {
+            detail: {
+              content: data.content,
+              notification_id: data.notification_id,
+              tier: data.tier,
+              action: data.action,
+            },
+          })
+        );
       }
     });
 

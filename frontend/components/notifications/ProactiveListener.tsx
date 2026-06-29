@@ -8,7 +8,7 @@ import { fetchProactiveCheck, setProactiveFocus } from "@/lib/api-extended";
 
 // How often to ask the backend for fresh interventions (ms). Conservative on
 // purpose — better to nudge rarely and perfectly than often and annoyingly.
-const CHECK_INTERVAL_MS = 3 * 60_000;
+const CHECK_INTERVAL_MS = 10 * 60_000;
 
 /**
  * ProactiveListener
@@ -51,6 +51,36 @@ export default function ProactiveListener() {
       window.removeEventListener("chronai-stop-focus", onStop);
     };
   }, [accessToken]);
+
+  // Listen for real-time proactive nudges pushed via the chat WebSocket.
+  useEffect(() => {
+    const handleNudge = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (!detail || !detail.content) return;
+
+      const nudgeId = detail.notification_id || `push-${Date.now()}`;
+      if (shownRef.current.has(nudgeId)) return;
+      shownRef.current.add(nudgeId);
+
+      addNotification({
+        id: `proactive-${nudgeId}`,
+        text: detail.content,
+        type: detail.tier >= 3 ? "warning" : "info",
+        actions: detail.action
+          ? [{ label: detail.action.label, action: detail.action.kind }]
+          : [],
+        timestamp: Date.now(),
+        dismissed: false,
+      });
+
+      window.dispatchEvent(new CustomEvent("chronai-notifications-changed"));
+    };
+
+    window.addEventListener("chronai-proactive-nudge", handleNudge);
+    return () => {
+      window.removeEventListener("chronai-proactive-nudge", handleNudge);
+    };
+  }, [addNotification]);
 
   useEffect(() => {
     if (!accessToken) return;
