@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +24,7 @@ import {
   Globe,
   Save,
   Camera,
+  LogOut,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -215,6 +216,10 @@ function SettingsContent() {
   // Popup reference for OAuth
   const oauthPopupRef = useRef<Window | null>(null);
 
+  // Track which services were already connected before a connect action started
+  // This prevents false positive toasts when polling picks up stale data
+  const preConnectStatusRef = useRef<Record<string, boolean>>({});
+
   // Get auth token for backend calls
   const authToken = (session as any)?.accessToken || "";
 
@@ -389,13 +394,26 @@ function SettingsContent() {
           localStorage.setItem("chronai-spotify-connected", "true");
           dispatchStorageChange("chronai-spotify-connected", "true");
         }
-        // If the service is now connected, stop polling and show toast
-        if (connectingService && status[connectingService]?.connected) {
+        // If the service is now connected AND was NOT connected before we
+        // initiated the connect action, show success toast
+        if (
+          connectingService &&
+          status[connectingService]?.connected &&
+          !preConnectStatusRef.current[connectingService]
+        ) {
           setConnectingService(null);
           oauthPopupRef.current = null;
           setConnectionToast(connectingService);
           setTimeout(() => setConnectionToast(null), 4000);
           clearInterval(intervalId);
+        } else if (
+          connectingService &&
+          status[connectingService]?.connected &&
+          preConnectStatusRef.current[connectingService]
+        ) {
+          // Service was already connected before - do NOT show toast
+          // This is a false positive from stale data
+          // Keep polling in case it disconnects and reconnects
         }
       }).catch(() => {
         // Silently ignore fetch errors during polling
@@ -478,6 +496,9 @@ function SettingsContent() {
   // --- Integration handlers (real OAuth) ---
   const handleConnectService = async (service: string) => {
     if (!authToken) return;
+    // Record the current connection state before initiating connect
+    // to prevent false positive toasts from stale/cached data
+    preConnectStatusRef.current[service] = integrationStatus[service]?.connected ?? false;
     setConnectingService(service);
     setIntegrationError(null);
     try {
@@ -497,10 +518,15 @@ function SettingsContent() {
     setIntegrationError(null);
     try {
       await disconnectService(authToken, service);
-      setIntegrationStatus((prev) => ({
-        ...prev,
+      const updatedStatus = {
+        ...integrationStatus,
         [service]: { connected: false, scopes: [] },
-      }));
+      };
+      setIntegrationStatus(updatedStatus);
+      // Immediately update localStorage cache so other components see the change
+      localStorage.setItem("chronai-integration-status-cache", JSON.stringify(updatedStatus));
+      // Clear pre-connect ref for this service so future connects work properly
+      delete preConnectStatusRef.current[service];
     } catch {
       setIntegrationError(`Failed to disconnect ${service}. Please try again.`);
     } finally {
@@ -1145,6 +1171,26 @@ function SettingsContent() {
             </div>
           ))}
         </div>
+      </Card>
+
+      {/* Sign Out Section */}
+      <Card hover={false} className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <LogOut size={18} strokeWidth={1.5} className="text-red-500" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">
+            Sign Out
+          </h2>
+        </div>
+        <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] mb-4">
+          Sign out of your Haven account. You will need to sign in again to access your data.
+        </p>
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="inline-flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/20 transition-colors"
+        >
+          <LogOut size={16} strokeWidth={1.5} />
+          Sign Out
+        </button>
       </Card>
     </motion.div>
   );

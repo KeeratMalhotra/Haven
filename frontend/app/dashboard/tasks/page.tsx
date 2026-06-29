@@ -1461,10 +1461,22 @@ function TasksPageContent() {
     setActiveId(event.active.id as string);
   };
 
+  // Guard ref to prevent re-entrant handleDragEnd calls (e.g. rapid/duplicate events)
+  const dragProcessingRef = useRef(false);
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = event;
     if (!over) return;
+
+    // Prevent re-entrant calls from rapid drag events
+    if (dragProcessingRef.current) return;
+    dragProcessingRef.current = true;
+    // Release the guard after a short delay to allow the next legitimate drag
+    setTimeout(() => { dragProcessingRef.current = false; }, 100);
+
+    // Early return if dropped on itself
+    if (active.id === over.id) return;
 
     const activeTask = tasks.find((t) => t.id === active.id);
     if (!activeTask) return;

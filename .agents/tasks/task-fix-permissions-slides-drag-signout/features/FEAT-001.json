@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix app crash when user signs in without granting Google permissions, fix Slides connect/disconnect showing false positive, fix offline task drag duplication, and add sign out button to settings page.",
+  "status": "in_progress",
+  "steps": [
+    "Step 1 - Resilient auth flow (frontend/app/api/auth/[...nextauth]/route.ts): Modify the NextAuth callbacks so that if account.access_token is null/undefined, the session still works but accessToken is set to empty string. The JWT callback should handle the case where account exists but access_token is missing (e.g., user denied permissions). The session callback should safely expose accessToken as empty string rather than undefined.",
+    "Step 2 - Dashboard graceful degradation (frontend/app/dashboard/page.tsx): The dashboard page already has good error handling. The onboarding gate useEffect already has `if (!accessToken) return;` which prevents it from running. However, the page stays in loading state forever when accessToken is empty. Fix: When status is 'authenticated' but accessToken is empty string, set onboardingChecked to true and show the dashboard in an empty/degraded state with a banner telling user to connect services in Settings. Add a permissions banner component that appears when accessToken is empty, with a link to settings.",
+    "Step 3 - Fix Slides connect/disconnect false positive (frontend/app/dashboard/settings/page.tsx): The issue is that when clicking Connect for slides, the connectService call opens an OAuth popup. The popup polling mechanism (useEffect with setInterval) checks fetchIntegrationStatus every 3s. The backend /api/integrations/status checks both session token scopes AND Firestore. If the session token from NextAuth login already had presentations scope (unlikely for slides but possible in testing), it would show connected. The actual problem is that the polling shows 'connected successfully' toast via the polling useEffect when `status[connectingService]?.connected` becomes true. However, the backend's /connect/slides endpoint is correctly implemented with proper OAuth. The issue is likely that the initial session token check at login includes the scope when it shouldn't. Since the NextAuth login explicitly requests calendar+tasks+gmail.modify but NOT presentations, the session_has_scopes check for slides should return false. The REAL issue is: the handleConnectService function calls connectService which returns an auth_url. If the auth_url is valid and the popup opens, the user completes OAuth, the callback stores tokens in Firestore, and status polling picks it up. If the popup is BLOCKED or the user closes it without completing, the polling eventually times out. But if it 'shows connected successfully' without actually connecting, the likely cause is the polling picking up stale/cached Firestore data OR the backend status endpoint returning true for slides because a prior connection exists. Fix: Add better validation in the handleConnectService - after the polling detects connection, re-verify by checking that the integration status actually shows the expected scopes for slides. Also, ensure the disconnectService properly clears the cached integration status in localStorage.",
+    "Step 4 - Fix offline task drag duplication (frontend/app/dashboard/tasks/page.tsx): In handleDragEnd, the function has two code paths: (1) if overId starts with 'column-' it moves the task to that column's status, (2) else it checks the overTask. The bug is that with closestCorners collision detection, the 'over' element could be a task item that happens to be in a different column, but the droppable column itself should also match. The function already returns early after the column match. The real duplication issue is that the same drag event can fire multiple times if the DnD sensor triggers rapidly (especially on touch/offline). Fix: Add a guard using a ref that tracks whether a drag operation is currently being processed (prevent re-entrant handleDragEnd calls). Also add an early return if activeTask.id === overId (dropping on itself). Additionally ensure that if over is a task in the SAME column as the active task, no status change happens.",
+    "Step 5 - Add Sign Out button (frontend/app/dashboard/settings/page.tsx): Add a 'Sign Out' button at the bottom of the settings page (after the Keyboard Shortcuts section). Import signOut from 'next-auth/react'. Add a new Card section with a LogOut icon, a Sign Out button styled with danger colors (red). When clicked, call signOut({ callbackUrl: '/' }) to redirect to the landing page."
+  ],
+  "acceptance_criteria": [
+    "The NextAuth route.ts handles missing access_token gracefully without throwing",
+    "The dashboard page renders a degraded state (with banner) when accessToken is empty instead of being stuck in loading",
+    "The settings page Slides connect only shows 'connected successfully' after actual OAuth completion in the popup",
+    "Disconnecting slides properly updates local cache and UI state",
+    "Task drag-and-drop does not duplicate tasks when dragging within the same column or when rapid drag events fire",
+    "The handleDragEnd returns early if the task is dropped on itself or in its current column",
+    "A Sign Out button exists in the settings page that calls signOut({ callbackUrl: '/' })",
+    "pnpm lint passes without errors",
+    "pnpm test passes without errors"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/Haven/frontend && pnpm lint` - should pass with no errors",
+    "Run `cd /projects/sandbox/Haven/frontend && pnpm test` - should pass"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

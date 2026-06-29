@@ -1,0 +1,27 @@
+{
+  "project_type": "Next.js 15 frontend + Python FastAPI backend, monorepo",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_system": "pnpm for frontend, pip for backend, Docker Compose for orchestration",
+  "test_framework": "Jest with @testing-library/react for frontend, pytest for backend",
+  "build_command": "cd /projects/sandbox/Haven/frontend && pnpm lint",
+  "test_command": "cd /projects/sandbox/Haven/frontend && pnpm test",
+  "verification_instructions": "Run pnpm lint and pnpm test in the frontend directory. Both should pass without errors.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd /projects/sandbox/Haven/frontend && pnpm install --frozen-lockfile",
+  "environment_constraints": "No backend server available for integration testing. Frontend lint and unit tests are the primary verification. node_modules already installed.",
+  "contribution_requirements": "No formal CONTRIBUTING.md. Follow existing code patterns and conventions.",
+  "key_patterns": "Pages are in app/ directory (Next.js App Router). API helpers in lib/api.ts and lib/api-extended.ts. Session management via next-auth/react useSession(). Access token accessed as (session as any)?.accessToken. Components in components/ directory. Settings page uses Card, Toggle UI components. Tasks page uses @dnd-kit for drag and drop with closestCorners collision detection.",
+  "relevant_files": [
+    "frontend/app/api/auth/[...nextauth]/route.ts",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/app/dashboard/settings/page.tsx",
+    "frontend/app/dashboard/tasks/page.tsx",
+    "frontend/lib/api.ts",
+    "frontend/lib/api-extended.ts",
+    "frontend/middleware.ts",
+    "frontend/app/onboarding/page.tsx",
+    "backend/app/api/integrations.py",
+    "backend/app/api/slides.py"
+  ],
+  "directory_structure": "frontend/app/ - pages and API routes, frontend/components/ - shared UI, frontend/lib/ - utility and API helpers, frontend/hooks/ - custom hooks, backend/app/api/ - FastAPI routers, backend/app/agents/ - AI agent modules"
+}
