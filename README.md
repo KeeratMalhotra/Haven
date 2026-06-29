@@ -1,4 +1,4 @@
-# ChronAI
+# Haven (Previously ChronAI)
 
 AI-powered productivity companion with a living particle UI entity.
 
