@@ -88,7 +88,7 @@ function Assistant({ children }: { children: React.ReactNode }) {
         <Sparkles className="h-4.5 w-4.5 text-white" />
       </div>
       <div className="rounded-2xl rounded-tl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-left">
-        <p className="text-sm leading-relaxed text-[var(--text-primary)] sm:text-base">
+        <p className="text-sm leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4] sm:text-base">
           {children}
         </p>
       </div>
@@ -116,7 +116,7 @@ function ProgressBar({ step, totalSteps: total }: { step: number; totalSteps: nu
             </motion.div>
           </div>
         ))}
-        <span className="ml-3 font-mono text-xs text-[var(--text-tertiary)]">
+        <span className="ml-3 font-mono text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
           {step + 1}/{total}
         </span>
       </div>
@@ -274,7 +274,7 @@ export default function OnboardingPage() {
             if (e.key === "Enter") next();
           }}
           placeholder="Your name"
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-center text-base text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-center text-base text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
         />
       </motion.div>
     </div>
@@ -306,8 +306,8 @@ export default function OnboardingPage() {
               onClick={() => setRole(r.id)}
               className={`relative flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-200 ${
                 active
-                  ? "border-accent-500/60 bg-accent-500/10 text-[var(--text-primary)] shadow-sm"
-                  : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
+                  ? "border-accent-500/60 bg-accent-500/10 text-[var(--text-primary)] dark:text-[#ece9e4] shadow-sm"
+                  : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
               }`}
             >
               <Icon className="h-6 w-6" />
@@ -334,7 +334,7 @@ export default function OnboardingPage() {
         transition={{ ...spring, delay: 0.3 }}
         className="mt-8 w-full max-w-md"
       >
-        <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+        <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
           Your occupation or field
         </label>
         <input
@@ -342,7 +342,7 @@ export default function OnboardingPage() {
           value={occupation}
           onChange={(e) => setOccupation(e.target.value)}
           placeholder="e.g. Software Engineer, Marketing Manager"
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
         />
       </motion.div>
     </div>
@@ -404,7 +404,7 @@ export default function OnboardingPage() {
               className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 active
                   ? "border-accent-500/60 bg-accent-500/15 text-accent-300 shadow-sm"
-                  : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
+                  : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
               }`}
             >
               {active && (
@@ -448,7 +448,7 @@ export default function OnboardingPage() {
           onChange={(e) => setBraindump(e.target.value)}
           rows={6}
           placeholder={BRAINDUMP_PLACEHOLDER}
-          className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 pr-14 text-sm leading-relaxed text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+          className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 pr-14 text-sm leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
         />
         <button
           type="button"
@@ -457,7 +457,7 @@ export default function OnboardingPage() {
           className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 ${
             listening
               ? "animate-pulse border-accent-500/60 bg-accent-500/20 text-accent-300"
-              : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-tertiary)] hover:border-accent-500/40 hover:text-accent-400"
+              : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-tertiary)] dark:text-[#847e76] hover:border-accent-500/40 hover:text-accent-400"
           }`}
         >
           {listening ? (
@@ -492,7 +492,7 @@ export default function OnboardingPage() {
         <button
           onClick={handleSkip}
           disabled={submitting}
-          className="text-sm text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)] disabled:opacity-50"
+          className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] transition-colors hover:text-[var(--text-secondary)] dark:text-[#a8a39c] disabled:opacity-50"
         >
           Skip for now
         </button>
@@ -665,10 +665,10 @@ function RevealView({
           >
             <Sparkles className="h-7 w-7 text-white" />
           </motion.div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] sm:text-4xl">
             Here&apos;s your week, planned.
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base text-[var(--text-secondary)]">
+          <p className="mx-auto mt-3 max-w-md text-base text-[var(--text-secondary)] dark:text-[#a8a39c]">
             {totalCreated > 0
               ? result.summary
               : "I couldn't find anything to plan just yet — you can add things any time from your dashboard."}
@@ -693,10 +693,10 @@ function RevealView({
                 <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${s.bg}`}>
                   <Icon className={`h-5 w-5 ${s.color}`} strokeWidth={1.5} />
                 </div>
-                <span className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">
+                <span className="text-2xl font-bold tabular-nums text-[var(--text-primary)] dark:text-[#ece9e4]">
                   {s.count}
                 </span>
-                <span className="text-xs text-[var(--text-tertiary)]">{s.label}</span>
+                <span className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">{s.label}</span>
               </motion.div>
             );
           })}
@@ -800,7 +800,7 @@ function RevealSection({
     <motion.section variants={variants}>
       <div className="mb-2.5 flex items-center gap-2">
         <Icon size={15} strokeWidth={1.5} className={iconColor} />
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[#ece9e4]">{title}</h2>
       </div>
       <div className="space-y-2">{children}</div>
     </motion.section>
@@ -820,8 +820,8 @@ function RevealRow({
     <div className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3">
       <div className={`h-8 w-[3px] flex-shrink-0 rounded-full ${accent}`} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[var(--text-primary)]">{title}</p>
-        <p className="text-xs text-[var(--text-tertiary)]">{children}</p>
+        <p className="truncate text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">{title}</p>
+        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">{children}</p>
       </div>
     </div>
   );
@@ -838,14 +838,14 @@ function TimeSelect({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+      <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)] dark:text-[#a8a39c]">
         {label}
       </label>
       <div className="relative">
         <select
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 pr-10 text-sm text-[var(--text-primary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20 cursor-pointer"
+          className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 pr-10 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20 cursor-pointer"
         >
           {HOURS.map((h) => (
             <option key={h.value} value={h.value}>
@@ -854,7 +854,7 @@ function TimeSelect({
           ))}
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[var(--text-tertiary)]">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[var(--text-tertiary)] dark:text-[#847e76]">
             <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
