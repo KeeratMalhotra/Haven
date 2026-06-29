@@ -340,8 +340,9 @@ function SettingsContent() {
   // Re-fetch integration status when window regains focus (after OAuth popup closes)
   useEffect(() => {
     const handleFocus = () => {
-      if (authToken && oauthPopupRef.current) {
-        // Popup was opened, refetch status
+      // Check connectingService state instead of popup ref - handles cases where
+      // popup was blocked, opened as a new tab, or ref got cleared
+      if (authToken && (oauthPopupRef.current || connectingService)) {
         setTimeout(() => {
           fetchIntegrationStatus(authToken).then((status) => {
             setIntegrationStatus((prev) => {
@@ -354,15 +355,58 @@ function SettingsContent() {
               localStorage.setItem("chronai-spotify-connected", "true");
               dispatchStorageChange("chronai-spotify-connected", "true");
             }
+            // If the service that was connecting is now connected, clear state
+            if (connectingService && status[connectingService]?.connected) {
+              setConnectingService(null);
+              oauthPopupRef.current = null;
+            }
           });
         }, 1000);
-        oauthPopupRef.current = null;
-        setConnectingService(null);
       }
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [authToken]);
+  }, [authToken, connectingService]);
+
+  // Poll for integration status when a service connection is in progress.
+  // This handles cases where postMessage or focus events fail due to
+  // cross-origin restrictions, popup blockers, or COOP headers.
+  useEffect(() => {
+    if (!connectingService || !authToken) return;
+
+    let attempts = 0;
+    const maxAttempts = 10; // Poll every 3s for up to 30s
+    const intervalId = setInterval(() => {
+      attempts++;
+      fetchIntegrationStatus(authToken).then((status) => {
+        setIntegrationStatus((prev) => {
+          flushQueuesOnReconnect(prev, status);
+          return status;
+        });
+        localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
+        if (status.spotify?.connected) {
+          localStorage.setItem("chronai-spotify-connected", "true");
+          dispatchStorageChange("chronai-spotify-connected", "true");
+        }
+        // If the service is now connected, stop polling and show toast
+        if (connectingService && status[connectingService]?.connected) {
+          setConnectingService(null);
+          oauthPopupRef.current = null;
+          setConnectionToast(connectingService);
+          setTimeout(() => setConnectionToast(null), 4000);
+          clearInterval(intervalId);
+        }
+      }).catch(() => {
+        // Silently ignore fetch errors during polling
+      });
+
+      if (attempts >= maxAttempts) {
+        clearInterval(intervalId);
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [connectingService, authToken]);
 
   // Listen for postMessage from OAuth popup (popup closes itself and notifies us)
   useEffect(() => {

@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix the analytics page blank/invisible rendering issue and the Google Slides OAuth connection issue",
+  "status": "in_progress",
+  "steps": [
+    "Fix analytics page blank rendering in frontend/app/dashboard/analytics/page.tsx: The page uses framer-motion's initial='hidden' (opacity:0) + animate='visible' pattern on the outermost motion.div container. Combined with the layout's AnimatePresence wrapper (which also starts at opacity:0), the page can remain invisible if the client-side animation engine fails to trigger. Fix by: (1) Remove initial='hidden' from the top-level motion container and use initial={false} or just opacity:1 directly; (2) Add a Suspense boundary wrapper like the settings page does; (3) Add a simple error boundary that renders a fallback instead of blank.",
+    "Fix the Slides OAuth connection issue in frontend/app/dashboard/settings/page.tsx: After OAuth completes (popup sends postMessage or redirect with ?connected=slides), the status may not update because: (1) The fetchIntegrationStatus might be called before the token is ready; (2) Cross-origin restrictions in modern browsers may block window.opener access, preventing the postMessage flow from working. Fix by: adding a retry/poll mechanism -- after OAuth popup is opened, periodically poll fetchIntegrationStatus every 2-3 seconds for up to 15 seconds until the service shows connected OR the popup closes. Also, in the window focus handler, remove the requirement for oauthPopupRef.current to be set (since the ref might be null if the popup was blocked or cross-origin). Instead, track whether a connection attempt is in progress using the connectingService state.",
+    "Verify: Run pnpm lint and pnpm build to confirm no regressions"
+  ],
+  "acceptance_criteria": [
+    "pnpm lint passes with no errors",
+    "pnpm build succeeds with no errors",
+    "Analytics page never has opacity:0 as a stuck state -- uses initial={false} or removes the initial hidden state",
+    "Settings page has a polling/retry mechanism for integration status after OAuth to handle cross-origin popup issues",
+    "The focus handler in settings refetches status whenever a connect attempt was in progress, regardless of popup ref"
+  ],
+  "verification": [
+    "Run: cd /projects/sandbox/ChronAI/frontend && pnpm lint",
+    "Run: cd /projects/sandbox/ChronAI/frontend && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

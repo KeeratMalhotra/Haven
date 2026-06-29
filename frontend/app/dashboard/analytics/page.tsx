@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useId } from "react";
+import { useState, useEffect, useMemo, useId, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -402,6 +402,33 @@ function TimePeriodSelector({
 // ─── Main Page Component ────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<AnalyticsLoadingSkeleton />}>
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
+
+function AnalyticsLoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-9 w-72" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Skeleton className="h-56" />
+        <Skeleton className="h-56" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Skeleton className="h-56" />
+        <Skeleton className="h-56" />
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
@@ -643,7 +670,7 @@ export default function AnalyticsPage() {
   return (
     <motion.div
       variants={reducedContainerVariants}
-      initial="hidden"
+      initial={false}
       animate="visible"
       className="space-y-6"
     >
