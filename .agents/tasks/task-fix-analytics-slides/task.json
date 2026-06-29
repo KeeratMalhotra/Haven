@@ -1,0 +1,7 @@
+{
+  "task_id": "task-fix-analytics-slides",
+  "task_description": "Fix blank analytics page and Google Slides connection issue in the ChronAI/Haven dashboard",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}
