@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "fix",
   "description": "Fix review issues: (1) History prepend race - disable composer until history loads, (2) No deduplication on reconnect - use ref to track if history already loaded, (3) _persist_exchange pair assumption - add role validation guards.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In frontend/hooks/useChatSocket.ts: add a historyLoadedRef to prevent re-fetching on reconnect. In the ws.on('open') handler, check the ref before fetching. Clear messages before prepending history. Disable sends while loadingHistory is true.",
     "In frontend/components/chat/ChatExperience.tsx: pass disabled={connection === 'disconnected' || loadingHistory} to all ChatComposer instances so the user cannot send before history finishes loading.",
@@ -21,5 +21,5 @@
     "Run: cd /projects/sandbox/ChronAI && python3 -c \"import ast; ast.parse(open('backend/app/main.py').read())\""
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All three priority issues fixed. Frontend build and lint pass. Python syntax valid. Issue #1 (auth token in query string) left as-is since it follows existing project patterns used by all other endpoints. Issue #5 (unbounded growth) addressed with a comment noting future TTL/pruning need."
 }
