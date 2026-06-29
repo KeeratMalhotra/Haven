@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useId, Suspense } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -402,30 +402,7 @@ function TimePeriodSelector({
 // ─── Main Page Component ────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
-  return (
-    <Suspense fallback={<AnalyticsLoadingSkeleton />}>
-      <AnalyticsContent />
-    </Suspense>
-  );
-}
-
-function AnalyticsLoadingSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-9 w-72" />
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Skeleton className="h-56" />
-        <Skeleton className="h-56" />
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Skeleton className="h-56" />
-        <Skeleton className="h-56" />
-      </div>
-    </div>
-  );
+  return <AnalyticsContent />;
 }
 
 function AnalyticsContent() {
@@ -589,11 +566,7 @@ function AnalyticsContent() {
   // Auth checks
   if (status === "loading") {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6"
-      >
+      <div className="space-y-6">
         <Skeleton className="h-10 w-48" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Skeleton className="h-40" />
@@ -601,7 +574,7 @@ function AnalyticsContent() {
           <Skeleton className="h-40" />
           <Skeleton className="h-40" />
         </div>
-      </motion.div>
+      </div>
     );
   }
 
@@ -613,11 +586,7 @@ function AnalyticsContent() {
   // Loading state with skeletons
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6"
-      >
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-9 w-72" />
@@ -630,18 +599,14 @@ function AnalyticsContent() {
           <Skeleton className="h-56" />
           <Skeleton className="h-56" />
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   // Empty state when no data exists
   if (!hasAnyData) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6"
-      >
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] md:text-3xl">
             Analytics
@@ -663,7 +628,7 @@ function AnalyticsContent() {
             Start completing tasks, logging focus sessions, and building habits to see your productivity analytics here.
           </p>
         </div>
-      </motion.div>
+      </div>
     );
   }
 

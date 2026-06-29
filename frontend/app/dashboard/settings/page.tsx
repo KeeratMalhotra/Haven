@@ -172,6 +172,7 @@ function SettingsContent() {
   // Integration status (from backend) - load from cache only on client to avoid hydration mismatch
   const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({});
   const [connectingService, setConnectingService] = useState<string | null>(null);
+  const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [connectionToast, setConnectionToast] = useState<string | null>(null);
 
   // Load cached integration status on mount (client-only)
@@ -402,6 +403,11 @@ function SettingsContent() {
 
       if (attempts >= maxAttempts) {
         clearInterval(intervalId);
+        // Clear the connecting state so the button is no longer stuck in loading
+        setConnectingService(null);
+        oauthPopupRef.current = null;
+        // Show error feedback to the user
+        setIntegrationError("Connection timed out. Please try again.");
       }
     }, 3000);
 
@@ -487,7 +493,7 @@ function SettingsContent() {
 
   const handleDisconnectService = async (service: string) => {
     if (!authToken) return;
-    setConnectingService(service);
+    setDisconnectingService(service);
     setIntegrationError(null);
     try {
       await disconnectService(authToken, service);
@@ -498,7 +504,7 @@ function SettingsContent() {
     } catch {
       setIntegrationError(`Failed to disconnect ${service}. Please try again.`);
     } finally {
-      setConnectingService(null);
+      setDisconnectingService(null);
     }
   };
 
@@ -922,7 +928,7 @@ function SettingsContent() {
           {GOOGLE_SERVICES.map((service) => {
             const status = integrationStatus[service.id];
             const isConnected = status?.connected ?? false;
-            const isLoading = connectingService === service.id;
+            const isLoading = connectingService === service.id || disconnectingService === service.id;
             const IconComponent = service.icon;
             const colorClass = service.color === "blue"
               ? "text-blue-500"
