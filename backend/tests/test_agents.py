@@ -534,6 +534,67 @@ class TestGenerateHelper:
         result = await self.agent.generate("prompt", fallback="FALLBACK")
         assert result == "FALLBACK"
 
+    async def test_generate_uses_contextvar_callback(self):
+        """When the contextvar is set, generate() uses streaming mode automatically."""
+        from app.agents.base import _stream_callback_var
+
+        chunks_received = []
+
+        async def _test_callback(text: str) -> None:
+            chunks_received.append(text)
+
+        # Set up a mock model that supports streaming
+        mock_response_iter = MagicMock()
+        chunk1 = MagicMock()
+        chunk1.text = "Hello "
+        chunk2 = MagicMock()
+        chunk2.text = "world!"
+        mock_response_iter.__iter__ = MagicMock(return_value=iter([chunk1, chunk2]))
+
+        self.agent.model = MagicMock()
+        # First call with stream=True returns the iterator
+        self.agent.model.generate_content = MagicMock(return_value=mock_response_iter)
+
+        # Set the contextvar
+        token = _stream_callback_var.set(_test_callback)
+        try:
+            result = await self.agent.generate("prompt", fallback="FALLBACK")
+        finally:
+            _stream_callback_var.reset(token)
+
+        assert result == "Hello world!"
+        assert chunks_received == ["Hello ", "world!"]
+
+    async def test_generate_skips_contextvar_for_json_mode(self):
+        """When generation_config has response_mime_type=application/json, skip streaming."""
+        from app.agents.base import _stream_callback_var
+
+        chunks_received = []
+
+        async def _test_callback(text: str) -> None:
+            chunks_received.append(text)
+
+        self.agent.model = MagicMock()
+        self.agent.model.generate_content = MagicMock(
+            return_value=MagicMock(text='{"key": "value"}')
+        )
+
+        # Set the contextvar - should be ignored for JSON mode calls
+        token = _stream_callback_var.set(_test_callback)
+        try:
+            result = await self.agent.generate(
+                "prompt",
+                fallback="FALLBACK",
+                generation_config={"response_mime_type": "application/json"},
+            )
+        finally:
+            _stream_callback_var.reset(token)
+
+        # Should NOT have streamed
+        assert chunks_received == []
+        # Should have returned the non-streamed result
+        assert result == '{"key": "value"}'
+
 
 class TestOrchestratorStatusCallback:
     """Tests for the orchestrator's real-time status callback."""

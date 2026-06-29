@@ -98,7 +98,15 @@ export function useChatSocket({ accessToken, onAudio }: UseChatSocketOptions) {
     wsRef.current = ws;
 
     ws.on("open", () => setConnection("connected"));
-    ws.on("close", () => setConnection("disconnected"));
+    ws.on("close", () => {
+      setConnection("disconnected");
+      // Finalize any messages still in streaming state. If the WebSocket
+      // closes between text_chunk and text_end frames, the message would
+      // otherwise remain in streaming:true state permanently.
+      setMessages((prev) =>
+        prev.map((m) => (m.streaming ? { ...m, streaming: false } : m))
+      );
+    });
 
     ws.on("message", (data: IncomingMessage) => {
       if (data.type === "text" || data.type === "task_update") {

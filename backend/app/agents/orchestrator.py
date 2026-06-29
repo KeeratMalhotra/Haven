@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 import vertexai
 from vertexai.generative_models import GenerativeModel
 
-from app.agents.base import AgentBase, AgentRegistry
+from app.agents.base import AgentBase, AgentRegistry, _stream_callback_var
 from app.config import settings
 from app.utils.timectx import time_context_string
 from app.utils.user_context import get_user_context
@@ -364,17 +364,23 @@ class OrchestratorAgent(AgentBase):
                     chunks_sent += 1
                     await send_chunk(text)
 
-                # Pass the stream callback through the task dict (per-request)
-                # instead of mutating a shared attribute on the singleton agent.
-                result = await agent.execute(
-                    {
-                        "message": instruction,
-                        "original_message": message,
-                        "auth_token": auth_token,
-                        "user_id": user_id,
-                        "_stream_callback": _counting_send_chunk,
-                    }
-                )
+                # Set the stream callback via contextvar so that any call to
+                # generate() from the specialist agent (or any code it invokes)
+                # will automatically use streaming mode. This is per-async-task
+                # safe and avoids requiring specialists to extract the callback
+                # from the task dict manually.
+                token = _stream_callback_var.set(_counting_send_chunk)
+                try:
+                    result = await agent.execute(
+                        {
+                            "message": instruction,
+                            "original_message": message,
+                            "auth_token": auth_token,
+                            "user_id": user_id,
+                        }
+                    )
+                finally:
+                    _stream_callback_var.reset(token)
 
                 new_pending = result.get("pending_action")
                 content = result.get("content", "")

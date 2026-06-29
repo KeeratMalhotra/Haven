@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from contextvars import ContextVar
 from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,14 @@ GEMINI_TIMEOUT_SECONDS = 60.0
 
 # Sentinel value used to signal the end of a streaming queue.
 _STREAM_DONE = object()
+
+# ContextVar for the stream callback. When set by the orchestrator's
+# execute_streaming() flow, any call to generate() from any specialist agent
+# will automatically use streaming mode without the specialist needing to
+# know about it. This is per-async-task safe (no singleton race conditions).
+_stream_callback_var: ContextVar[Optional[Callable[[str], Any]]] = ContextVar(
+    "_stream_callback_var", default=None
+)
 
 
 class AgentRegistry:
@@ -137,11 +146,26 @@ class AgentBase(ABC):
             logger.error(f"[{self.name}] generate() called but no model is configured.")
             return fallback
 
-        # If a stream callback is provided, use streaming mode
-        if stream_callback is not None:
+        # Resolve the effective stream callback: explicit parameter takes
+        # priority, then fall back to the contextvar set by the orchestrator.
+        # Skip contextvar-based streaming for structured JSON responses
+        # (response_mime_type == "application/json") since those are internal
+        # parsing calls, not user-facing prose generation.
+        effective_callback = stream_callback
+        if effective_callback is None:
+            gen_config = kwargs.get("generation_config", {})
+            is_json_mode = (
+                isinstance(gen_config, dict)
+                and gen_config.get("response_mime_type") == "application/json"
+            )
+            if not is_json_mode:
+                effective_callback = _stream_callback_var.get()
+
+        # If a stream callback is available, use streaming mode
+        if effective_callback is not None:
             try:
                 full_text = await asyncio.wait_for(
-                    self._generate_with_streaming(prompt, stream_callback, **kwargs),
+                    self._generate_with_streaming(prompt, effective_callback, **kwargs),
                     timeout=timeout,
                 )
                 return full_text
