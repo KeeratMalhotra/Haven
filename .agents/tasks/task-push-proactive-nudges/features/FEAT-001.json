@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Add proactive_nudge message type to the WebSocket push path on the backend and handle it on the frontend chat WebSocket, then reduce polling interval to 10 minutes as a fallback.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Step 1 - Backend: In backend/app/scheduler/proactive_delivery.py, change the WebSocket push message type from 'notification' to 'proactive_nudge'. Update the payload structure to match the required format: {type: 'proactive_nudge', content: 'nudge message text', notification_id: '...', tier: N, action: {...}}. The delivery function already has push=True support with manager.send_to_user() - just change the message format sent.",
     "Step 2 - Frontend ws.ts: In frontend/lib/ws.ts, add 'proactive_nudge' to the ResponsePayload type union. The type field should become: 'text' | 'audio' | 'task_update' | 'status' | 'error' | 'text_chunk' | 'text_end' | 'proactive_nudge'. Also add optional fields: notification_id?: string, tier?: number, action?: { label: string; kind: string } | null.",
@@ -28,5 +28,5 @@
     "Run `cd /projects/sandbox/ChronAI/frontend && pnpm lint` and confirm it passes"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All changes compile cleanly. pnpm build and pnpm lint both pass with zero errors. The proactive_nudge message type is now used on both push paths (chat WebSocket and notification WebSocket). Polling reduced to 10 minutes as a fallback. Existing notification type handling preserved in useNotificationSocket.ts."
 }
