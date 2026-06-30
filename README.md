@@ -222,15 +222,28 @@ The frontend communicates with the AI backend over a persistent WebSocket connec
 
 ## Deployment
 
-Haven is deployed on Google Cloud:
+Haven is fully deployed on Google Cloud:
 
-- **Frontend**: Vercel + Google Cloud Run
-- **Backend**: Google Cloud Run (auto-deployed via Cloud Build on push)
-- **Database**: Google Cloud Firestore
-- **AI**: Vertex AI (Gemini 2.5 Flash)
-- **Container Registry**: Artifact Registry (asia-south1)
+| Component | Service | Region |
+|-----------|---------|--------|
+| Frontend | Google Cloud Run | asia-south1 |
+| Backend | Google Cloud Run | asia-south1 |
+| Database | Google Cloud Firestore | asia-south1 |
+| AI | Vertex AI (Gemini 2.5 Flash) | asia-south1 |
+| Container Registry | Artifact Registry | asia-south1 |
+| CI/CD | Cloud Build (auto-deploy on push to main) | asia-south1 |
 
-The `cloudbuild.yaml` at the project root defines the CI/CD pipeline that builds the Docker image and deploys to Cloud Run automatically.
+The `cloudbuild.yaml` at the project root defines the full CI/CD pipeline — builds both frontend and backend Docker images, pushes to Artifact Registry, and deploys to Cloud Run automatically on every push to `main`.
+
+## Security
+
+- **OAuth 2.0 with scope enforcement** — Mandatory scope validation at sign-in; users cannot bypass required permissions
+- **CSRF protection** — HMAC-SHA256 signed state parameters on all OAuth flows
+- **Prompt injection prevention** — User-derived text isolated in fenced opaque data blocks; system instructions separated from user content
+- **Data isolation** — All Firestore queries scoped to authenticated `user_id`; cross-user access impossible
+- **Token revocation** — Disconnect flows properly revoke tokens at Google, not just locally
+- **Input validation** — Pydantic models on all backend endpoints with proper HTTP error codes
+- **Graceful degradation** — Every AI call has deterministic fallbacks; Gemini failures never crash the system
 
 ## Development
 
