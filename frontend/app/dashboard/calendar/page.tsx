@@ -47,7 +47,7 @@ import {
   deleteCalendarEvent,
   type CalendarEvent,
 } from "@/lib/api";
-import { updateCalendarEvent, fetchPreferences } from "@/lib/api-extended";
+import { updateCalendarEvent } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import AISuggestionBanner from "@/components/ai/AISuggestionBanner";
 import { Button } from "@/components/ui/Button";
@@ -60,10 +60,11 @@ import { safeParseDate, safeFormat, isDateOnly } from "@/lib/date-utils";
 
 type CalendarView = "month" | "week" | "day";
 
-// Default display window (matches an 8 AM–8 PM work day: start-1, end+2) until
-// the user's saved work hours load.
-const DEFAULT_GRID_START = 7;
-const DEFAULT_GRID_END = 22;
+// The day/week hour grid always renders the full 24-hour day: 12 AM (hour 0)
+// through 11 PM (hour 23). This guarantees every AM and PM hour is visible and
+// that the current-time indicator and event blocks land on the correct row.
+const GRID_START = 0;
+const GRID_END = 23;
 const DURATION_OPTIONS = [
   { label: "15 min", value: 15 },
   { label: "30 min", value: 30 },
@@ -367,41 +368,15 @@ function CalendarPageContent() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [navDirection, setNavDirection] = useState(0);
 
-  // Display window for the hour grid, derived from the user's saved work hours.
-  // Defaults match an 8 AM–8 PM work day (start-1, end+2) until prefs load.
-  const [gridStart, setGridStart] = useState(DEFAULT_GRID_START);
-  const [gridEnd, setGridEnd] = useState(DEFAULT_GRID_END);
+  // The hour grid always spans the full day (12 AM → 11 PM) so every AM/PM hour
+  // is visible. gridStart=0 means an event at 00:00 sits at top=0 and an event
+  // at 13:00 sits on row 13 (no off-by-one).
+  const gridStart = GRID_START;
+  const gridEnd = GRID_END;
   const HOURS = useMemo(
     () => Array.from({ length: gridEnd - gridStart + 1 }, (_, i) => i + gridStart),
     [gridStart, gridEnd]
   );
-
-  // Fetch the user's work hours and compute the visible grid window.
-  useEffect(() => {
-    let cancelled = false;
-    async function loadWorkHours() {
-      try {
-        const { preferences } = await fetchPreferences(accessToken);
-        const workStart =
-          typeof preferences?.work_hours_start === "number"
-            ? preferences.work_hours_start
-            : 8;
-        const workEnd =
-          typeof preferences?.work_hours_end === "number"
-            ? preferences.work_hours_end
-            : 20;
-        if (cancelled) return;
-        setGridStart(Math.max(0, workStart - 1));
-        setGridEnd(Math.min(23, workEnd + 2));
-      } catch {
-        // Keep defaults on failure.
-      }
-    }
-    loadWorkHours();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
 
   // Detect mobile viewport for responsive view override
   useEffect(() => {
@@ -616,7 +591,8 @@ function CalendarPageContent() {
     load();
   }, [accessToken, effectiveView, currentDate]);
 
-  // Scroll to current time (or 8am if before 8am) when day/week view mounts
+  // Auto-scroll the day/week grid to the current hour on load so the user lands
+  // on "now" instead of being stuck at midnight (the grid starts at 12 AM).
   useEffect(() => {
     if (effectiveView !== "day" && effectiveView !== "week") return;
     // Small delay to allow DOM to render
@@ -624,9 +600,9 @@ function CalendarPageContent() {
       const container = effectiveView === "day" ? dayScrollRef.current : weekScrollRef.current;
       if (!container) return;
       const now = new Date();
-      const targetHour = now.getHours() < 8 ? 8 : now.getHours();
-      // Scroll to: (targetHour - gridStart) * ROW_HEIGHT, minus some padding so it's not at the very top
-      const scrollTarget = Math.max(0, (targetHour - gridStart) * ROW_HEIGHT - 32);
+      // Scroll to the current hour with a little padding so it's not flush at
+      // the very top. gridStart is 0, so the offset is simply the hour row.
+      const scrollTarget = Math.max(0, (now.getHours() - gridStart) * ROW_HEIGHT - 32);
       container.scrollTo({ top: scrollTarget, behavior: "smooth" });
     }, 100);
     return () => clearTimeout(timer);
