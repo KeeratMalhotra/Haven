@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix onboarding flash, priority button layout shift, profile picture not syncing across dashboard/TopBar, voice mode error handling, and service reconnection flow",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. ONBOARDING FLASH FIX: In frontend/middleware.ts, add logic to check if the user has completed onboarding by calling the backend API (/api/onboarding/status) using the token from getToken(). If the token exists AND onboarding is NOT complete, redirect to /onboarding. If the token exists AND onboarding IS complete AND the user is on /onboarding, redirect to /dashboard. The JWT token object has an accessToken field (see frontend/app/api/auth/[...nextauth]/route.ts callbacks). Use fetch() to the backend API with the accessToken. If the backend call fails (network error, etc), fall through to NextResponse.next() so the client-side check in dashboard/page.tsx still works as a fallback.",
     "2. PRIORITY BUTTON LAYOUT FIX: In frontend/app/onboarding/page.tsx, in the renderStep3() function, fix the priority buttons so they do not shift when selected. The issue is that when selected, a Check icon is prepended via motion.span, changing the button width. Fix by: (a) giving buttons a fixed min-width (e.g. min-w-[120px]), OR (b) always rendering the check icon but making it invisible when not selected (use opacity-0 and width:0 with overflow hidden when inactive, expanding on active). The better approach is option (b): always render the check icon span but use conditional visibility. Change the active check to always render but with conditional classes: when not active, use 'w-0 overflow-hidden opacity-0' and when active use 'w-auto opacity-100'. This means changing from conditional rendering ({active && <motion.span>...}) to always rendering with a width animation.",
@@ -23,5 +23,5 @@
     "python3 -m py_compile /projects/sandbox/Haven/backend/app/api/integrations.py"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "ChatExperience.test.tsx and Sidebar.test.tsx failures are pre-existing (verified by running tests on base commit). Data URI images in TopBar need unoptimized prop for Next.js Image component. The middleware fetch uses a 3-second timeout to avoid blocking navigation if the backend is slow."
 }
