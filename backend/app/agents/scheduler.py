@@ -508,7 +508,7 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
         """Pick the best slot from available options based on preference.
 
         Prefers morning slots for focus/deep work, afternoon for meetings.
-        Avoids very early or very late slots.
+        NEVER picks slots before 9 AM or after 8 PM (outside sane working hours).
         """
         real_slots = [
             s for s in (slots or [])
@@ -523,13 +523,18 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
             if dt is None:
                 continue
             hour = dt.hour
+
+            # Hard filter: NEVER suggest slots before 9 AM or after 8 PM
+            if hour < 9 or hour >= 20:
+                continue
+
             score = 0
 
             if preferred_time == "morning":
-                # Prefer 9-12 AM
+                # Prefer 9-12 AM for deep/focus work
                 if 9 <= hour <= 11:
                     score += 10
-                elif 8 <= hour <= 12:
+                elif hour == 12:
                     score += 5
             elif preferred_time == "afternoon":
                 # Prefer 13-17
@@ -537,19 +542,30 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
                     score += 10
                 elif 12 <= hour <= 17:
                     score += 5
+            elif preferred_time == "evening":
+                # Prefer 17-19
+                if 17 <= hour <= 19:
+                    score += 10
             else:
-                # Any time during work hours
-                if 9 <= hour <= 17:
+                # Any time during prime work hours (10-16)
+                if 10 <= hour <= 16:
+                    score += 8
+                elif 9 <= hour <= 17:
                     score += 5
 
-            # Penalize very early or late
-            if hour < 8 or hour > 19:
-                score -= 5
+            # Bonus for mid-morning (10-11 AM) — universally productive
+            if 10 <= hour <= 11:
+                score += 3
 
             scored.append((score, slot))
 
         if not scored:
-            return real_slots[0]
+            # All slots were outside working hours — return first valid one as fallback
+            for slot in real_slots:
+                dt = self._parse_event_dt(slot.get("start"))
+                if dt and 8 <= dt.hour <= 20:
+                    return slot
+            return real_slots[0] if real_slots else {}
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return scored[0][1]
@@ -1117,8 +1133,17 @@ Scheduling request: {message}"""
         if resolved:
             return resolved
 
-        # Fallback: next full hour, in IST.
-        target = now_ist().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        # Fallback: next suitable hour in IST (within working hours 9-18).
+        current = now_ist()
+        if current.hour < 9:
+            # Before work hours — default to 9 AM today
+            target = current.replace(hour=9, minute=0, second=0, microsecond=0)
+        elif current.hour >= 18:
+            # After work hours — default to 9 AM tomorrow
+            target = (current + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+        else:
+            # During work hours — next full hour
+            target = current.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         return target.isoformat()
 
     async def _record_memory_observation(
