@@ -97,7 +97,7 @@ substitutions:
   _BACKEND_SERVICE: haven-backend
   # Frontend
   _FRONTEND_IMAGE: haven-frontend
-  _FRONTEND_SERVICE: haven-frontend
+  _FRONTEND_SERVICE: haven
 
 options:
   logging: CLOUD_LOGGING_ONLY
