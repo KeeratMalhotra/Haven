@@ -95,6 +95,7 @@ interface LocalTask extends TaskItem {
   recurrence?: RecurrenceConfig | null;
   labels?: TaskLabel[];
   source?: "gmail" | "manual";
+  completedAt?: string;
 }
 
 type ViewMode = "board" | "list";
