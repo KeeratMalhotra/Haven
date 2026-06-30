@@ -35,7 +35,6 @@ import {
   fetchTasks,
   type CalendarEvent,
 } from "@/lib/api";
-import { fetchPreferences } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -70,10 +69,10 @@ interface LocalTask {
 }
 
 const TASKS_STORAGE_KEY = "chronai-tasks";
-// Default display window (matches an 8 AM–8 PM work day: start-1, end+2) until
-// the user's saved work hours load.
-const DEFAULT_GRID_START = 7;
-const DEFAULT_GRID_END = 22;
+// The planner hour grid always renders the full 24-hour day (12 AM → 11 PM)
+// for consistency with the calendar day view.
+const GRID_START = 0;
+const GRID_END = 23;
 const ROW_HEIGHT = 64;
 
 const DURATION_OPTIONS = [
@@ -286,10 +285,10 @@ export default function PlannerPage() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Display window for the hour grid, derived from the user's saved work hours.
-  // Defaults match an 8 AM–8 PM work day (start-1, end+2) until prefs load.
-  const [gridStart, setGridStart] = useState(DEFAULT_GRID_START);
-  const [gridEnd, setGridEnd] = useState(DEFAULT_GRID_END);
+  // The hour grid always spans the full day (12 AM → 11 PM) so every AM/PM hour
+  // is visible and events land on the correct row (gridStart=0, no off-by-one).
+  const gridStart = GRID_START;
+  const gridEnd = GRID_END;
   const HOURS = useMemo(
     () => Array.from({ length: gridEnd - gridStart + 1 }, (_, i) => i + gridStart),
     [gridStart, gridEnd]
@@ -317,33 +316,6 @@ export default function PlannerPage() {
   useEffect(() => {
     document.title = "Planner | Haven";
   }, []);
-
-  // Fetch the user's work hours and compute the visible grid window.
-  useEffect(() => {
-    let cancelled = false;
-    async function loadWorkHours() {
-      try {
-        const { preferences } = await fetchPreferences(accessToken);
-        const workStart =
-          typeof preferences?.work_hours_start === "number"
-            ? preferences.work_hours_start
-            : 8;
-        const workEnd =
-          typeof preferences?.work_hours_end === "number"
-            ? preferences.work_hours_end
-            : 20;
-        if (cancelled) return;
-        setGridStart(Math.max(0, workStart - 1));
-        setGridEnd(Math.min(23, workEnd + 2));
-      } catch {
-        // Keep defaults on failure.
-      }
-    }
-    loadWorkHours();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
 
   // Load tasks from the real API, merging localStorage enrichment for linkedEventId
   useEffect(() => {
