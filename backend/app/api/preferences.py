@@ -31,9 +31,15 @@ def _send_notifications_confirmation(user_id: str, user_email: str) -> None:
     async def _do_send():
         try:
             user = await UserRepository.get_by_id(user_id)
-            if user and user.google_tokens and user_email:
+            if not user or not user_email:
+                return
+            # Gmail token is stored in connected_services.gmail (incremental OAuth)
+            gmail_tokens = user.connected_services.get("gmail", {})
+            # Fallback to legacy google_tokens if connected_services.gmail not present
+            tokens = gmail_tokens if gmail_tokens.get("access_token") else user.google_tokens
+            if tokens:
                 await send_notifications_enabled_confirmation(
-                    user_email, user.google_tokens
+                    user_email, tokens
                 )
         except Exception as e:
             logger.warning(

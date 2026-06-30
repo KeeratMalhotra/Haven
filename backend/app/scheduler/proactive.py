@@ -236,20 +236,24 @@ async def _check_user_deadlines(
         if not manager.is_connected(user_id):
             try:
                 user = await UserRepository.get_by_id(user_id)
-                if user and user.email and user.google_tokens:
-                    prefs = user.notification_preferences
-                    email_enabled = prefs.get("email_notifications", True)
-                    urgent_only = prefs.get("email_for_urgent_only", False)
+                if user and user.email:
+                    # Gmail token is in connected_services.gmail (incremental OAuth)
+                    gmail_tokens = user.connected_services.get("gmail", {})
+                    tokens = gmail_tokens if gmail_tokens.get("access_token") else user.google_tokens
+                    if tokens:
+                        prefs = user.notification_preferences
+                        email_enabled = prefs.get("email_notifications", True)
+                        urgent_only = prefs.get("email_for_urgent_only", False)
 
-                    # Respect notification preferences
-                    should_send = email_enabled and (
-                        not urgent_only or urgency in ("critical", "urgent")
-                    )
-
-                    if should_send:
-                        email_sent = await _send_nudge_email(
-                            user.email, nudge_message, task.title, user.google_tokens
+                        # Respect notification preferences
+                        should_send = email_enabled and (
+                            not urgent_only or urgency in ("critical", "urgent")
                         )
+
+                        if should_send:
+                            email_sent = await _send_nudge_email(
+                                user.email, nudge_message, task.title, tokens
+                            )
             except Exception as e:
                 logger.error(f"Error sending email fallback for user {user_id}: {e}")
 
