@@ -11,6 +11,7 @@ import {
   Tag,
   Flag,
   ChevronRight,
+  Presentation,
 } from "lucide-react";
 import type { TaskLabel } from "./LabelManager";
 
@@ -26,6 +27,7 @@ export interface ContextMenuActions {
   onMoveTo: (status: "todo" | "inprogress" | "done") => void;
   onAddLabel: (label: TaskLabel) => void;
   onSetPriority: (priority: "high" | "medium" | "low" | "none") => void;
+  onCreatePresentation?: () => void;
 }
 
 interface TaskContextMenuProps {
@@ -136,6 +138,19 @@ export function TaskContextMenu({
                 hasSubmenu
                 onClick={() => setSubMenu("priority")}
               />
+              {actions.onCreatePresentation && (
+                <>
+                  <MenuDivider />
+                  <MenuItem
+                    icon={<Presentation size={14} />}
+                    label="Create Presentation"
+                    onClick={() => {
+                      actions.onCreatePresentation!();
+                      onClose();
+                    }}
+                  />
+                </>
+              )}
               <MenuDivider />
               <MenuItem
                 icon={<Trash2 size={14} />}

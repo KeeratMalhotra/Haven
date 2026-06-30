@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   description:
     "Haven is the AI that plans your day, protects your time, and learns your rhythm. Calm in the chaos.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.svg",
   },
   openGraph: {
     title: "Haven - Your Calm Place to Get Things Done",

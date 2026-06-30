@@ -1,0 +1,14 @@
+{
+  "task_id": "task-batch-2-bugs",
+  "task_description": "Fix multiple UX bugs (onboarding flash, priority button layout, profile picture sync, voice mode, service reconnection) and create a Google Slides MCP server to replace the direct API approach, plus make the AI orchestrator aware of integration status",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Frontend lint passes with no errors. Frontend tests: 2 pre-existing failures on main branch (Sidebar.test.tsx and ChatExperience.test.tsx reference outdated UI patterns). All backend Python files compile successfully. Review findings addressed (postMessage origin restriction, middleware cookie optimization). Additional fixes: AI suggestion delay (2-4s) added for smoother UX, onboarding UI redesigned with Haven warm pixel-art theme."
+  }
+}

@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   useRef,
 } from "react";
 import { useSession } from "next-auth/react";
@@ -42,6 +43,17 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
   >([]);
   // Deduplication: track recently fired suggestion keys with cooldown (5 minutes)
   const firedSuggestionsRef = useRef<Map<string, number>>(new Map());
+  // Track pending local suggestion timeouts so they can be cleared on unmount
+  const localTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Clear any pending local suggestion timeouts on unmount to avoid
+  // state updates after the provider has unmounted.
+  useEffect(() => {
+    const timeouts = localTimeoutsRef.current;
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, []);
 
   const dismissSuggestion = useCallback((id: string) => {
     setSuggestions((prev) =>
@@ -85,15 +97,20 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const localSuggestion: AISuggestion = {
-          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          text,
-          type,
-          actions: [],
-          timestamp: Date.now(),
-          dismissed: false,
-        };
-        addNotification(localSuggestion);
+        // Add a random delay (2-4s) so suggestions feel like the AI "thought about it"
+        const delay = 2000 + Math.random() * 2000;
+        const timeoutId = setTimeout(() => {
+          const localSuggestion: AISuggestion = {
+            id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            text,
+            type,
+            actions: [],
+            timestamp: Date.now(),
+            dismissed: false,
+          };
+          addNotification(localSuggestion);
+        }, delay);
+        localTimeoutsRef.current.push(timeoutId);
       };
 
       // Task without deadline

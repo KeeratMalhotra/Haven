@@ -14,6 +14,10 @@ interface AIChatPanelProps {
   detached?: boolean;
   onDetach?: () => void;
   onAttach?: () => void;
+  /** Optional message to auto-send once the panel is open and connected. */
+  initialMessage?: string;
+  /** Called after the initialMessage has been sent so the parent can clear it. */
+  onInitialMessageSent?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -30,10 +34,14 @@ export default function AIChatPanel({
   detached = false,
   onDetach,
   onAttach,
+  initialMessage,
+  onInitialMessageSent,
 }: AIChatPanelProps) {
-  const { setConnection } = useConnectionState();
+  const { connection, setConnection } = useConnectionState();
   const sendRef = useRef<((content: string) => void) | null>(null);
   const dragConstraintsRef = useRef<HTMLDivElement>(null);
+  // Guards the initialMessage auto-send so it fires exactly once per message.
+  const initialMessageSentRef = useRef(false);
 
   // Close on Escape
   const handleKeyDown = useCallback(
@@ -53,6 +61,28 @@ export default function AIChatPanel({
   const handleSendReady = useCallback((sendFn: (content: string) => void) => {
     sendRef.current = sendFn;
   }, []);
+
+  // Reset the send guard whenever there is no pending message, so the next
+  // prefilled message (e.g. a different dashboard chip) can be auto-sent.
+  useEffect(() => {
+    if (!initialMessage || !initialMessage.trim()) {
+      initialMessageSentRef.current = false;
+    }
+  }, [initialMessage]);
+
+  // Auto-send the prefilled message exactly once, once the panel is open, the
+  // connection is ready, and the send function is available.
+  useEffect(() => {
+    if (!open) return;
+    if (!initialMessage || !initialMessage.trim()) return;
+    if (initialMessageSentRef.current) return;
+    if (connection !== "connected") return;
+    if (!sendRef.current) return;
+
+    initialMessageSentRef.current = true;
+    sendRef.current(initialMessage);
+    onInitialMessageSent?.();
+  }, [open, initialMessage, connection, onInitialMessageSent]);
 
   const handleSuggestionClick = useCallback((suggestion: string) => {
     if (sendRef.current) {

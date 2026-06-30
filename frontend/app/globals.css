@@ -18,15 +18,15 @@
   --surface-elevated: #fffefb;
   --border: #e9e3d9;
   --border-subtle: #f1ede4;
-  --border-focus: #6366f1;
+  --border-focus: #dd8a5a;
   --text-primary: #2b2722;
   --text-secondary: #6b6359;
   --text-tertiary: #9c9389;
   --text-inverse: #fffefb;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-subtle: #eef0ff;
-  --accent-muted: rgba(99, 102, 241, 0.06);
+  --accent: #dd8a5a;
+  --accent-hover: #c96f3e;
+  --accent-subtle: #fae9da;
+  --accent-muted: rgba(221, 138, 90, 0.06);
   --warm: #e8a87c;
   --warm-glow: rgba(232, 168, 124, 0.12);
   --shadow-color: 30 12% 35%;
@@ -43,15 +43,15 @@
   --surface-elevated: #1e1c1a;
   --border: #2f2c29;
   --border-subtle: #211f1d;
-  --border-focus: #818cf8;
+  --border-focus: #e8a87c;
   --text-primary: #ece9e4;
   --text-secondary: #a8a39c;
   --text-tertiary: #847e76;
   --text-inverse: #131211;
-  --accent: #818cf8;
-  --accent-hover: #6366f1;
-  --accent-subtle: #1f1d2e;
-  --accent-muted: rgba(129, 140, 248, 0.06);
+  --accent: #e8a87c;
+  --accent-hover: #dd8a5a;
+  --accent-subtle: #2a201a;
+  --accent-muted: rgba(232, 168, 124, 0.06);
   --warm: #e8a87c;
   --warm-glow: rgba(232, 168, 124, 0.1);
   --shadow-color: 24 30% 2%;
@@ -120,7 +120,7 @@ body {
    ============================================================ */
 
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  background: linear-gradient(135deg, #e8a87c 0%, #dd8a5a 50%, #c96f3e 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -272,10 +272,10 @@ body {
 .thinking-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(99, 102, 241, 0) 0%,
-    rgba(99, 102, 241, 0.8) 25%,
-    rgba(139, 92, 246, 0.8) 60%,
-    rgba(139, 92, 246, 0) 100%
+    rgba(232, 168, 124, 0) 0%,
+    rgba(232, 168, 124, 0.8) 25%,
+    rgba(221, 138, 90, 0.8) 60%,
+    rgba(221, 138, 90, 0) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 2.6s linear infinite;

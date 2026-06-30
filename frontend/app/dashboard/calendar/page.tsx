@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar as CalendarIcon,
@@ -46,7 +47,7 @@ import {
   deleteCalendarEvent,
   type CalendarEvent,
 } from "@/lib/api";
-import { updateCalendarEvent } from "@/lib/api-extended";
+import { updateCalendarEvent, fetchPreferences } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import AISuggestionBanner from "@/components/ai/AISuggestionBanner";
 import { Button } from "@/components/ui/Button";
@@ -56,11 +57,13 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { safeParseDate, safeFormat, isDateOnly } from "@/lib/date-utils";
-import Link from "next/link";
 
 type CalendarView = "month" | "week" | "day";
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
+// Default display window (matches an 8 AM–8 PM work day: start-1, end+2) until
+// the user's saved work hours load.
+const DEFAULT_GRID_START = 7;
+const DEFAULT_GRID_END = 22;
 const DURATION_OPTIONS = [
   { label: "15 min", value: 15 },
   { label: "30 min", value: 30 },
@@ -166,12 +169,16 @@ function TimeBlock({
   dayStart,
   isDragging,
   overlapInfo,
+  gridStart,
+  gridEnd,
 }: {
   event: CalendarEvent;
   onClick: () => void;
   dayStart: Date;
   isDragging?: boolean;
   overlapInfo?: OverlapInfo;
+  gridStart: number;
+  gridEnd: number;
 }) {
   // Safe parse: callers already filter out events without a valid timed start,
   // but guard defensively so a bad payload can never throw during render.
@@ -198,8 +205,8 @@ function TimeBlock({
   const startMinuteOfDay = startDate.getMinutes();
   const duration = Math.max(0, differenceInMinutes(endDate, startDate));
 
-  // Accurate positioning: top = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT
-  const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
+  // Accurate positioning: top = ((startHour - gridStart) * 60 + startMinutes) / 60 * ROW_HEIGHT
+  const minutesFromStart = (startHour - gridStart) * 60 + startMinuteOfDay;
   const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
   // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 28px
   const height = Math.max(28, (duration / 60) * ROW_HEIGHT);
@@ -213,7 +220,7 @@ function TimeBlock({
   const isSecondaryOverlap = overlapIndex > 0;
 
   // Clamp the block so it can never overflow the bottom of the hour grid.
-  const gridHeight = HOURS.length * ROW_HEIGHT;
+  const gridHeight = (gridEnd - gridStart + 1) * ROW_HEIGHT;
   const clampedHeight = Math.min(height, Math.max(28, gridHeight - top));
 
   // Conditional sizing: compact for short events, spacious for tall ones
@@ -309,19 +316,26 @@ function DroppableTimeSlot({
 }
 
 // Current time indicator (hydration-safe: only renders after mount)
-function CurrentTimeIndicator() {
+function CurrentTimeIndicator({
+  gridStart,
+  gridEnd,
+}: {
+  gridStart: number;
+  gridEnd: number;
+}) {
   const [top, setTop] = useState<number | null>(null);
 
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      const mins = (now.getHours() - 6) * 60 + now.getMinutes();
-      setTop(mins >= 0 && mins <= 18 * 60 ? (mins / 60) * 64 : null);
+      const mins = (now.getHours() - gridStart) * 60 + now.getMinutes();
+      const gridMinutes = (gridEnd - gridStart + 1) * 60;
+      setTop(mins >= 0 && mins <= gridMinutes ? (mins / 60) * ROW_HEIGHT : null);
     };
     update();
     const interval = setInterval(update, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [gridStart, gridEnd]);
 
   if (top === null) return null;
 
@@ -338,10 +352,11 @@ function CurrentTimeIndicator() {
   );
 }
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const { data: session } = useSession();
   const accessToken = (session as { accessToken?: string })?.accessToken || "";
   const { reportAction, suggestions, dismissSuggestion } = useAI();
+  const searchParams = useSearchParams();
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -351,8 +366,42 @@ export default function CalendarPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [navDirection, setNavDirection] = useState(0);
-  const [calendarDisconnected, setCalendarDisconnected] = useState(false);
-  const [calendarQueueCount, setCalendarQueueCount] = useState(0);
+
+  // Display window for the hour grid, derived from the user's saved work hours.
+  // Defaults match an 8 AM–8 PM work day (start-1, end+2) until prefs load.
+  const [gridStart, setGridStart] = useState(DEFAULT_GRID_START);
+  const [gridEnd, setGridEnd] = useState(DEFAULT_GRID_END);
+  const HOURS = useMemo(
+    () => Array.from({ length: gridEnd - gridStart + 1 }, (_, i) => i + gridStart),
+    [gridStart, gridEnd]
+  );
+
+  // Fetch the user's work hours and compute the visible grid window.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkHours() {
+      try {
+        const { preferences } = await fetchPreferences(accessToken);
+        const workStart =
+          typeof preferences?.work_hours_start === "number"
+            ? preferences.work_hours_start
+            : 8;
+        const workEnd =
+          typeof preferences?.work_hours_end === "number"
+            ? preferences.work_hours_end
+            : 20;
+        if (cancelled) return;
+        setGridStart(Math.max(0, workStart - 1));
+        setGridEnd(Math.min(23, workEnd + 2));
+      } catch {
+        // Keep defaults on failure.
+      }
+    }
+    loadWorkHours();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   // Detect mobile viewport for responsive view override
   useEffect(() => {
@@ -364,38 +413,26 @@ export default function CalendarPage() {
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
 
-  // Check if Google Calendar is connected via cached integration status
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem("chronai-integration-status-cache");
-      if (cached) {
-        const status = JSON.parse(cached);
-        setCalendarDisconnected(!status?.calendar?.connected);
-      } else {
-        setCalendarDisconnected(true);
-      }
-    } catch {
-      setCalendarDisconnected(true);
-    }
-
-    // Check offline calendar queue count
-    try {
-      const queue = localStorage.getItem("chronai-calendar-queue");
-      if (queue) {
-        const parsed = JSON.parse(queue);
-        if (Array.isArray(parsed)) setCalendarQueueCount(parsed.length);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   // Effective view: override week to day on mobile
   const effectiveView: CalendarView = (view === "week" && isMobile) ? "day" : view;
 
+  // Open the create-event modal once when navigated here with ?new=1 (e.g.
+  // from the TopBar "Add Event" quick action), then strip the param so a
+  // refresh doesn't reopen it.
+  const openedCreateFromQuery = useRef(false);
+  useEffect(() => {
+    if (openedCreateFromQuery.current) return;
+    if (searchParams.get("new") !== "1") return;
+    openedCreateFromQuery.current = true;
+    setShowCreateModal(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, [searchParams]);
+
   // Create event form
   const [newSummary, setNewSummary] = useState("");
-  const [newDate, setNewDate] = useState("");
+  const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newTime, setNewTime] = useState("09:00");
   const [newDuration, setNewDuration] = useState(60);
   const [creatingEvent, setCreatingEvent] = useState(false);
@@ -412,18 +449,6 @@ export default function CalendarPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
-
-  // Helper: add an operation to the offline calendar queue
-  const enqueueCalendarOperation = useCallback((operation: { type: string; data: any; timestamp: number }) => {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-calendar-queue") || "[]");
-      queue.push(operation);
-      localStorage.setItem("chronai-calendar-queue", JSON.stringify(queue));
-      setCalendarQueueCount(queue.length);
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
 
   // Scroll container refs for day/week views
   const weekScrollRef = useRef<HTMLDivElement>(null);
@@ -600,12 +625,12 @@ export default function CalendarPage() {
       if (!container) return;
       const now = new Date();
       const targetHour = now.getHours() < 8 ? 8 : now.getHours();
-      // Scroll to: (targetHour - 6) * ROW_HEIGHT, minus some padding so it's not at the very top
-      const scrollTarget = Math.max(0, (targetHour - 6) * ROW_HEIGHT - 32);
+      // Scroll to: (targetHour - gridStart) * ROW_HEIGHT, minus some padding so it's not at the very top
+      const scrollTarget = Math.max(0, (targetHour - gridStart) * ROW_HEIGHT - 32);
       container.scrollTo({ top: scrollTarget, behavior: "smooth" });
     }, 100);
     return () => clearTimeout(timer);
-  }, [effectiveView, currentDate]);
+  }, [effectiveView, currentDate, gridStart]);
 
   // Navigation
   const navigatePrev = () => {
@@ -706,7 +731,7 @@ export default function CalendarPage() {
         duration: newDuration,
       });
     } catch {
-      // If API fails, add locally
+      // If API fails, add locally as a fallback
       const startISO = new Date(startTime).toISOString();
       const endISO = new Date(
         new Date(startTime).getTime() + newDuration * 60000
@@ -720,14 +745,6 @@ export default function CalendarPage() {
           end: endISO,
         },
       ]);
-      // Queue for later sync if disconnected
-      if (calendarDisconnected) {
-        enqueueCalendarOperation({
-          type: "create",
-          data: { summary: newSummary.trim(), start_time: startTime, duration_minutes: newDuration },
-          timestamp: Date.now(),
-        });
-      }
     } finally {
       setCreatingEvent(false);
     }
@@ -746,14 +763,7 @@ export default function CalendarPage() {
       try {
         await deleteCalendarEvent(accessToken, event.id);
       } catch {
-        // Queue for later sync if disconnected
-        if (calendarDisconnected) {
-          enqueueCalendarOperation({
-            type: "delete",
-            data: { eventId: event.id },
-            timestamp: Date.now(),
-          });
-        }
+        // API failed - event already removed from local state
       }
     }
     setEvents((prev) => prev.filter((e) => (event.id ? e.id !== event.id : e !== event)));
@@ -865,31 +875,6 @@ export default function CalendarPage() {
           </div>
         );
       })()}
-
-      {/* Connect Google Calendar Banner */}
-      {calendarDisconnected && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
-            Google Calendar is not connected. Connect in Settings to sync your events.
-          </p>
-          <Link
-            href="/dashboard/settings"
-            className="flex-shrink-0 rounded-lg bg-accent-500/10 px-3 py-1.5 text-xs font-medium text-accent-500 hover:bg-accent-500/20 transition-colors"
-          >
-            Connect
-          </Link>
-        </div>
-      )}
-
-      {/* Pending Sync Indicator */}
-      {calendarQueueCount > 0 && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-warning-500/20 bg-warning-500/5 px-4 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
-          <p className="text-xs font-medium text-warning-600 dark:text-warning-400">
-            {calendarQueueCount} change{calendarQueueCount !== 1 ? "s" : ""} pending sync
-          </p>
-        </div>
-      )}
 
       {/* Content */}
       {loading ? (
@@ -1075,12 +1060,14 @@ export default function CalendarPage() {
                                 onClick={() => openEditModal(event)}
                                 isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
                                 overlapInfo={overlaps.get(key)}
+                                gridStart={gridStart}
+                                gridEnd={gridEnd}
                               />
                             );
                           });
                         })()}
                         {/* Current time indicator */}
-                        {isToday(day) && <CurrentTimeIndicator />}
+                        {isToday(day) && <CurrentTimeIndicator gridStart={gridStart} gridEnd={gridEnd} />}
                       </div>
                     ))}
                   </div>
@@ -1165,12 +1152,14 @@ export default function CalendarPage() {
                               onClick={() => openEditModal(event)}
                               isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
                               overlapInfo={overlaps.get(key)}
+                              gridStart={gridStart}
+                              gridEnd={gridEnd}
                             />
                           );
                         });
                       })()}
                       {/* Current time indicator */}
-                      {isToday(currentDate) && <CurrentTimeIndicator />}
+                      {isToday(currentDate) && <CurrentTimeIndicator gridStart={gridStart} gridEnd={gridEnd} />}
                     </div>
                   </div>
                 </div>
@@ -1208,6 +1197,7 @@ export default function CalendarPage() {
               label="Date"
               type="date"
               value={editDate}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setEditDate(e.target.value)}
             />
             <Input
@@ -1288,6 +1278,7 @@ export default function CalendarPage() {
               label="Date"
               type="date"
               value={newDate}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setNewDate(e.target.value)}
             />
             <Input
@@ -1339,5 +1330,15 @@ export default function CalendarPage() {
       </Modal>
     </motion.div>
     </ErrorBoundary>
+  );
+}
+
+
+export default function CalendarPage() {
+  // useSearchParams requires a Suspense boundary in Next.js 15.
+  return (
+    <Suspense fallback={null}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckSquare,
@@ -23,7 +22,6 @@ import {
   Flag,
   BookTemplate,
   Mail,
-  Presentation,
   Search,
   Star,
 } from "lucide-react";
@@ -97,6 +95,7 @@ interface LocalTask extends TaskItem {
   recurrence?: RecurrenceConfig | null;
   labels?: TaskLabel[];
   source?: "gmail" | "manual";
+  completedAt?: string;
 }
 
 type ViewMode = "board" | "list";
@@ -678,18 +677,14 @@ function TaskDetailPanel({
   onUpdate,
   onDelete,
   allLabels,
-  onCreatePresentation,
   accessToken,
-  slidesDisconnected,
 }: {
   task: LocalTask;
   onClose: () => void;
   onUpdate: (updated: LocalTask) => void;
   onDelete: () => void;
   allLabels: TaskLabel[];
-  onCreatePresentation?: () => void;
   accessToken?: string;
-  slidesDisconnected?: boolean;
 }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes || "");
@@ -818,6 +813,7 @@ function TaskDetailPanel({
           <input
             type="date"
             value={due ? due.split("T")[0] : ""}
+            min={new Date().toISOString().split("T")[0]}
             onChange={(e) => {
               const val = e.target.value;
               setDue(val);
@@ -947,30 +943,6 @@ function TaskDetailPanel({
             </div>
           )}
         </div>
-        {/* Create Presentation action */}
-        {onCreatePresentation && (
-          <div className="pt-3 border-t border-[var(--border)]">
-            <div className="relative group/slides">
-              <button
-                onClick={slidesDisconnected ? undefined : onCreatePresentation}
-                disabled={slidesDisconnected}
-                className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium border border-[var(--border)] transition-colors ${
-                  slidesDisconnected
-                    ? "text-[var(--text-tertiary)] dark:text-[#847e76] opacity-50 cursor-not-allowed"
-                    : "text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-accent-500 hover:bg-accent-500/5 hover:border-accent-500/30"
-                }`}
-              >
-                <Presentation size={15} strokeWidth={1.5} />
-                Create Presentation
-              </button>
-              {slidesDisconnected && (
-                <div className="absolute bottom-full mb-1 left-0 z-50 hidden group-hover/slides:block whitespace-nowrap rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] shadow-lg">
-                  Connect Google Slides in Settings to use this feature
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </motion.div>
   );
@@ -1016,7 +988,7 @@ function TasksPageContent() {
   // New task form state
   const [newTitle, setNewTitle] = useState("");
   const [newNotes, setNewNotes] = useState("");
-  const [newDue, setNewDue] = useState("");
+  const [newDue, setNewDue] = useState(new Date().toISOString().split("T")[0]);
   const [newPriority, setNewPriority] = useState<LocalTask["priority"]>("none");
   const [newRecurrence, setNewRecurrence] = useState<RecurrenceConfig | null>(null);
 
@@ -1027,63 +999,29 @@ function TasksPageContent() {
   const [showGmailScan, setShowGmailScan] = useState(false);
   const [showSlidesGenerator, setShowSlidesGenerator] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
-  const [tasksDisconnected, setTasksDisconnected] = useState(false);
   const [gmailDisconnected, setGmailDisconnected] = useState(false);
-  const [slidesDisconnected, setSlidesDisconnected] = useState(false);
-
-  // Offline queue state
-  const [taskQueueCount, setTaskQueueCount] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
-
-  // Helper: add an operation to the offline task queue
-  const enqueueTaskOperation = useCallback((operation: { type: string; data: any; timestamp: number }) => {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-task-queue") || "[]");
-      queue.push(operation);
-      localStorage.setItem("chronai-task-queue", JSON.stringify(queue));
-      setTaskQueueCount(queue.length);
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
 
   // Set page title
   useEffect(() => {
     document.title = "Tasks | Haven";
   }, []);
 
-  // Check if Google Tasks is connected via cached integration status
+  // Check integration status for Gmail (optional service)
   useEffect(() => {
     try {
       const cached = localStorage.getItem("chronai-integration-status-cache");
       if (cached) {
         const status = JSON.parse(cached);
-        setTasksDisconnected(!status?.tasks?.connected);
         setGmailDisconnected(!status?.gmail?.connected);
-        setSlidesDisconnected(!status?.slides?.connected);
       } else {
-        setTasksDisconnected(true);
         setGmailDisconnected(true);
-        setSlidesDisconnected(true);
       }
     } catch {
-      setTasksDisconnected(true);
       setGmailDisconnected(true);
-      setSlidesDisconnected(true);
-    }
-
-    // Also check offline task queue count
-    try {
-      const queue = localStorage.getItem("chronai-task-queue");
-      if (queue) {
-        const parsed = JSON.parse(queue);
-        if (Array.isArray(parsed)) setTaskQueueCount(parsed.length);
-      }
-    } catch {
-      // ignore
     }
   }, []);
 
@@ -1107,76 +1045,91 @@ function TasksPageContent() {
 
       // Fetch from API
       let apiTasks: TaskItem[] = [];
-      try {
-        apiTasks = await fetchTasks(accessToken);
-      } catch { }
 
       let finalTasks: LocalTask[];
+      let apiCallSucceeded = false;
 
-      if (apiTasks.length > 0) {
-        // API is the source of truth for WHICH tasks exist.
-        // Merge local enrichments (status, priority, labels, recurrence) onto API tasks.
+      try {
+        apiTasks = await fetchTasks(accessToken);
+        apiCallSucceeded = true;
+      } catch {
+        apiCallSucceeded = false;
+      }
 
-        // Build lookups from local tasks
-        const localById = new Map<string, LocalTask>();
-        const localByTitle = new Map<string, LocalTask>();
-        for (const lt of localTasks) {
-          if (lt.id) localById.set(lt.id, lt);
-          // For title matching, use first occurrence only
-          if (lt.title && !localByTitle.has(lt.title)) {
-            localByTitle.set(lt.title, lt);
-          }
-        }
+      if (apiCallSucceeded) {
+        // API call succeeded - API is the authoritative source of truth.
+        // Even if API returns empty (new user), we trust it over stale localStorage.
 
-        // Track which local tasks got matched (so we can keep unsynced local-only tasks)
-        const matchedLocalIds = new Set<string>();
+        if (apiTasks.length > 0) {
+          // Merge local enrichments (status, priority, labels, recurrence) onto API tasks.
 
-        // Merge: for each API task, find local enrichment
-        const mergedTasks: LocalTask[] = apiTasks.map((apiTask, i) => {
-          const apiId = apiTask.id || `task-api-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
-
-          // Try ID match first
-          let localMatch = localById.get(apiId);
-
-          // If no ID match, try title match
-          if (!localMatch && apiTask.title) {
-            localMatch = localByTitle.get(apiTask.title);
+          // Build lookups from local tasks
+          const localById = new Map<string, LocalTask>();
+          const localByTitle = new Map<string, LocalTask>();
+          for (const lt of localTasks) {
+            if (lt.id) localById.set(lt.id, lt);
+            // For title matching, use first occurrence only
+            if (lt.title && !localByTitle.has(lt.title)) {
+              localByTitle.set(lt.title, lt);
+            }
           }
 
-          if (localMatch) {
-            matchedLocalIds.add(localMatch.id);
-            // Preserve local enrichments, but use the API's canonical ID and title/notes/due
+          // Track which local tasks got matched (so we can keep unsynced local-only tasks)
+          const matchedLocalIds = new Set<string>();
+
+          // Merge: for each API task, find local enrichment
+          const mergedTasks: LocalTask[] = apiTasks.map((apiTask, i) => {
+            const apiId = apiTask.id || `task-api-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
+
+            // Try ID match first
+            let localMatch = localById.get(apiId);
+
+            // If no ID match, try title match
+            if (!localMatch && apiTask.title) {
+              localMatch = localByTitle.get(apiTask.title);
+            }
+
+            if (localMatch) {
+              matchedLocalIds.add(localMatch.id);
+              // Preserve local enrichments, but use the API's canonical ID and title/notes/due
+              return {
+                ...apiTask,
+                id: apiId,
+                status: localMatch.status || (apiTask.completed ? "done" : "todo"),
+                priority: localMatch.priority || "none",
+                recurrence: localMatch.recurrence || null,
+                labels: localMatch.labels || [],
+                subtasks: localMatch.subtasks || apiTask.subtasks || [],
+              } as LocalTask;
+            }
+
+            // Truly new task from API
             return {
               ...apiTask,
               id: apiId,
-              status: localMatch.status || (apiTask.completed ? "done" : "todo"),
-              priority: localMatch.priority || "none",
-              recurrence: localMatch.recurrence || null,
-              labels: localMatch.labels || [],
-              subtasks: localMatch.subtasks || apiTask.subtasks || [],
+              status: apiTask.completed ? "done" : "todo",
+              priority: "none" as const,
+              recurrence: null,
+              labels: [],
             } as LocalTask;
-          }
+          });
 
-          // Truly new task from API
-          return {
-            ...apiTask,
-            id: apiId,
-            status: apiTask.completed ? "done" : "todo",
-            priority: "none" as const,
-            recurrence: null,
-            labels: [],
-          } as LocalTask;
-        });
+          // Add local-only tasks that haven't been synced yet (recently created offline)
+          // These have IDs starting with "task-" (locally generated) and weren't matched
+          const localOnlyTasks = localTasks.filter(
+            (lt) => !matchedLocalIds.has(lt.id) && lt.id.startsWith("task-")
+          );
 
-        // Add local-only tasks that haven't been synced yet (recently created offline)
-        // These have IDs starting with "task-" (locally generated) and weren't matched
-        const localOnlyTasks = localTasks.filter(
-          (lt) => !matchedLocalIds.has(lt.id) && lt.id.startsWith("task-")
-        );
-
-        finalTasks = [...mergedTasks, ...localOnlyTasks];
+          finalTasks = [...mergedTasks, ...localOnlyTasks];
+        } else {
+          // API succeeded but returned empty (new user) - clear stale localStorage
+          finalTasks = [];
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch { }
+        }
       } else if (localTasks.length > 0) {
-        // API failed/empty but we have local tasks
+        // API failed but we have local tasks - use them as offline fallback
         finalTasks = localTasks;
       } else {
         finalTasks = [];
@@ -1189,6 +1142,46 @@ function TasksPageContent() {
         seenIds.add(t.id);
         return true;
       });
+
+      // Auto-create today's instance for recurring daily tasks if their last
+      // completed date (or due date) is before today.
+      const today = new Date().toISOString().split("T")[0];
+      const newRecurring: LocalTask[] = [];
+      for (const task of finalTasks) {
+        if (
+          task.recurrence &&
+          task.recurrence.type === "daily" &&
+          task.status === "done" &&
+          task.due
+        ) {
+          const taskDue = task.due.split("T")[0];
+          if (taskDue < today) {
+            // Check if there is already a todo instance for today with the same title
+            const alreadyExists = finalTasks.some(
+              (t) =>
+                t.title === task.title &&
+                t.status !== "done" &&
+                t.due &&
+                t.due.split("T")[0] === today
+            ) || newRecurring.some(
+              (t) => t.title === task.title && t.due === today
+            );
+            if (!alreadyExists) {
+              newRecurring.push({
+                ...task,
+                id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                status: "todo",
+                completed: false,
+                completedAt: undefined,
+                due: today,
+              });
+            }
+          }
+        }
+      }
+      if (newRecurring.length > 0) {
+        finalTasks = [...newRecurring, ...finalTasks];
+      }
 
       setTasks(finalTasks);
       isHydrated.current = true;
@@ -1225,6 +1218,20 @@ function TasksPageContent() {
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [loading, tasks, searchParams]);
+
+  // Open the create-task modal once when navigated here with ?new=1 (e.g. from
+  // the TopBar "Add Task" quick action), then strip the param so a refresh
+  // doesn't reopen it.
+  const openedCreateFromQuery = useRef(false);
+  useEffect(() => {
+    if (openedCreateFromQuery.current) return;
+    if (searchParams.get("new") !== "1") return;
+    openedCreateFromQuery.current = true;
+    setShowCreateModal(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, [searchParams]);
 
   // Task helpers - apply label filter and text search
   const filteredTasks = useMemo(() => {
@@ -1272,7 +1279,7 @@ function TasksPageContent() {
     setTasks((prev) => [task, ...prev]);
     setNewTitle("");
     setNewNotes("");
-    setNewDue("");
+    setNewDue(new Date().toISOString().split("T")[0]);
     setNewPriority("none");
     setNewRecurrence(null);
     setShowCreateModal(false);
@@ -1294,14 +1301,7 @@ function TasksPageContent() {
         );
       }
     } catch {
-      // API failed - queue for later if disconnected
-      if (tasksDisconnected) {
-        enqueueTaskOperation({
-          type: "create",
-          data: { title: task.title, notes: task.notes || "", due_days_from_now: dueDays },
-          timestamp: Date.now(),
-        });
-      }
+      // API failed - task remains in local state
     } finally {
       setCreatingTask(false);
     }
@@ -1321,14 +1321,7 @@ function TasksPageContent() {
     if (accessToken && taskId) {
       apiUpdateTask(accessToken, taskId, { completed: newCompleted }).catch(
         () => {
-          // API failed - queue if disconnected
-          if (tasksDisconnected) {
-            enqueueTaskOperation({
-              type: "update",
-              data: { taskId, completed: newCompleted },
-              timestamp: Date.now(),
-            });
-          }
+          // API failed - task state already updated locally
         }
       );
     }
@@ -1361,7 +1354,7 @@ function TasksPageContent() {
 
       return updated;
     });
-  }, [accessToken, reportAction, tasksDisconnected, enqueueTaskOperation]);
+  }, [accessToken, reportAction]);
 
   const handleUpdateTask = useCallback((updated: LocalTask) => {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -1388,17 +1381,10 @@ function TasksPageContent() {
     // Call API to delete from Google Tasks
     if (accessToken && taskId) {
       apiDeleteTask(accessToken, taskId).catch(() => {
-        // API failed - queue if disconnected
-        if (tasksDisconnected) {
-          enqueueTaskOperation({
-            type: "delete",
-            data: { taskId },
-            timestamp: Date.now(),
-          });
-        }
+        // API failed - task already removed from local state
       });
     }
-  }, [accessToken, reportAction, tasksDisconnected, enqueueTaskOperation]);
+  }, [accessToken, reportAction]);
 
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -1579,6 +1565,9 @@ function TasksPageContent() {
             )
           );
         },
+        onCreatePresentation: (contextMenu.task.notes || (contextMenu.task.subtasks && contextMenu.task.subtasks.length > 0))
+          ? () => { setSelectedTask(contextMenu.task); setShowSlidesGenerator(true); }
+          : undefined,
       }
     : null;
 
@@ -1825,31 +1814,6 @@ function TasksPageContent() {
         );
       })()}
 
-      {/* Connect Google Tasks Banner */}
-      {tasksDisconnected && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
-            Google Tasks is not connected. Your changes are saved locally.
-          </p>
-          <Link
-            href="/dashboard/settings"
-            className="flex-shrink-0 rounded-lg bg-accent-500/10 px-3 py-1.5 text-xs font-medium text-accent-500 hover:bg-accent-500/20 transition-colors"
-          >
-            Connect
-          </Link>
-        </div>
-      )}
-
-      {/* Pending Sync Indicator */}
-      {taskQueueCount > 0 && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-warning-500/20 bg-warning-500/5 px-4 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
-          <p className="text-xs font-medium text-warning-600 dark:text-warning-400">
-            {taskQueueCount} change{taskQueueCount !== 1 ? "s" : ""} pending sync
-          </p>
-        </div>
-      )}
-
       {/* Content */}
       {loading ? (
         <div className="flex gap-4">
@@ -1998,6 +1962,7 @@ function TasksPageContent() {
               label="Due Date"
               type="date"
               value={newDue}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setNewDue(e.target.value)}
             />
             <div className="flex flex-col gap-1.5">
@@ -2046,9 +2011,7 @@ function TasksPageContent() {
               onUpdate={handleUpdateTask}
               onDelete={() => setDeleteTarget(selectedTask)}
               allLabels={allLabels}
-              onCreatePresentation={() => setShowSlidesGenerator(true)}
               accessToken={accessToken}
-              slidesDisconnected={slidesDisconnected}
             />
           </>
         )}

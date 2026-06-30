@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
@@ -886,7 +887,17 @@ function Nav() {
 /* ------------------------------------------------------------------ */
 
 export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingContent />
+    </Suspense>
+  );
+}
+
+function LandingContent() {
   const reduce = useReducedMotion();
+  const searchParams = useSearchParams();
+  const authError = searchParams.get("error");
 
   useEffect(() => {
     const body = document.body;
@@ -911,6 +922,13 @@ export default function LandingPage() {
 
   return (
     <div id="top" className="relative w-full bg-[var(--bg)]">
+      {/* Permission denied error banner */}
+      {authError && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center bg-red-500/95 px-4 py-3 text-center text-sm font-medium text-white shadow-lg backdrop-blur-sm">
+          Haven needs access to your calendar, tasks, and slides to work. Please grant all permissions to continue.
+        </div>
+      )}
+
       {/* Ambient color blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute top-[40%] -right-[8%] h-[520px] w-[520px] rounded-full bg-clay-400/[0.12] blur-[120px] animate-aurora" />
@@ -1050,7 +1068,7 @@ export default function LandingPage() {
             >
               <span className="h-2 w-2 bg-success-500 animate-pixel-twinkle" />
               <span className="font-terminal text-xl leading-none text-warm-600 dark:text-warm-300">
-                pull up a chair — you&apos;re home
+                breathe out
               </span>
             </motion.div>
 
@@ -1058,17 +1076,17 @@ export default function LandingPage() {
               variants={reduce ? undefined : fadeUp}
               className="font-pixel text-balance text-5xl font-bold leading-[1.1] text-[var(--text-primary)] dark:text-[#ece9e4] sm:text-6xl md:text-7xl"
             >
-              Come home to a{" "}
-              <span className="gradient-text-pixel">calmer way to work</span>
+              Put it down.{" "}
+              <span className="gradient-text-pixel">It&apos;s handled.</span>
             </motion.h1>
 
             <motion.p
               variants={reduce ? undefined : fadeUp}
               className="mt-6 max-w-xl text-balance text-xl leading-[1.7] text-[var(--text-secondary)] dark:text-[#a8a39c]"
             >
-              Haven is your cozy AI home. It plans your day, guards your time,
-              and quietly handles every task and deadline — so you can put the
-              noise down, breathe, and feel taken care of.
+              Haven remembers every task and deadline, notices when something&apos;s
+              about to slip, and plans your days so nothing falls through. The
+              mental load isn&apos;t yours to carry here.
             </motion.p>
 
             <motion.div

@@ -25,6 +25,7 @@ from app.agents.voice import VoiceAgent
 from app.agents.email import EmailAgent
 from app.agents.habits import HabitAgent
 from app.agents.review import ReviewAgent, generate_weekly_review
+from app.agents.slides import SlidesAgent
 from app.api.onboarding import router as onboarding_router
 from app.api.briefing import router as briefing_router
 from app.api.autopilot import router as autopilot_router
@@ -154,6 +155,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Gmail MCP deferred — will retry on first use: {e}")
 
+    # Connect Google Slides MCP server
+    slides_path = str((base_dir / settings.MCP_SLIDES_PATH).resolve())
+    try:
+        await mcp_client.connect_server(
+            name="google-slides",
+            command=python_cmd,
+            args=[slides_path],
+        )
+    except Exception as e:
+        logger.warning(f"Failed to connect MCP server 'google-slides': {e}")
+
     # Register agents
     OrchestratorAgent(mcp_client=mcp_client)
     PlannerAgent(mcp_client=mcp_client)
@@ -164,6 +176,7 @@ async def lifespan(app: FastAPI):
     EmailAgent(mcp_client=mcp_client)
     HabitAgent(mcp_client=mcp_client)
     ReviewAgent(mcp_client=mcp_client)
+    SlidesAgent(mcp_client=mcp_client)
 
     # Start proactive scheduler
     _scheduler_task = start_proactive_scheduler(connection_manager)

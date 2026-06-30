@@ -457,10 +457,23 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
     async def _do_suggest_time(
         self, auth_token: str, details: dict, user_id: str
     ) -> dict:
-        """Find an optimal time slot for a task based on free slots and preferences."""
+        """Find an optimal time slot for a task based on free slots and user profile."""
         duration = details.get("duration_minutes", 60)
         preferred_time = details.get("preferred_time", "morning")
         summary = details.get("summary", "this task")
+
+        # Fetch user's work hours from profile for smarter scheduling
+        work_start = 9
+        work_end = 18
+        if user_id:
+            try:
+                from app.db.repositories import UserRepository
+                user = await UserRepository.get_by_id(user_id)
+                if user and user.profile:
+                    work_start = user.profile.work_hours_start or 9
+                    work_end = user.profile.work_hours_end or 18
+            except Exception:
+                pass
 
         # Fetch free slots
         slots = await self._find_free_slots(auth_token, {
@@ -475,8 +488,8 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
                 "suggest_time",
             )
 
-        # Pick the best slot: prefer morning for focus work, avoid post-meeting
-        best_slot = self._pick_optimal_slot(slots, preferred_time)
+        # Pick the best slot using user's work hours
+        best_slot = self._pick_optimal_slot(slots, preferred_time, work_start, work_end)
         if not best_slot:
             best_slot = slots[0] if slots else {}
 
@@ -504,11 +517,11 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
         }
         return self._result(suggestion, "suggest_time", pending)
 
-    def _pick_optimal_slot(self, slots: list, preferred_time: str) -> dict:
-        """Pick the best slot from available options based on preference.
+    def _pick_optimal_slot(self, slots: list, preferred_time: str, work_start: int = 9, work_end: int = 18) -> dict:
+        """Pick the best slot from available options based on preference and user's work hours.
 
-        Prefers morning slots for focus/deep work, afternoon for meetings.
-        Avoids very early or very late slots.
+        NEVER picks slots outside the user's configured work hours.
+        Uses work_start/work_end from the user's onboarding profile.
         """
         real_slots = [
             s for s in (slots or [])
@@ -523,33 +536,57 @@ If after merging you STILL lack a concrete date or time, return action "needs_in
             if dt is None:
                 continue
             hour = dt.hour
+
+            # Hard filter: NEVER suggest slots outside user's work hours
+            if hour < work_start or hour >= work_end:
+                continue
+
             score = 0
 
+            # Calculate the "sweet spots" based on user's actual work hours
+            mid_morning = work_start + (work_end - work_start) // 4  # ~first quarter
+            midday = work_start + (work_end - work_start) // 2  # ~middle
+            mid_afternoon = work_start + 3 * (work_end - work_start) // 4  # ~third quarter
+
             if preferred_time == "morning":
-                # Prefer 9-12 AM
-                if 9 <= hour <= 11:
+                # Prefer first half of work hours
+                if work_start <= hour <= mid_morning:
                     score += 10
-                elif 8 <= hour <= 12:
+                elif hour <= midday:
                     score += 5
             elif preferred_time == "afternoon":
-                # Prefer 13-17
-                if 13 <= hour <= 16:
+                # Prefer second half of work hours
+                if midday <= hour <= mid_afternoon:
                     score += 10
-                elif 12 <= hour <= 17:
+                elif hour >= midday:
                     score += 5
+            elif preferred_time == "evening":
+                # Prefer last quarter of work hours
+                if hour >= mid_afternoon:
+                    score += 10
             else:
-                # Any time during work hours
-                if 9 <= hour <= 17:
+                # "any" — prefer the productive middle of the day
+                if mid_morning <= hour <= mid_afternoon:
+                    score += 8
+                elif work_start <= hour < work_end:
                     score += 5
 
-            # Penalize very early or late
-            if hour < 8 or hour > 19:
-                score -= 5
+            # Bonus for not being the very first or last slot of the day
+            # (buffer for commute / wind-down)
+            if hour == work_start:
+                score -= 2
+            if hour == work_end - 1:
+                score -= 2
 
             scored.append((score, slot))
 
         if not scored:
-            return real_slots[0]
+            # All slots were outside work hours — return first valid one as fallback
+            for slot in real_slots:
+                dt = self._parse_event_dt(slot.get("start"))
+                if dt and work_start <= dt.hour < work_end:
+                    return slot
+            return real_slots[0] if real_slots else {}
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return scored[0][1]
@@ -1117,8 +1154,17 @@ Scheduling request: {message}"""
         if resolved:
             return resolved
 
-        # Fallback: next full hour, in IST.
-        target = now_ist().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        # Fallback: next suitable hour in IST (within working hours 9-18).
+        current = now_ist()
+        if current.hour < 9:
+            # Before work hours — default to 10 AM today (buffer for morning routine)
+            target = current.replace(hour=10, minute=0, second=0, microsecond=0)
+        elif current.hour >= 18:
+            # After work hours — default to 10 AM tomorrow
+            target = (current + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
+        else:
+            # During work hours — next full hour
+            target = current.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         return target.isoformat()
 
     async def _record_memory_observation(

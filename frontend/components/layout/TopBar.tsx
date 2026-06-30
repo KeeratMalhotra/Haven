@@ -51,6 +51,28 @@ export default function TopBar({
   const [actionsOpen, setActionsOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
+  // Custom profile picture from localStorage (takes priority over userImage)
+  const [customProfilePicture, setCustomProfilePicture] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load custom profile picture on mount
+    const stored = localStorage.getItem("chronai-profile-picture");
+    if (stored) setCustomProfilePicture(stored);
+
+    // Listen for changes from the settings page
+    const handleProfilePictureChanged = () => {
+      const updated = localStorage.getItem("chronai-profile-picture");
+      setCustomProfilePicture(updated);
+    };
+
+    window.addEventListener("chronai-profile-picture-changed", handleProfilePictureChanged);
+    return () => {
+      window.removeEventListener("chronai-profile-picture-changed", handleProfilePictureChanged);
+    };
+  }, []);
+
+  const displayImage = customProfilePicture || userImage;
+
   const connectionColor =
     connected === true
       ? "bg-emerald-400"
@@ -85,7 +107,11 @@ export default function TopBar({
   const handleActionClick = (action: (typeof quickActions)[number]) => {
     setActionsOpen(false);
     if (action.href) {
-      router.push(action.href);
+      // Add Task / Add Event should open the create modal directly on the
+      // destination page via a query param, instead of just navigating there.
+      const opensCreateModal =
+        action.label === "Add Task" || action.label === "Add Event";
+      router.push(opensCreateModal ? `${action.href}?new=1` : action.href);
     } else if (action.label === "Start Pomodoro") {
       // Dispatch a custom event that PomodoroTimer can listen for
       window.dispatchEvent(new CustomEvent("chronai-start-focus"));
@@ -247,13 +273,14 @@ export default function TopBar({
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
-          {userImage ? (
+          {displayImage ? (
             <Image
-              src={userImage}
+              src={displayImage}
               alt="User avatar"
               width={30}
               height={30}
-              className="rounded-full ring-2 ring-[var(--border)] ring-offset-1 ring-offset-[var(--bg)] transition-all hover:ring-accent-500/30"
+              unoptimized={displayImage.startsWith("data:")}
+              className="rounded-full ring-2 ring-[var(--border)] ring-offset-1 ring-offset-[var(--bg)] transition-all hover:ring-accent-500/30 object-cover"
             />
           ) : (
             <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-accent-500/15 text-xs font-semibold text-accent-400 ring-2 ring-[var(--border)] ring-offset-1 ring-offset-[var(--bg)]">

@@ -1,0 +1,33 @@
+{
+  "project_type": "Full-stack web app: Next.js 15 frontend + Python FastAPI backend + MCP servers",
+  "language": "TypeScript (frontend) / Python (backend)",
+  "build_system": "pnpm (frontend), pip (backend). No Makefile.",
+  "test_framework": "Jest with @testing-library/react (frontend), no tests in backend",
+  "build_command": "cd /projects/sandbox/Haven/frontend && pnpm lint",
+  "test_command": "cd /projects/sandbox/Haven/frontend && pnpm test",
+  "verification_instructions": "1. Run pnpm lint in frontend. 2. Run pnpm test in frontend. 3. Run python3 -m py_compile on modified backend files.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "cd /projects/sandbox/Haven/frontend && pnpm install",
+  "environment_constraints": "INTEGRATIONS_ONLY network - cannot install packages from public registries. Must use pre-installed tools. Python3 and pnpm available. No Docker daemon.",
+  "contribution_requirements": "Create feature branch, commit changes. Do not push to main.",
+  "key_patterns": "Frontend: Next.js App Router, next-auth for auth, framer-motion for animations, Tailwind CSS, components in /frontend/components/, pages in /frontend/app/. Backend: FastAPI with WebSocket, MCP servers as subprocesses in /mcp-servers/, agents in /backend/app/agents/, API routes in /backend/app/api/. MCP servers follow pattern in google-gmail/server.py using mcp library.",
+  "relevant_files": [
+    "frontend/middleware.ts",
+    "frontend/app/dashboard/page.tsx",
+    "frontend/app/onboarding/page.tsx",
+    "frontend/components/voice/VoiceMode.tsx",
+    "frontend/lib/voice.ts",
+    "frontend/components/layout/TopBar.tsx",
+    "frontend/components/layout/AppShell.tsx",
+    "frontend/app/dashboard/layout.tsx",
+    "frontend/app/dashboard/settings/page.tsx",
+    "backend/app/agents/orchestrator.py",
+    "backend/app/utils/user_context.py",
+    "backend/app/config.py",
+    "backend/app/main.py",
+    "backend/app/api/slides.py",
+    "backend/app/api/integrations.py",
+    "mcp-servers/google-gmail/server.py"
+  ],
+  "directory_structure": "Root: /projects/sandbox/Haven/. frontend/ (Next.js 15 app), backend/ (FastAPI), mcp-servers/ (google-calendar, google-gmail, google-tasks), shared/ (schemas). Frontend uses App Router with /app/dashboard/ for authenticated pages, /components/ for reusable components, /lib/ for utilities."
+}

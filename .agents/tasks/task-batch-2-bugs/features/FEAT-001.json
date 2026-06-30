@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix onboarding flash, priority button layout shift, profile picture not syncing across dashboard/TopBar, voice mode error handling, and service reconnection flow",
+  "status": "completed",
+  "steps": [
+    "1. ONBOARDING FLASH FIX: In frontend/middleware.ts, add logic to check if the user has completed onboarding by calling the backend API (/api/onboarding/status) using the token from getToken(). If the token exists AND onboarding is NOT complete, redirect to /onboarding. If the token exists AND onboarding IS complete AND the user is on /onboarding, redirect to /dashboard. The JWT token object has an accessToken field (see frontend/app/api/auth/[...nextauth]/route.ts callbacks). Use fetch() to the backend API with the accessToken. If the backend call fails (network error, etc), fall through to NextResponse.next() so the client-side check in dashboard/page.tsx still works as a fallback.",
+    "2. PRIORITY BUTTON LAYOUT FIX: In frontend/app/onboarding/page.tsx, in the renderStep3() function, fix the priority buttons so they do not shift when selected. The issue is that when selected, a Check icon is prepended via motion.span, changing the button width. Fix by: (a) giving buttons a fixed min-width (e.g. min-w-[120px]), OR (b) always rendering the check icon but making it invisible when not selected (use opacity-0 and width:0 with overflow hidden when inactive, expanding on active). The better approach is option (b): always render the check icon span but use conditional visibility. Change the active check to always render but with conditional classes: when not active, use 'w-0 overflow-hidden opacity-0' and when active use 'w-auto opacity-100'. This means changing from conditional rendering ({active && <motion.span>...}) to always rendering with a width animation.",
+    "3. PROFILE PICTURE FIX: The TopBar in frontend/components/layout/TopBar.tsx only uses the userImage prop (which comes from session.user.image - the Google avatar). It does not check localStorage for a custom profile picture. Fix: In the TopBar component, add a useState + useEffect that reads 'chronai-profile-picture' from localStorage on mount and listens for storage events. Use the custom picture (if set) as priority over session.user.image. Also add a listener for a custom event 'chronai-profile-picture-changed' that the settings page should dispatch when a picture is changed. In the settings page (frontend/app/dashboard/settings/page.tsx), after setting localStorage in handleProfilePictureSelect and handleRemoveProfilePicture, dispatch a window event: window.dispatchEvent(new CustomEvent('chronai-profile-picture-changed')).",
+    "4. VOICE MODE - verify error handling: Review VoiceMode.tsx. The current implementation already checks connectionState, browser support, and HTTPS requirement. The issue may be that connectionState is not being passed correctly. In the chat component that uses VoiceMode, ensure connectionState is being passed from the ConnectionContext. Check frontend/components/chat/AIChatPanel.tsx or wherever VoiceMode is rendered to confirm connectionState is wired up correctly.",
+    "5. SERVICE RECONNECTION FIX: The issue is in the backend /api/integrations/callback endpoint. When a user reconnects a service that was previously explicitly_disconnected, the callback correctly sets explicitly_disconnected=False. However, looking at the /status endpoint logic: it checks (session_has_scopes OR firestore_connected) AND NOT explicitly_disconnected. The problem is: after disconnect, connected_services.{service} = {connected: False, explicitly_disconnected: True}. After re-connect via callback, it sets connected_services.{service} as a NEW object with connected: True and explicitly_disconnected: False using merge=True with dot notation. This SHOULD work. The issue might be that the callback uses dot-notation set (f'connected_services.{service}') which creates a nested field update - verify this works correctly with the disconnect which uses update({'connected_services': full_dict}). The reconnect callback should use the same full-dict approach to ensure it overwrites the disconnected state completely. Fix: In backend/app/api/integrations.py oauth_callback function, change the Firestore write to use the same pattern as disconnect - fetch the doc, update the connected_services dict, and write the full connected_services back."
+  ],
+  "acceptance_criteria": [
+    "middleware.ts performs server-side onboarding check and redirects new users to /onboarding before the dashboard renders",
+    "Priority buttons in onboarding step 3 do not shift/reflow when selected or deselected",
+    "Profile picture from localStorage is displayed in the TopBar, and changes in settings are reflected immediately",
+    "VoiceMode connectionState is properly wired up",
+    "Service reconnection works: after disconnecting and reconnecting via OAuth, the service shows as connected"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Haven/frontend && pnpm lint",
+    "cd /projects/sandbox/Haven/frontend && pnpm test",
+    "python3 -m py_compile /projects/sandbox/Haven/backend/app/api/integrations.py"
+  ],
+  "blocked_reason": null,
+  "findings": "ChatExperience.test.tsx and Sidebar.test.tsx failures are pre-existing (verified by running tests on base commit). Data URI images in TopBar need unoptimized prop for Next.js Image component. The middleware fetch uses a 3-second timeout to avoid blocking navigation if the backend is slow."
+}

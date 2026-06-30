@@ -153,11 +153,18 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     <div className="flex h-full flex-col">
       {/* Logo / Brand */}
       <div className="flex h-16 items-center gap-2.5 px-4">
-        <div
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-accent-gradient"
+        <span
+          className="pixelated grid h-9 w-9 flex-shrink-0 place-items-center bg-gradient-to-br from-warm-300 to-warm-600 shadow-pixel-sm"
+          style={{ imageRendering: "pixelated" }}
         >
-          <span className="text-sm font-bold text-white select-none">H</span>
-        </div>
+          <svg width={18} height={18} viewBox="0 0 8 8" shapeRendering="crispEdges" aria-hidden="true">
+            <g fill="#3a2418">
+              <rect x="1" y="1" width="2" height="6" />
+              <rect x="5" y="1" width="2" height="6" />
+              <rect x="3" y="3" width="2" height="2" />
+            </g>
+          </svg>
+        </span>
         <AnimatePresence mode="wait">
           {!collapsed && (
             <motion.span

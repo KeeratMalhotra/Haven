@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Create MCP server for Google Slides, register it in the backend, update orchestrator to know about integration status, and remove direct API approach",
+  "status": "completed",
+  "steps": [
+    "1. CREATE MCP SERVER: Create /projects/sandbox/Haven/mcp-servers/google-slides/server.py following the exact pattern of mcp-servers/google-gmail/server.py. The server should provide these tools: (a) generate_outline - takes auth_token, task_title, task_notes (optional), task_subtasks (optional) and returns an outline JSON with title and slides array. Uses Vertex AI Gemini to generate the outline. (b) create_presentation - takes auth_token and outline (title + slides with bullets) and creates a Google Slides presentation using the Slides API, returns the presentation URL. Port the logic from backend/app/api/slides.py into MCP tool format. The server name should be 'google-slides'.",
+    "2. ADD CONFIG: In backend/app/config.py, add MCP_SLIDES_PATH setting with default '../mcp-servers/google-slides/server.py' following the pattern of MCP_GMAIL_PATH.",
+    "3. REGISTER IN MAIN.PY: In backend/app/main.py lifespan function, add code to connect the google-slides MCP server following the pattern of the other servers. Resolve the path, connect the server with mcp_client.connect_server(name='google-slides', command=python_cmd, args=[slides_path]).",
+    "4. UPDATE SLIDES API: Replace the direct Google API calls in backend/app/api/slides.py with calls through the MCP client (mcp_client.call_tool('google-slides', 'generate_outline', {...}) and mcp_client.call_tool('google-slides', 'create_presentation', {...})). Keep the same REST API contract for the frontend.",
+    "5. UPDATE ORCHESTRATOR INTEGRATION AWARENESS: In backend/app/utils/user_context.py, the _safe_integrations_context function needs to also check the explicitly_disconnected flag. Currently it only checks connected_services.get(service_id, {}).get('connected', False). Fix: also check connected_services.get(service_id, {}).get('explicitly_disconnected', False) and if explicitly_disconnected is True, report as NOT connected regardless of the connected flag. This ensures the orchestrator correctly tells agents which services are available.",
+    "6. UPDATE ORCHESTRATOR SYSTEM PROMPT: In backend/app/agents/orchestrator.py, add a new agent to the SYSTEM_PROMPT's available agents list: 'slides: Creates Google Slides presentations from task context, generates outlines'. Add routing rules for slides-related requests. Add a route to the slides agent for mentions of 'presentation', 'slides', 'deck', 'powerpoint'. This requires creating a minimal SlidesAgent class or routing to the existing slides API via the planner.",
+    "7. ENSURE SLIDES SERVICE IN INTEGRATIONS: Verify that backend/app/api/integrations.py SERVICE_SCOPES already includes 'slides' (it does). No change needed here."
+  ],
+  "acceptance_criteria": [
+    "mcp-servers/google-slides/server.py exists and follows the MCP server pattern",
+    "Backend config.py has MCP_SLIDES_PATH setting",
+    "Backend main.py registers the google-slides MCP server in lifespan",
+    "backend/app/api/slides.py routes through MCP client instead of direct Google API",
+    "user_context.py correctly reports disconnected services by checking explicitly_disconnected",
+    "python3 -m py_compile succeeds on all modified backend files"
+  ],
+  "verification": [
+    "python3 -m py_compile /projects/sandbox/Haven/backend/app/main.py",
+    "python3 -m py_compile /projects/sandbox/Haven/backend/app/config.py",
+    "python3 -m py_compile /projects/sandbox/Haven/backend/app/api/slides.py",
+    "python3 -m py_compile /projects/sandbox/Haven/backend/app/utils/user_context.py",
+    "python3 -m py_compile /projects/sandbox/Haven/backend/app/agents/orchestrator.py",
+    "python3 -m py_compile /projects/sandbox/Haven/mcp-servers/google-slides/server.py"
+  ],
+  "blocked_reason": null,
+  "findings": "All py_compile checks pass. MCP server follows exact pattern from google-gmail/server.py. The slides API endpoints maintain the same REST contract for the frontend but now route through MCP. The user_context fix checks explicitly_disconnected so AI no longer claims to scan emails for disconnected services."
+}

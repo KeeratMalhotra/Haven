@@ -236,20 +236,24 @@ async def _check_user_deadlines(
         if not manager.is_connected(user_id):
             try:
                 user = await UserRepository.get_by_id(user_id)
-                if user and user.email and user.google_tokens:
-                    prefs = user.notification_preferences
-                    email_enabled = prefs.get("email_notifications", True)
-                    urgent_only = prefs.get("email_for_urgent_only", False)
+                if user and user.email:
+                    # Gmail token is in connected_services.gmail (incremental OAuth)
+                    gmail_tokens = user.connected_services.get("gmail", {})
+                    tokens = gmail_tokens if gmail_tokens.get("access_token") else user.google_tokens
+                    if tokens:
+                        prefs = user.notification_preferences
+                        email_enabled = prefs.get("email_notifications", True)
+                        urgent_only = prefs.get("email_for_urgent_only", False)
 
-                    # Respect notification preferences
-                    should_send = email_enabled and (
-                        not urgent_only or urgency in ("critical", "urgent")
-                    )
-
-                    if should_send:
-                        email_sent = await _send_nudge_email(
-                            user.email, nudge_message, task.title, user.google_tokens
+                        # Respect notification preferences
+                        should_send = email_enabled and (
+                            not urgent_only or urgency in ("critical", "urgent")
                         )
+
+                        if should_send:
+                            email_sent = await _send_nudge_email(
+                                user.email, nudge_message, task.title, tokens
+                            )
             except Exception as e:
                 logger.error(f"Error sending email fallback for user {user_id}: {e}")
 
@@ -260,13 +264,16 @@ async def _check_user_deadlines(
             try:
                 if user is None:
                     user = await UserRepository.get_by_id(user_id)
-                if user and user.email and user.google_tokens:
-                    prefs = user.notification_preferences
-                    if prefs.get("email_deadline_reminders", True):
-                        deadline_str = deadline.strftime("%I:%M %p UTC")
-                        await send_task_reminder(
-                            user.email, task.title, deadline_str, user.google_tokens
-                        )
+                if user and user.email:
+                    gmail_tokens = user.connected_services.get("gmail", {})
+                    tokens = gmail_tokens if gmail_tokens.get("access_token") else user.google_tokens
+                    if tokens and tokens.get("access_token"):
+                        prefs = user.notification_preferences
+                        if prefs.get("email_deadline_reminders", True):
+                            deadline_str = deadline.strftime("%I:%M %p UTC")
+                            await send_task_reminder(
+                                user.email, task.title, deadline_str, tokens
+                            )
                         logger.info(
                             f"4-hour deadline reminder sent to {user.email} for '{task.title}'"
                         )
@@ -410,7 +417,12 @@ async def _run_daily_digest() -> None:
         return
 
     for user in users:
-        if not user.id or not user.email or not user.google_tokens:
+        if not user.id or not user.email:
+            continue
+
+        gmail_tokens = user.connected_services.get("gmail", {})
+        tokens = gmail_tokens if gmail_tokens.get("access_token") else user.google_tokens
+        if not tokens or not tokens.get("access_token"):
             continue
 
         prefs = user.notification_preferences
@@ -430,7 +442,7 @@ async def _run_daily_digest() -> None:
             events: list[dict] = []
 
             await send_daily_digest(
-                user.email, pending_tasks, events, user.google_tokens
+                user.email, pending_tasks, events, tokens
             )
         except Exception as e:
             logger.error(f"Error sending daily digest for user {user.id}: {e}")
@@ -462,7 +474,12 @@ async def _run_weekly_review() -> None:
         return
 
     for user in users:
-        if not user.id or not user.email or not user.google_tokens:
+        if not user.id or not user.email:
+            continue
+
+        gmail_tokens = user.connected_services.get("gmail", {})
+        tokens = gmail_tokens if gmail_tokens.get("access_token") else user.google_tokens
+        if not tokens or not tokens.get("access_token"):
             continue
 
         prefs = user.notification_preferences
@@ -472,11 +489,11 @@ async def _run_weekly_review() -> None:
         try:
             from app.agents.review import generate_weekly_review as gen_review
 
-            auth_token = user.google_tokens.get("access_token", "")
+            auth_token = tokens.get("access_token", "")
             review_content = await gen_review(user.id, auth_token, mcp_client=None)
 
             await send_weekly_review(
-                user.email, review_content, user.google_tokens
+                user.email, review_content, tokens
             )
         except Exception as e:
             logger.error(f"Error sending weekly review for user {user.id}: {e}")

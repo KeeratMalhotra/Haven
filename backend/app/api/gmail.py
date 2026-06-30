@@ -37,11 +37,12 @@ class ReplyEmailRequest(BaseModel):
 async def scan_inbox(body: ScanInboxRequest):
     """Scan the user's inbox and extract action items using AI.
 
-    Fetches recent emails via the Gmail MCP server, reads their content,
-    then uses Gemini to identify actionable items and suggest tasks.
+    Fetches recent emails via the Gmail API using the user's Gmail-specific
+    OAuth token stored in Firestore (since Gmail is an optional service with
+    its own incremental OAuth flow, separate from the session token).
 
     Args:
-        body: Request with auth_token and optional max_results.
+        body: Request with auth_token (session token for identity) and optional max_results.
 
     Returns:
         Array of suggested action items extracted from emails.
@@ -53,15 +54,39 @@ async def scan_inbox(body: ScanInboxRequest):
             detail="Authentication required",
         )
 
-    await verify_google_token(body.auth_token)
+    # Verify the session token to identify the user
+    user_info = await verify_google_token(body.auth_token)
+    user_id = user_info.get("sub", "")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unable to identify user from token",
+        )
 
-    # Use direct Gmail API to fetch emails (more reliable than MCP subprocess)
+    # Fetch the Gmail-specific access token from Firestore
+    from app.db.firestore import get_db
+
+    db = get_db()
+    user_ref = db.collection("users").document(user_id)
+    doc = await user_ref.get()
+    data = doc.to_dict() or {} if doc.exists else {}
+    gmail_token = (
+        data.get("connected_services", {}).get("gmail", {}).get("access_token", "")
+    )
+
+    if not gmail_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Gmail not connected. Please connect Gmail in Settings.",
+        )
+
+    # Use direct Gmail API to fetch emails with the Gmail-specific token
     try:
         from google.oauth2.credentials import Credentials
         from googleapiclient.discovery import build
         import base64
 
-        credentials = Credentials(token=body.auth_token)
+        credentials = Credentials(token=gmail_token)
         service = build("gmail", "v1", credentials=credentials)
 
         # List recent inbox messages
@@ -198,10 +223,11 @@ async def reply_email(body: ReplyEmailRequest):
     """Reply to an email by email_id.
 
     Fetches the original email to get the sender address and thread context,
-    then sends a reply using the Gmail API.
+    then sends a reply using the Gmail API with the user's Gmail-specific
+    OAuth token from Firestore.
 
     Args:
-        body: Request with auth_token, email_id, and reply body text.
+        body: Request with auth_token (session token for identity), email_id, and reply body text.
 
     Returns:
         Status of the reply operation.
@@ -213,7 +239,14 @@ async def reply_email(body: ReplyEmailRequest):
             detail="Authentication required",
         )
 
-    await verify_google_token(body.auth_token)
+    # Verify the session token to identify the user
+    user_info = await verify_google_token(body.auth_token)
+    user_id = user_info.get("sub", "")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unable to identify user from token",
+        )
 
     if not body.email_id:
         raise HTTPException(
@@ -227,13 +260,30 @@ async def reply_email(body: ReplyEmailRequest):
             detail="Reply body cannot be empty",
         )
 
+    # Fetch the Gmail-specific access token from Firestore
+    from app.db.firestore import get_db
+
+    db = get_db()
+    user_ref = db.collection("users").document(user_id)
+    doc = await user_ref.get()
+    data = doc.to_dict() or {} if doc.exists else {}
+    gmail_token = (
+        data.get("connected_services", {}).get("gmail", {}).get("access_token", "")
+    )
+
+    if not gmail_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Gmail not connected. Please connect Gmail in Settings.",
+        )
+
     try:
         from google.oauth2.credentials import Credentials
         from googleapiclient.discovery import build
         from email.mime.text import MIMEText
         import base64
 
-        credentials = Credentials(token=body.auth_token)
+        credentials = Credentials(token=gmail_token)
         service = build("gmail", "v1", credentials=credentials)
 
         # Fetch original email to get reply-to address and thread ID

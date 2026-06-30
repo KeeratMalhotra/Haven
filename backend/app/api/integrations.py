@@ -214,7 +214,8 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...)):
 
     tokens = response.json()
 
-    # Store tokens and scopes in Firestore
+    # Store tokens and scopes in Firestore using the same full-dict approach
+    # as disconnect to ensure reconnection fully overwrites the disconnected state.
     db = get_db()
     user_ref = db.collection("users").document(user_id)
 
@@ -228,10 +229,14 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...)):
         "explicitly_disconnected": False,
     }
 
-    await user_ref.set(
-        {f"connected_services.{service}": service_data},
-        merge=True,
-    )
+    doc = await user_ref.get()
+    if doc.exists:
+        data = doc.to_dict() or {}
+        connected_services = data.get("connected_services", {})
+    else:
+        connected_services = {}
+    connected_services[service] = service_data
+    await user_ref.set({"connected_services": connected_services}, merge=True)
 
     # Return a small HTML page that notifies the parent window and closes the popup
     from fastapi.responses import HTMLResponse
@@ -241,7 +246,7 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...)):
 <body>
 <script>
   if (window.opener) {{
-    window.opener.postMessage({{ type: "oauth-connected", service: "{service}" }}, "*");
+    window.opener.postMessage({{ type: "oauth-connected", service: "{service}" }}, "{settings.cors_origins[0]}");
     window.close();
   }} else {{
     window.location.href = "{settings.FRONTEND_ORIGIN}/dashboard/settings?connected={service}";
@@ -353,23 +358,32 @@ async def get_integration_status(auth_token: str = Query(...)):
         spotify_tokens = data.get("spotify_tokens", {})
         spotify_connected = bool(spotify_tokens.get("access_token"))
 
-    # Build status for each Google service — connected if EITHER
-    # the session token has the scope OR Firestore has a stored token,
-    # BUT NOT if the user has explicitly disconnected the service.
+    # Build status for each Google service.
+    # Calendar, Tasks, and Slides are MANDATORY from sign-in (always connected).
+    # Only Gmail uses incremental OAuth and needs the full check.
+    MANDATORY_SERVICES = {"calendar", "tasks", "slides"}
+
     status_map = {}
     for service_name, scopes in SERVICE_SCOPES.items():
-        # Check if the current session token already has these scopes
-        session_has_scopes = all(_scope_satisfied(s, session_scopes) for s in scopes)
-        # Check if Firestore has a stored incremental token
-        firestore_connected = connected_services.get(service_name, {}).get("connected", False)
-        # Check if the user explicitly disconnected this service
-        explicitly_disconnected = connected_services.get(service_name, {}).get("explicitly_disconnected", False)
+        if service_name in MANDATORY_SERVICES:
+            # Core services are always connected (granted at sign-in)
+            status_map[service_name] = {
+                "connected": True,
+                "scopes": scopes,
+            }
+        else:
+            # Check if the current session token already has these scopes
+            session_has_scopes = all(_scope_satisfied(s, session_scopes) for s in scopes)
+            # Check if Firestore has a stored incremental token
+            firestore_connected = connected_services.get(service_name, {}).get("connected", False)
+            # Check if the user explicitly disconnected this service
+            explicitly_disconnected = connected_services.get(service_name, {}).get("explicitly_disconnected", False)
 
-        is_connected = (session_has_scopes or firestore_connected) and not explicitly_disconnected
-        status_map[service_name] = {
-            "connected": is_connected,
-            "scopes": scopes if is_connected else [],
-        }
+            is_connected = (session_has_scopes or firestore_connected) and not explicitly_disconnected
+            status_map[service_name] = {
+                "connected": is_connected,
+                "scopes": scopes if is_connected else [],
+            }
 
     # Add Spotify status
     status_map["spotify"] = {

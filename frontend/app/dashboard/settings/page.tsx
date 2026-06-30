@@ -25,6 +25,7 @@ import {
   Save,
   Camera,
   LogOut,
+  Shield,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -70,6 +71,16 @@ const TIMEZONES = [
 
 const GOOGLE_SERVICES = [
   {
+    id: "gmail",
+    name: "Gmail",
+    description: "Scan inbox for action items and send emails",
+    icon: Mail,
+    color: "red",
+  },
+];
+
+const CORE_SERVICES = [
+  {
     id: "calendar",
     name: "Google Calendar",
     description: "Manage events and scheduling",
@@ -82,13 +93,6 @@ const GOOGLE_SERVICES = [
     description: "Create and manage task lists",
     icon: CheckCheck,
     color: "blue",
-  },
-  {
-    id: "gmail",
-    name: "Gmail",
-    description: "Scan inbox for action items and send emails",
-    icon: Mail,
-    color: "red",
   },
   {
     id: "slides",
@@ -109,45 +113,6 @@ function dispatchStorageChange(key: string, newValue: string) {
       newValue,
     })
   );
-}
-
-/**
- * Flush offline queues when a previously-disconnected service is reconnected.
- * Compares prev and next integration status and flushes the appropriate queue.
- */
-function flushQueuesOnReconnect(
-  prev: IntegrationStatus,
-  next: IntegrationStatus
-) {
-  // Tasks queue flush
-  const wasTasksDisconnected = !prev?.tasks?.connected;
-  const isTasksConnected = next?.tasks?.connected;
-  if (wasTasksDisconnected && isTasksConnected) {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-task-queue") || "[]");
-      if (queue.length > 0) {
-        // Clear the queue immediately - the operations were already applied locally
-        localStorage.removeItem("chronai-task-queue");
-      }
-    } catch {
-      localStorage.removeItem("chronai-task-queue");
-    }
-  }
-
-  // Calendar queue flush
-  const wasCalendarDisconnected = !prev?.calendar?.connected;
-  const isCalendarConnected = next?.calendar?.connected;
-  if (wasCalendarDisconnected && isCalendarConnected) {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-calendar-queue") || "[]");
-      if (queue.length > 0) {
-        // Clear the queue immediately - the operations were already applied locally
-        localStorage.removeItem("chronai-calendar-queue");
-      }
-    } catch {
-      localStorage.removeItem("chronai-calendar-queue");
-    }
-  }
 }
 
 export default function SettingsPage() {
@@ -196,7 +161,7 @@ function SettingsContent() {
 
   // Profile editing
   const [displayName, setDisplayName] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
+  const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -276,10 +241,7 @@ function SettingsContent() {
       // Refetch integration status from backend to update the UI
       if (authToken) {
         fetchIntegrationStatus(authToken).then((status) => {
-          setIntegrationStatus((prev) => {
-            flushQueuesOnReconnect(prev, status);
-            return status;
-          });
+          setIntegrationStatus(status);
           localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
           if (status.spotify?.connected) {
             localStorage.setItem("chronai-spotify-connected", "true");
@@ -358,11 +320,7 @@ function SettingsContent() {
 
         setTimeout(() => {
           fetchIntegrationStatus(authToken).then((status) => {
-            setIntegrationStatus((prev) => {
-              // Flush queues if service was reconnected
-              flushQueuesOnReconnect(prev, status);
-              return status;
-            });
+            setIntegrationStatus(status);
             localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
             if (status.spotify?.connected) {
               localStorage.setItem("chronai-spotify-connected", "true");
@@ -404,10 +362,7 @@ function SettingsContent() {
       processingConnectionRef.current = true;
 
       fetchIntegrationStatus(authToken).then((status) => {
-        setIntegrationStatus((prev) => {
-          flushQueuesOnReconnect(prev, status);
-          return status;
-        });
+        setIntegrationStatus(status);
         localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
         if (status.spotify?.connected) {
           localStorage.setItem("chronai-spotify-connected", "true");
@@ -464,10 +419,7 @@ function SettingsContent() {
         oauthPopupRef.current = null;
         // Refresh integration status
         fetchIntegrationStatus(authToken).then((status) => {
-          setIntegrationStatus((prev) => {
-            flushQueuesOnReconnect(prev, status);
-            return status;
-          });
+          setIntegrationStatus(status);
           localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
           // Only show toast if the service was not already connected before
           if (!preConnectStatusRef.current[service]) {
@@ -599,6 +551,7 @@ function SettingsContent() {
       setCustomProfilePicture(base64);
       try {
         localStorage.setItem("chronai-profile-picture", base64);
+        window.dispatchEvent(new CustomEvent("chronai-profile-picture-changed"));
       } catch {
         // Handle QuotaExceededError gracefully
         setProfilePictureError("Failed to save image. File may be too large for local storage.");
@@ -612,6 +565,7 @@ function SettingsContent() {
   const handleRemoveProfilePicture = () => {
     setCustomProfilePicture(null);
     localStorage.removeItem("chronai-profile-picture");
+    window.dispatchEvent(new CustomEvent("chronai-profile-picture-changed"));
   };
 
   // --- Profile handlers ---
@@ -879,35 +833,22 @@ function SettingsContent() {
             </div>
           </div>
 
-          {/* Suggestions toggle */}
+          {/* AI Nudges & Suggestions (merged: in-app suggestions + proactive notifications) */}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
-                AI Suggestions
+                AI Nudges &amp; Suggestions
               </p>
               <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
-                Show AI-powered suggestions throughout the app
+                Let Haven proactively suggest actions, reminders, and tips as you work
               </p>
             </div>
             <Toggle
               checked={aiSuggestions}
-              onChange={updateAiSuggestions}
-            />
-          </div>
-
-          {/* Proactive notifications */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
-                Proactive Notifications
-              </p>
-              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
-                Let AI proactively suggest actions and reminders
-              </p>
-            </div>
-            <Toggle
-              checked={proactiveNotifs}
-              onChange={updateProactiveNotifs}
+              onChange={(val) => {
+                updateAiSuggestions(val);
+                updateProactiveNotifs(val);
+              }}
             />
           </div>
 
@@ -984,6 +925,52 @@ function SettingsContent() {
               </div>
             </div>
             <CheckCircle2 size={16} strokeWidth={1.5} className="text-emerald-500" />
+          </div>
+
+          {/* Core Services — Always Connected */}
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield size={14} strokeWidth={1.5} className="text-emerald-500" />
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                Core Services — Always Connected
+              </p>
+            </div>
+            <div className="space-y-2">
+              {CORE_SERVICES.map((service) => {
+                const IconComponent = service.icon;
+                const colorClass = service.color === "blue"
+                  ? "text-blue-500"
+                  : "text-amber-500";
+                const bgClass = service.color === "blue"
+                  ? "bg-blue-500/10"
+                  : "bg-amber-500/10";
+
+                return (
+                  <div
+                    key={service.id}
+                    className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-2.5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${bgClass}`}>
+                        <IconComponent size={18} strokeWidth={1.5} className={colorClass} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
+                          {service.name}
+                        </p>
+                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
+                          {service.description}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+                      <CheckCircle2 size={14} strokeWidth={2} className="text-emerald-500" />
+                      Active
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Google Services with real Connect/Disconnect */}
@@ -1127,7 +1114,15 @@ function SettingsContent() {
             Notifications
           </h2>
         </div>
+        <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed mb-5 -mt-1">
+          Choose which email notifications Haven sends you.
+        </p>
         <div className="space-y-4">
+          {/* Email sub-header */}
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
+            Email
+          </p>
+
           {/* Email Deadline Reminders */}
           <div className="flex items-center justify-between">
             <div>
@@ -1221,7 +1216,23 @@ function SettingsContent() {
           Sign out of your Haven account. You will need to sign in again to access your data.
         </p>
         <button
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={() => {
+            // Clear all chronai-* localStorage keys to prevent stale data
+            // from leaking to the next user on this browser
+            try {
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith("chronai-")) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach((key) => localStorage.removeItem(key));
+            } catch {
+              // Ignore storage errors
+            }
+            signOut({ callbackUrl: "/" });
+          }}
           className="inline-flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/20 transition-colors"
         >
           <LogOut size={16} strokeWidth={1.5} />
