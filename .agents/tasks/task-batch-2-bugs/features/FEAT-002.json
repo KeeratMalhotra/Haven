@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Create MCP server for Google Slides, register it in the backend, update orchestrator to know about integration status, and remove direct API approach",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. CREATE MCP SERVER: Create /projects/sandbox/Haven/mcp-servers/google-slides/server.py following the exact pattern of mcp-servers/google-gmail/server.py. The server should provide these tools: (a) generate_outline - takes auth_token, task_title, task_notes (optional), task_subtasks (optional) and returns an outline JSON with title and slides array. Uses Vertex AI Gemini to generate the outline. (b) create_presentation - takes auth_token and outline (title + slides with bullets) and creates a Google Slides presentation using the Slides API, returns the presentation URL. Port the logic from backend/app/api/slides.py into MCP tool format. The server name should be 'google-slides'.",
     "2. ADD CONFIG: In backend/app/config.py, add MCP_SLIDES_PATH setting with default '../mcp-servers/google-slides/server.py' following the pattern of MCP_GMAIL_PATH.",
@@ -29,5 +29,5 @@
     "python3 -m py_compile /projects/sandbox/Haven/mcp-servers/google-slides/server.py"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All py_compile checks pass. MCP server follows exact pattern from google-gmail/server.py. The slides API endpoints maintain the same REST contract for the frontend but now route through MCP. The user_context fix checks explicitly_disconnected so AI no longer claims to scan emails for disconnected services."
 }
