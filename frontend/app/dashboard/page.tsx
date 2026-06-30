@@ -23,6 +23,7 @@ import { format } from "date-fns";
 
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { HavenLoader } from "@/components/ui/HavenLoader";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { safeFormat, safeParseDate } from "@/lib/date-utils";
 import {
@@ -324,16 +325,7 @@ export default function DashboardPage() {
     status === "loading" ||
     (status === "authenticated" && !onboardingChecked)
   ) {
-    return (
-      <div className="flex h-full min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-accent-500" />
-          <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
-            Loading...
-          </p>
-        </div>
-      </div>
-    );
+    return <HavenLoader />;
   }
 
   // Redirect unauthenticated users to login
