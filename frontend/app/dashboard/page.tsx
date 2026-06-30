@@ -318,33 +318,21 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Loading state - only show skeleton briefly, never stay blank forever
+  // Loading state - show minimal spinner while checking auth/onboarding
+  // so new users don't see the dashboard skeleton before being redirected
   if (
     status === "loading" ||
     (status === "authenticated" && !onboardingChecked)
   ) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6"
-      >
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)] dark:text-[#ece9e4] md:text-3xl">
-            {getGreeting()}
-          </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-tertiary)] dark:text-[#847e76] font-normal">
-            {format(new Date(), "EEEE, MMMM d")}
+      <div className="flex h-full min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-accent-500" />
+          <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
+            Loading...
           </p>
         </div>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-          <Skeleton className="h-28" />
-        </div>
-        <Skeleton className="mt-8 h-52" />
-        <Skeleton className="mt-4 h-44" />
-      </motion.div>
+      </div>
     );
   }
 

@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Fix voice integration - better error handling and connection state checking",
+  "status": "pending",
+  "steps": [
+    "1. Update frontend/components/voice/VoiceMode.tsx to check WebSocket connection state before attempting voice",
+    "2. Add better error handling and user feedback when voice fails",
+    "3. Ensure SpeechRecognition availability is properly checked before use"
+  ],
+  "acceptance_criteria": [
+    "Voice mode shows clear error when WebSocket is not connected",
+    "Voice mode properly detects browser support for SpeechRecognition",
+    "User gets actionable feedback when voice fails",
+    "pnpm lint passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Haven/frontend && pnpm lint"
+  ],
+  "blocked_reason": null
+}

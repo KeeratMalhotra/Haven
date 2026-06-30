@@ -1,0 +1,19 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Fix brain-dump (Plan my week) 'failed to fetch' by supporting multiple CORS origins in backend",
+  "status": "pending",
+  "steps": [
+    "1. Update backend/app/config.py to support comma-separated FRONTEND_ORIGIN values",
+    "2. Update backend/app/main.py CORS middleware to use a list of origins"
+  ],
+  "acceptance_criteria": [
+    "Backend CORS accepts multiple origins from comma-separated FRONTEND_ORIGIN env var",
+    "Default still works for localhost development",
+    "python3 -m py_compile app/main.py passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Haven/backend && python3 -m py_compile app/main.py"
+  ],
+  "blocked_reason": null
+}

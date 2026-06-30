@@ -62,6 +62,7 @@ export default function ChatExperience({
                 onSpeak={(t) => send(t, "voice")}
                 statusLabel={statusLabel}
                 thinking={thinking}
+                connectionState={connection}
               />
             </AnimatePresence>
           </div>

@@ -1,0 +1,19 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix dashboard showing loading skeleton before onboarding redirect for new users",
+  "status": "in_progress",
+  "steps": [
+    "1. Update frontend/app/dashboard/page.tsx to show a minimal/neutral loading state (centered spinner or blank page) instead of the dashboard-specific skeleton while checking onboarding status",
+    "2. The current loading state renders greeting, date, and skeleton cards that look like dashboard content - replace with a simple centered spinner"
+  ],
+  "acceptance_criteria": [
+    "New users see a minimal loading indicator (not dashboard skeleton) before being redirected to onboarding",
+    "Authenticated users who completed onboarding still see proper dashboard loading skeleton",
+    "pnpm lint passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Haven/frontend && pnpm lint"
+  ],
+  "blocked_reason": null
+}

@@ -1,0 +1,19 @@
+{
+  "project_type": "Full-stack: Next.js 15 frontend + Python FastAPI backend",
+  "language": "TypeScript (frontend), Python (backend)",
+  "build_system": "pnpm (frontend), pip (backend)",
+  "test_framework": "Lint + compile check",
+  "build_command": "cd /projects/sandbox/Haven/frontend && pnpm lint",
+  "test_command": "cd /projects/sandbox/Haven/backend && python3 -m py_compile app/main.py",
+  "verification_instructions": "Run pnpm lint in frontend and py_compile on backend main.py",
+  "environment_constraints": "OPEN_INTERNET - full network access",
+  "relevant_files": [
+    "frontend/app/dashboard/page.tsx",
+    "frontend/lib/voice.ts",
+    "frontend/components/voice/VoiceMode.tsx",
+    "frontend/lib/api-extended.ts",
+    "frontend/lib/api.ts",
+    "backend/app/main.py",
+    "backend/app/config.py"
+  ]
+}

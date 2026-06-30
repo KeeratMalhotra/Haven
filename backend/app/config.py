@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     PORT: int = 8000
     FRONTEND_ORIGIN: str = "http://localhost:3000"
 
+    @property
+    def cors_origins(self) -> list[str]:
+        """Parse FRONTEND_ORIGIN as a comma-separated list of allowed origins."""
+        raw = self.FRONTEND_ORIGIN
+        origins = [o.strip() for o in raw.split(",") if o.strip()]
+        return origins if origins else ["http://localhost:3000"]
+
     # Scheduler settings
     SCHEDULER_API_KEY: str = ""
     NUDGE_INTERVAL_MINUTES: int = 30

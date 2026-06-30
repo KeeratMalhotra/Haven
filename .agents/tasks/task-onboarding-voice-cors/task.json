@@ -1,0 +1,7 @@
+{
+  "task_id": "task-onboarding-voice-cors",
+  "task_description": "Fix three bugs: 1) New user sees dashboard loading skeleton before onboarding redirect, 2) Voice integration not working, 3) Plan my week (brain-dump) fails with 'failed to fetch' due to CORS",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}
