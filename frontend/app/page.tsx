@@ -1068,7 +1068,7 @@ function LandingContent() {
             >
               <span className="h-2 w-2 bg-success-500 animate-pixel-twinkle" />
               <span className="font-terminal text-xl leading-none text-warm-600 dark:text-warm-300">
-                pull up a chair — you&apos;re home
+                breathe out
               </span>
             </motion.div>
 
@@ -1076,17 +1076,17 @@ function LandingContent() {
               variants={reduce ? undefined : fadeUp}
               className="font-pixel text-balance text-5xl font-bold leading-[1.1] text-[var(--text-primary)] dark:text-[#ece9e4] sm:text-6xl md:text-7xl"
             >
-              Come home to a{" "}
-              <span className="gradient-text-pixel">calmer way to work</span>
+              Put it down.{" "}
+              <span className="gradient-text-pixel">It&apos;s handled.</span>
             </motion.h1>
 
             <motion.p
               variants={reduce ? undefined : fadeUp}
               className="mt-6 max-w-xl text-balance text-xl leading-[1.7] text-[var(--text-secondary)] dark:text-[#a8a39c]"
             >
-              Haven is your cozy AI home. It plans your day, guards your time,
-              and quietly handles every task and deadline — so you can put the
-              noise down, breathe, and feel taken care of.
+              Haven remembers every task and deadline, notices when something&apos;s
+              about to slip, and plans your days so nothing falls through. The
+              mental load isn&apos;t yours to carry here.
             </motion.p>
 
             <motion.div
