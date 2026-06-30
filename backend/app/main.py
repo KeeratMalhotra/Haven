@@ -39,6 +39,7 @@ from app.api.memory import router as memory_router
 from app.api.notifications import router as notifications_router
 from app.api.proactive import router as proactive_router
 from app.api.conversations import router as conversations_router
+from app.api.voice import router as voice_router
 from app.auth import verify_google_token
 from app.config import settings
 from app.db.firestore import init_firestore
@@ -63,6 +64,39 @@ mcp_client: MCPClient | None = None
 
 # Global proactive scheduler task
 _scheduler_task: asyncio.Task | None = None
+
+
+import re as _re
+
+# Matches most emoji / pictographic symbols so they aren't read aloud by TTS.
+_EMOJI_RE = _re.compile(
+    "[\U0001f000-\U0001faff\U00002600-\U000027bf\U0001f1e6-\U0001f1ff\u2190-\u21ff\u2300-\u23ff]",
+    flags=_re.UNICODE,
+)
+
+
+def _clean_text_for_speech(text: str) -> str:
+    """Strip markdown/emoji noise so the spoken reply sounds natural.
+
+    The AI's text reply may contain markdown emphasis, list bullets, and emoji
+    (e.g. the "\U0001f4a1" follow-up prefix). Reading those aloud is jarring, so
+    we remove the decoration while preserving the words. Best-effort: on any
+    failure the original text is returned unchanged.
+    """
+    try:
+        cleaned = text or ""
+        # Drop emoji and pictographs.
+        cleaned = _EMOJI_RE.sub("", cleaned)
+        # Remove markdown emphasis / code markers.
+        cleaned = _re.sub(r"[*_`#>]", "", cleaned)
+        # Convert list bullets to sentence pauses.
+        cleaned = _re.sub(r"^\s*[-•]\s*", "", cleaned, flags=_re.MULTILINE)
+        # Collapse excessive whitespace/newlines.
+        cleaned = _re.sub(r"\n{2,}", ". ", cleaned)
+        cleaned = _re.sub(r"\s{2,}", " ", cleaned)
+        return cleaned.strip()
+    except Exception:
+        return text
 
 
 def _make_status_callback(websocket: WebSocket):
@@ -222,6 +256,7 @@ app.include_router(memory_router)
 app.include_router(notifications_router)
 app.include_router(proactive_router)
 app.include_router(conversations_router)
+app.include_router(voice_router)
 
 
 async def _persist_exchange(
@@ -391,8 +426,9 @@ async def websocket_chat(websocket: WebSocket):
                     try:
                         voice_agent = AgentRegistry.get("voice")
                         if voice_agent:
+                            speech_text = _clean_text_for_speech(result["content"])
                             audio_result = await voice_agent.execute(
-                                {"message": result["content"]}
+                                {"message": speech_text}
                             )
                             if audio_result.get("content"):
                                 await websocket.send_json(

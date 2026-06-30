@@ -60,6 +60,7 @@ export default function ChatExperience({
                 active={voiceActive}
                 onClose={() => setVoiceActive(false)}
                 onSpeak={(t) => send(t, "voice")}
+                authToken={accessToken}
                 statusLabel={statusLabel}
                 thinking={thinking}
                 connectionState={connection}
