@@ -59,9 +59,27 @@ export default function MorningBriefing({
 }: MorningBriefingProps) {
   const [acknowledged, setAcknowledged] = useState(false);
 
-  const timeOfDay = briefing?.time_of_day ?? "morning";
-  const TimeIcon = TIME_ICON[timeOfDay] ?? Sunrise;
-  const greeting = briefing?.greeting || fallbackGreeting;
+  // Derive the time-of-day from the BROWSER's local clock so the greeting word
+  // and icon are always correct for the user, regardless of server timezone or
+  // a misconfigured timezone preference.
+  const localTimeOfDay: "morning" | "afternoon" | "evening" = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "morning";
+    if (h < 17) return "afternoon";
+    return "evening";
+  })();
+
+  const TimeIcon = TIME_ICON[localTimeOfDay] ?? Sunrise;
+
+  // Preserve the user's name from the backend greeting (e.g. "Good morning, Keerat")
+  // but force the time-of-day word to match the browser's local time.
+  const namePart = (() => {
+    const g = briefing?.greeting || fallbackGreeting || "";
+    const m = g.match(/,\s*(.+)$/);
+    return m ? m[1].trim() : "";
+  })();
+  const capitalizedTod = localTimeOfDay.charAt(0).toUpperCase() + localTimeOfDay.slice(1);
+  const greeting = namePart ? `Good ${capitalizedTod}, ${namePart}` : `Good ${capitalizedTod}`;
   const date = briefing?.date || fallbackDate;
 
   const stats = briefing?.stats;
