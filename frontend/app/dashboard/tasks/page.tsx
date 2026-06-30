@@ -22,7 +22,6 @@ import {
   Flag,
   BookTemplate,
   Mail,
-  Presentation,
   Search,
   Star,
 } from "lucide-react";
@@ -677,18 +676,14 @@ function TaskDetailPanel({
   onUpdate,
   onDelete,
   allLabels,
-  onCreatePresentation,
   accessToken,
-  slidesDisconnected,
 }: {
   task: LocalTask;
   onClose: () => void;
   onUpdate: (updated: LocalTask) => void;
   onDelete: () => void;
   allLabels: TaskLabel[];
-  onCreatePresentation?: () => void;
   accessToken?: string;
-  slidesDisconnected?: boolean;
 }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes || "");
@@ -947,30 +942,6 @@ function TaskDetailPanel({
             </div>
           )}
         </div>
-        {/* Create Presentation action */}
-        {onCreatePresentation && (
-          <div className="pt-3 border-t border-[var(--border)]">
-            <div className="relative group/slides">
-              <button
-                onClick={slidesDisconnected ? undefined : onCreatePresentation}
-                disabled={slidesDisconnected}
-                className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm font-medium border border-[var(--border)] transition-colors ${
-                  slidesDisconnected
-                    ? "text-[var(--text-tertiary)] dark:text-[#847e76] opacity-50 cursor-not-allowed"
-                    : "text-[var(--text-secondary)] dark:text-[#a8a39c] hover:text-accent-500 hover:bg-accent-500/5 hover:border-accent-500/30"
-                }`}
-              >
-                <Presentation size={15} strokeWidth={1.5} />
-                Create Presentation
-              </button>
-              {slidesDisconnected && (
-                <div className="absolute bottom-full mb-1 left-0 z-50 hidden group-hover/slides:block whitespace-nowrap rounded-lg bg-[var(--surface)] border border-[var(--border)] px-3 py-2 text-xs text-[var(--text-secondary)] dark:text-[#a8a39c] shadow-lg">
-                  Connect Google Slides in Settings to use this feature
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </motion.div>
   );
@@ -1028,7 +999,6 @@ function TasksPageContent() {
   const [showSlidesGenerator, setShowSlidesGenerator] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
   const [gmailDisconnected, setGmailDisconnected] = useState(false);
-  const [slidesDisconnected, setSlidesDisconnected] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -1039,21 +1009,18 @@ function TasksPageContent() {
     document.title = "Tasks | Haven";
   }, []);
 
-  // Check integration status for Gmail and Slides (optional services)
+  // Check integration status for Gmail (optional service)
   useEffect(() => {
     try {
       const cached = localStorage.getItem("chronai-integration-status-cache");
       if (cached) {
         const status = JSON.parse(cached);
         setGmailDisconnected(!status?.gmail?.connected);
-        setSlidesDisconnected(!status?.slides?.connected);
       } else {
         setGmailDisconnected(true);
-        setSlidesDisconnected(true);
       }
     } catch {
       setGmailDisconnected(true);
-      setSlidesDisconnected(true);
     }
   }, []);
 
@@ -1583,6 +1550,9 @@ function TasksPageContent() {
             )
           );
         },
+        onCreatePresentation: (contextMenu.task.notes || (contextMenu.task.subtasks && contextMenu.task.subtasks.length > 0))
+          ? () => { setSelectedTask(contextMenu.task); setShowSlidesGenerator(true); }
+          : undefined,
       }
     : null;
 
@@ -2026,9 +1996,7 @@ function TasksPageContent() {
               onUpdate={handleUpdateTask}
               onDelete={() => setDeleteTarget(selectedTask)}
               allLabels={allLabels}
-              onCreatePresentation={() => setShowSlidesGenerator(true)}
               accessToken={accessToken}
-              slidesDisconnected={slidesDisconnected}
             />
           </>
         )}
