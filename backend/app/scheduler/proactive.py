@@ -17,7 +17,7 @@ from typing import Optional
 
 from app.config import settings
 from app.db.firestore import get_db
-from app.db.repositories import UserRepository, TaskRepository
+from app.db.repositories import UserRepository, TaskRepository, ReminderStateRepository
 from app.scheduler.nudge_engine import classify_urgency, generate_nudge, _format_time_remaining
 from app.utils.email_notifications import send_task_reminder, send_daily_digest, send_weekly_review
 from app.ws_manager import ConnectionManager
@@ -30,6 +30,12 @@ logger = logging.getLogger(__name__)
 # Firestore collection for scheduler state persistence
 _SCHEDULER_STATE_COLLECTION = "scheduler_state"
 _SCHEDULER_STATE_DOC = "timestamps"
+
+# Dedup milestone key for the dedicated "deadline approaching" reminder email
+# (the hour-wide ~4h-out window). It is tracked separately from the escalation
+# band milestones ("gentle"/"urgent"/"critical") used by the WS-offline nudge
+# fallback email, so each of those emails fires at most once per task.
+_MILESTONE_DEADLINE_4H = "deadline_4h"
 
 
 async def _get_last_run(field: str) -> Optional[datetime]:
@@ -174,6 +180,20 @@ async def _check_user_deadlines(
     When the user is offline, falls back to sending a Gmail email (respecting
     the user's notification_preferences).
 
+    Email deadline reminders are governed by per-(task, milestone) dedup so the
+    same reminder never spams on every scheduler pass. Each task escalates
+    through discrete milestones based on time remaining and emails AT MOST ONCE
+    PER MILESTONE:
+
+      - ``gentle``      : deadline within ~24h (and > 6h)
+      - ``urgent``      : within ~6h (and > 1h)
+      - ``critical``    : within ~1h
+      - ``deadline_4h`` : the dedicated reminder email for the ~4h-out window
+
+    The dedup state lives in the ``reminder_state`` Firestore collection
+    (one doc per user). Entries for completed or past-deadline tasks are pruned
+    each pass so the document never grows unbounded.
+
     Args:
         user_id: The user ID to check tasks for.
         manager: ConnectionManager instance for pushing notifications.
@@ -189,13 +209,21 @@ async def _check_user_deadlines(
         logger.warning(f"Failed to fetch tasks for user {user_id}")
         return nudges_sent
 
+    # Load the per-user email dedup state once for this pass. Degrades to a
+    # fresh (empty) state on any read error so the scheduler never breaks.
+    reminder_state = await ReminderStateRepository.get(user_id)
+    state_dirty = False
+    # Tasks that are still relevant (not completed, deadline in the future);
+    # anything else has its dedup entries pruned at the end of the pass.
+    active_task_ids: set[str] = set()
+
     now = datetime.now(timezone.utc)
 
     for task in tasks:
         if not task.deadline:
             continue
 
-        # Skip completed tasks
+        # Skip completed tasks (their dedup entries get pruned below).
         if task.status in ("completed", "done"):
             continue
 
@@ -203,13 +231,28 @@ async def _check_user_deadlines(
         if deadline.tzinfo is None:
             deadline = deadline.replace(tzinfo=timezone.utc)
 
-        # Only process tasks with deadlines within 24 hours
         remaining = deadline - now
-        if remaining > timedelta(hours=24) or remaining.total_seconds() <= 0:
+
+        # A past-deadline task is no longer active; skip it so its dedup
+        # entries are pruned and never resent.
+        if remaining.total_seconds() <= 0:
+            continue
+
+        # The task is active (not completed, future deadline). Keep its dedup
+        # state even if it is currently outside the 24h notification window.
+        active_task_ids.add(task.id)
+
+        # Only process tasks with deadlines within 24 hours.
+        if remaining > timedelta(hours=24):
             continue
 
         urgency = classify_urgency(deadline)
         time_remaining = _format_time_remaining(deadline)
+
+        # The escalation milestone for the WS-offline nudge fallback email is
+        # the current urgency band; each band emails at most once per task.
+        milestone = urgency
+        sent_for_task = reminder_state.sent_milestones.get(task.id, [])
 
         # Generate nudge message
         nudge_message = await generate_nudge(task.title, urgency, time_remaining)
@@ -230,7 +273,8 @@ async def _check_user_deadlines(
 
         sent_count = await manager.send_to_user(user_id, notification)
 
-        # If user is NOT connected via WebSocket, try sending email
+        # If user is NOT connected via WebSocket, try sending email — but only
+        # once per escalation milestone (the dedup that stops the spam).
         email_sent = False
         user = None
         if not manager.is_connected(user_id):
@@ -245,22 +289,33 @@ async def _check_user_deadlines(
                         email_enabled = prefs.get("email_notifications", True)
                         urgent_only = prefs.get("email_for_urgent_only", False)
 
-                        # Respect notification preferences
-                        should_send = email_enabled and (
-                            not urgent_only or urgency in ("critical", "urgent")
+                        # Respect notification preferences AND the per-milestone
+                        # dedup: never resend a milestone already emailed.
+                        should_send = (
+                            email_enabled
+                            and (not urgent_only or urgency in ("critical", "urgent"))
+                            and milestone not in sent_for_task
                         )
 
                         if should_send:
                             email_sent = await _send_nudge_email(
                                 user.email, nudge_message, task.title, tokens
                             )
+                            if email_sent:
+                                reminder_state.sent_milestones.setdefault(
+                                    task.id, []
+                                ).append(milestone)
+                                state_dirty = True
             except Exception as e:
                 logger.error(f"Error sending email fallback for user {user_id}: {e}")
 
-        # 4-hour deadline email reminder: send a dedicated reminder email
-        # when the task deadline is between 3.5 and 4.5 hours away
-        # (to handle scheduler interval timing) regardless of connection status
-        if timedelta(hours=3, minutes=30) <= remaining <= timedelta(hours=4, minutes=30):
+        # Dedicated deadline reminder email for the ~4h-out window. The window
+        # is intentionally an hour wide (3h30m–4h30m) to tolerate scheduler
+        # interval timing; the dedup collapses it to a SINGLE send per task.
+        if (
+            timedelta(hours=3, minutes=30) <= remaining <= timedelta(hours=4, minutes=30)
+            and _MILESTONE_DEADLINE_4H not in reminder_state.sent_milestones.get(task.id, [])
+        ):
             try:
                 if user is None:
                     user = await UserRepository.get_by_id(user_id)
@@ -271,12 +326,18 @@ async def _check_user_deadlines(
                         prefs = user.notification_preferences
                         if prefs.get("email_deadline_reminders", True):
                             deadline_str = deadline.strftime("%I:%M %p UTC")
-                            await send_task_reminder(
+                            reminder_ok = await send_task_reminder(
                                 user.email, task.title, deadline_str, tokens
                             )
-                        logger.info(
-                            f"4-hour deadline reminder sent to {user.email} for '{task.title}'"
-                        )
+                            if reminder_ok:
+                                reminder_state.sent_milestones.setdefault(
+                                    task.id, []
+                                ).append(_MILESTONE_DEADLINE_4H)
+                                state_dirty = True
+                                logger.info(
+                                    f"4-hour deadline reminder sent to {user.email} "
+                                    f"for '{task.title}'"
+                                )
             except Exception as e:
                 logger.error(f"Error sending 4-hour deadline email for user {user_id}: {e}")
 
@@ -294,6 +355,21 @@ async def _check_user_deadlines(
             f"({urgency}, {time_remaining}), delivered to {sent_count} connections, "
             f"email_sent={email_sent}"
         )
+
+    # Prune dedup entries for tasks that are completed, deleted, or whose
+    # deadline has passed so the per-user document never grows unbounded.
+    stale_task_ids = [
+        tid for tid in reminder_state.sent_milestones if tid not in active_task_ids
+    ]
+    for tid in stale_task_ids:
+        del reminder_state.sent_milestones[tid]
+        state_dirty = True
+
+    if state_dirty:
+        try:
+            await ReminderStateRepository.save(reminder_state)
+        except Exception as e:
+            logger.warning(f"Failed to persist reminder dedup state for {user_id}: {e}")
 
     return nudges_sent
 

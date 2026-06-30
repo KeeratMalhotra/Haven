@@ -150,6 +150,29 @@ class ProactiveState(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class ReminderState(BaseModel):
+    """Per-user dedup state for the EMAIL deadline-reminder path.
+
+    The background scheduler escalates deadline reminders through discrete
+    milestones (``gentle`` -> ``urgent`` -> ``critical``, plus a dedicated
+    ``deadline_4h`` reminder). Without state tracking the same milestone email
+    fires on every scheduler pass (every ~10 min) for as long as the task sits
+    inside its notification window and the user is offline — that is the spam.
+
+    This document records which ``(task_id, milestone)`` reminder emails have
+    already been sent so each one fires at most once. It is stored as a single
+    document keyed by ``user_id`` in the ``reminder_state`` collection, mirroring
+    :class:`ProactiveState`. Entries for completed or past-deadline tasks are
+    pruned so the document never grows unbounded.
+    """
+
+    user_id: str = ""
+    # Map of task_id -> list of milestone keys already emailed for that task,
+    # e.g. {"task123": ["gentle", "urgent", "deadline_4h"]}.
+    sent_milestones: dict = Field(default_factory=dict)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class BehavioralStats(BaseModel):
     """Aggregated behavioral statistics distilled from raw observations.
 
