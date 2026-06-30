@@ -121,9 +121,12 @@ async def _safe_integrations_context(user_id: str) -> str:
             if service_id == "spotify":
                 is_connected = bool(spotify_tokens.get("access_token"))
             else:
+                explicitly_disconnected = connected_services.get(service_id, {}).get(
+                    "explicitly_disconnected", False
+                )
                 is_connected = connected_services.get(service_id, {}).get(
                     "connected", False
-                )
+                ) and not explicitly_disconnected
 
             status_str = "is connected" if is_connected else "is NOT connected"
             lines.append(f"  {display_name} {status_str}.")

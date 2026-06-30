@@ -154,6 +154,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Gmail MCP deferred — will retry on first use: {e}")
 
+    # Connect Google Slides MCP server
+    slides_path = str((base_dir / settings.MCP_SLIDES_PATH).resolve())
+    try:
+        await mcp_client.connect_server(
+            name="google-slides",
+            command=python_cmd,
+            args=[slides_path],
+        )
+    except Exception as e:
+        logger.warning(f"Failed to connect MCP server 'google-slides': {e}")
+
     # Register agents
     OrchestratorAgent(mcp_client=mcp_client)
     PlannerAgent(mcp_client=mcp_client)

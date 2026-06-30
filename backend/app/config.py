@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     MCP_CALENDAR_PATH: str = "../mcp-servers/google-calendar/server.py"
     MCP_TASKS_PATH: str = "../mcp-servers/google-tasks/server.py"
     MCP_GMAIL_PATH: str = "../mcp-servers/google-gmail/server.py"
+    MCP_SLIDES_PATH: str = "../mcp-servers/google-slides/server.py"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
