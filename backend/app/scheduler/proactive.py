@@ -119,14 +119,14 @@ async def _send_nudge_email(user_email: str, nudge_message: str, task_title: str
 <head>
   <meta charset="utf-8">
   <style>
-    body {{ margin: 0; padding: 0; background-color: #1a1a2e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    body {{ margin: 0; padding: 0; background-color: #f8f6f1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
     .container {{ max-width: 600px; margin: 0 auto; padding: 40px 20px; }}
-    .card {{ background-color: #16213e; border-radius: 12px; padding: 32px; border: 1px solid #0f3460; }}
-    .logo {{ color: #e94560; font-size: 24px; font-weight: bold; margin-bottom: 24px; }}
-    .message {{ color: #eaeaea; font-size: 16px; line-height: 1.6; margin-bottom: 24px; }}
-    .task-title {{ color: #ffffff; font-weight: 600; }}
-    .btn {{ display: inline-block; background-color: #e94560; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; }}
-    .footer {{ color: #666; font-size: 12px; margin-top: 24px; text-align: center; }}
+    .card {{ background-color: #fffefb; border-radius: 12px; padding: 32px; border: 1px solid #ece5da; }}
+    .logo {{ color: #dd8a5a; font-size: 24px; font-weight: bold; margin-bottom: 24px; }}
+    .message {{ color: #6b6258; font-size: 16px; line-height: 1.6; margin-bottom: 24px; }}
+    .task-title {{ color: #2b2722; font-weight: 600; }}
+    .btn {{ display: inline-block; background-color: #c96f3e; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; }}
+    .footer {{ color: #a89e92; font-size: 12px; margin-top: 24px; text-align: center; }}
   </style>
 </head>
 <body>
