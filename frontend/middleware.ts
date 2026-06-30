@@ -46,9 +46,10 @@ export async function middleware(request: NextRequest) {
   if (token) {
     const accessToken = (token as Record<string, unknown>).accessToken as string | undefined;
 
-    if (accessToken) {
+    if (accessToken && pathname.startsWith("/dashboard")) {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        // Use internal API URL for server-side fetch (not NEXT_PUBLIC_ which is client-side)
+        const apiUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
@@ -61,38 +62,63 @@ export async function middleware(request: NextRequest) {
         if (res.ok) {
           const data = await res.json();
 
-          // User hasn't completed onboarding but is on dashboard - redirect to onboarding
-          if (!data.complete && pathname.startsWith("/dashboard")) {
+          // User hasn't completed onboarding - redirect to onboarding
+          if (!data.complete) {
             const url = request.nextUrl.clone();
             url.pathname = "/onboarding";
             const response = NextResponse.redirect(url);
-            // Clear the cookie in case it was set incorrectly
             response.cookies.delete("haven-onboarding-complete");
             return response;
           }
 
-          // User has completed onboarding but is on onboarding page - redirect to dashboard
-          if (data.complete && pathname.startsWith("/onboarding")) {
+          // Onboarding complete - set cookie to skip future checks
+          const response = NextResponse.next();
+          response.cookies.set("haven-onboarding-complete", "true", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 365,
+          });
+          return response;
+        } else {
+          // API returned non-OK (e.g. 401, 500) — assume not onboarded, redirect
+          const url = request.nextUrl.clone();
+          url.pathname = "/onboarding";
+          return NextResponse.redirect(url);
+        }
+      } catch {
+        // Backend unreachable or timed out — assume not onboarded for safety.
+        // This prevents the dashboard flash. If user IS onboarded, the onboarding
+        // page will detect it client-side and redirect back to dashboard.
+        const url = request.nextUrl.clone();
+        url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // If user is on /onboarding but has the cookie (already completed), send to dashboard
+    if (accessToken && pathname.startsWith("/onboarding")) {
+      try {
+        const apiUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        const res = await fetch(
+          `${apiUrl}/api/onboarding/status?auth_token=${accessToken}`,
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.complete) {
             const url = request.nextUrl.clone();
             url.pathname = "/dashboard";
             return NextResponse.redirect(url);
           }
-
-          // Onboarding complete and user is on dashboard - set cookie to skip future checks
-          if (data.complete && pathname.startsWith("/dashboard")) {
-            const response = NextResponse.next();
-            response.cookies.set("haven-onboarding-complete", "true", {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "lax",
-              maxAge: 60 * 60 * 24 * 365, // 1 year
-            });
-            return response;
-          }
         }
       } catch {
-        // If the API call fails (network, timeout, etc.), fall through.
-        // The client-side check in dashboard/page.tsx still works as a fallback.
+        // Can't verify — let them stay on onboarding (safe default)
       }
     }
   }
