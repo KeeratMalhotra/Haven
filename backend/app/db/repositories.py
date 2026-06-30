@@ -18,6 +18,7 @@ from app.db.models import (
     UserMemory,
     Notification,
     ProactiveState,
+    ReminderState,
 )
 
 
@@ -951,3 +952,44 @@ class ProactiveStateRepository:
             state.dismissed += 1
         await cls.save(state)
         return state
+
+
+
+class ReminderStateRepository:
+    """Repository for per-user ReminderState in the 'reminder_state' collection.
+
+    Backs the EMAIL deadline-reminder dedup: it records which
+    ``(task_id, milestone)`` reminder emails have already been sent so the
+    scheduler never re-sends the same milestone on subsequent passes. The
+    document ID is the user's ID. Reads degrade gracefully: a missing document
+    (or any error) yields a fresh ReminderState so the scheduler never breaks
+    the main flow.
+    """
+
+    COLLECTION = "reminder_state"
+
+    @classmethod
+    async def get(cls, user_id: str) -> ReminderState:
+        """Get the user's reminder dedup state, or a fresh one if absent."""
+        if not user_id:
+            return ReminderState()
+        try:
+            db = get_db()
+            doc = await db.collection(cls.COLLECTION).document(user_id).get()
+            if doc.exists:
+                data = doc.to_dict() or {}
+                data["user_id"] = user_id
+                return ReminderState(**data)
+        except Exception:
+            pass
+        return ReminderState(user_id=user_id)
+
+    @classmethod
+    async def save(cls, state: ReminderState) -> None:
+        """Persist the full ReminderState document (overwrites existing)."""
+        if not state.user_id:
+            return
+        state.updated_at = datetime.utcnow()
+        db = get_db()
+        data = state.model_dump(exclude={"user_id"})
+        await db.collection(cls.COLLECTION).document(state.user_id).set(data)

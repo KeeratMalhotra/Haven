@@ -108,16 +108,16 @@ async def send_task_reminder(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {{ margin: 0; padding: 0; background-color: #0f0f14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    body {{ margin: 0; padding: 0; background-color: #f8f6f1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
     .container {{ max-width: 560px; margin: 0 auto; padding: 40px 20px; }}
-    .card {{ background-color: #1a1a24; border-radius: 16px; padding: 36px; border: 1px solid #2a2a3a; }}
-    .logo {{ color: #a78bfa; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
-    .heading {{ color: #ffffff; font-size: 18px; font-weight: 600; margin-bottom: 12px; }}
-    .message {{ color: #b0b0c0; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }}
-    .task-badge {{ display: inline-block; background-color: #a78bfa15; border: 1px solid #a78bfa30; color: #a78bfa; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 8px; }}
-    .deadline {{ color: #f59e0b; font-weight: 500; }}
-    .btn {{ display: inline-block; background-color: #a78bfa; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; }}
-    .footer {{ color: #666; font-size: 12px; margin-top: 28px; text-align: center; }}
+    .card {{ background-color: #fffefb; border-radius: 16px; padding: 36px; border: 1px solid #ece5da; }}
+    .logo {{ color: #dd8a5a; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
+    .heading {{ color: #2b2722; font-size: 18px; font-weight: 600; margin-bottom: 12px; }}
+    .message {{ color: #6b6258; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }}
+    .task-badge {{ display: inline-block; background-color: #fae9da; border: 1px solid #f0d4bd; color: #dd8a5a; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 8px; }}
+    .deadline {{ color: #c96f3e; font-weight: 500; }}
+    .btn {{ display: inline-block; background-color: #c96f3e; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; }}
+    .footer {{ color: #a89e92; font-size: 12px; margin-top: 28px; text-align: center; }}
   </style>
 </head>
 <body>
@@ -200,22 +200,22 @@ async def send_daily_digest(
         for t in tasks[:10]:
             title = html.escape(t.get("title", "Untitled"))
             due = html.escape(t.get("due", ""))
-            due_badge = f'<span style="color:#f59e0b;font-size:12px;margin-left:8px;">due {due}</span>' if due else ""
-            tasks_html += f'<div style="padding:10px 0;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;">{title}{due_badge}</div>'
+            due_badge = f'<span style="color:#c96f3e;font-size:12px;margin-left:8px;">due {due}</span>' if due else ""
+            tasks_html += f'<div style="padding:10px 0;border-bottom:1px solid #ece5da;color:#6b6258;font-size:14px;">{title}{due_badge}</div>'
 
         if not tasks:
-            tasks_html = '<div style="padding:10px 0;color:#666;font-size:14px;">No pending tasks</div>'
+            tasks_html = '<div style="padding:10px 0;color:#a89e92;font-size:14px;">No pending tasks</div>'
 
         # Build event HTML rows
         events_html = ""
         for ev in events[:10]:
             summary = html.escape(ev.get("summary", "Untitled event"))
             start = html.escape(ev.get("start", ""))
-            time_badge = f'<span style="color:#a78bfa;font-size:12px;margin-left:8px;">{start}</span>' if start else ""
-            events_html += f'<div style="padding:10px 0;border-bottom:1px solid #2a2a3a;color:#e0e0e0;font-size:14px;">{summary}{time_badge}</div>'
+            time_badge = f'<span style="color:#dd8a5a;font-size:12px;margin-left:8px;">{start}</span>' if start else ""
+            events_html += f'<div style="padding:10px 0;border-bottom:1px solid #ece5da;color:#6b6258;font-size:14px;">{summary}{time_badge}</div>'
 
         if not events:
-            events_html = '<div style="padding:10px 0;color:#666;font-size:14px;">No events today</div>'
+            events_html = '<div style="padding:10px 0;color:#a89e92;font-size:14px;">No events today</div>'
 
         html_body = f"""<!DOCTYPE html>
 <html>
@@ -223,15 +223,15 @@ async def send_daily_digest(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {{ margin: 0; padding: 0; background-color: #0f0f14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    body {{ margin: 0; padding: 0; background-color: #f8f6f1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
     .container {{ max-width: 560px; margin: 0 auto; padding: 40px 20px; }}
-    .card {{ background-color: #1a1a24; border-radius: 16px; padding: 36px; border: 1px solid #2a2a3a; }}
-    .logo {{ color: #a78bfa; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
-    .heading {{ color: #ffffff; font-size: 18px; font-weight: 600; margin-bottom: 6px; }}
-    .subheading {{ color: #888; font-size: 13px; margin-bottom: 24px; }}
-    .section-title {{ color: #a78bfa; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 24px; }}
-    .btn {{ display: inline-block; background-color: #a78bfa; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 24px; }}
-    .footer {{ color: #666; font-size: 12px; margin-top: 28px; text-align: center; }}
+    .card {{ background-color: #fffefb; border-radius: 16px; padding: 36px; border: 1px solid #ece5da; }}
+    .logo {{ color: #dd8a5a; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
+    .heading {{ color: #2b2722; font-size: 18px; font-weight: 600; margin-bottom: 6px; }}
+    .subheading {{ color: #6b6258; font-size: 13px; margin-bottom: 24px; }}
+    .section-title {{ color: #dd8a5a; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 24px; }}
+    .btn {{ display: inline-block; background-color: #c96f3e; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 24px; }}
+    .footer {{ color: #a89e92; font-size: 12px; margin-top: 28px; text-align: center; }}
   </style>
 </head>
 <body>
@@ -297,19 +297,19 @@ def _markdown_to_html(markdown_text: str) -> str:
                 html_parts.append("</ul>")
                 in_list = False
             safe = html.escape(stripped[4:])
-            html_parts.append(f'<h3 style="color:#ffffff;font-size:15px;margin:18px 0 8px 0;">{safe}</h3>')
+            html_parts.append(f'<h3 style="color:#2b2722;font-size:15px;margin:18px 0 8px 0;">{safe}</h3>')
         elif stripped.startswith("## "):
             if in_list:
                 html_parts.append("</ul>")
                 in_list = False
             safe = html.escape(stripped[3:])
-            html_parts.append(f'<h2 style="color:#ffffff;font-size:17px;margin:20px 0 10px 0;">{safe}</h2>')
+            html_parts.append(f'<h2 style="color:#2b2722;font-size:17px;margin:20px 0 10px 0;">{safe}</h2>')
         elif stripped.startswith("# "):
             if in_list:
                 html_parts.append("</ul>")
                 in_list = False
             safe = html.escape(stripped[2:])
-            html_parts.append(f'<h1 style="color:#ffffff;font-size:20px;margin:24px 0 12px 0;">{safe}</h1>')
+            html_parts.append(f'<h1 style="color:#2b2722;font-size:20px;margin:24px 0 12px 0;">{safe}</h1>')
         elif stripped.startswith("- ") or stripped.startswith("* "):
             if not in_list:
                 html_parts.append('<ul style="padding-left:20px;margin:8px 0;">')
@@ -318,7 +318,7 @@ def _markdown_to_html(markdown_text: str) -> str:
             # Escape first, then apply bold formatting
             content = html.escape(content)
             content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", content)
-            html_parts.append(f'<li style="color:#e0e0e0;font-size:14px;margin:4px 0;">{content}</li>')
+            html_parts.append(f'<li style="color:#6b6258;font-size:14px;margin:4px 0;">{content}</li>')
         elif stripped == "":
             if in_list:
                 html_parts.append("</ul>")
@@ -331,7 +331,7 @@ def _markdown_to_html(markdown_text: str) -> str:
             # Escape first, then apply bold formatting
             content = html.escape(stripped)
             content = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", content)
-            html_parts.append(f'<p style="color:#b0b0c0;font-size:14px;line-height:1.7;margin:6px 0;">{content}</p>')
+            html_parts.append(f'<p style="color:#6b6258;font-size:14px;line-height:1.7;margin:6px 0;">{content}</p>')
 
     if in_list:
         html_parts.append("</ul>")
@@ -345,7 +345,7 @@ async def send_weekly_review(
     """Send a weekly review email via Gmail API.
 
     Formats the markdown review content from the ReviewAgent as an HTML email
-    with Haven dark-theme branding.
+    with Haven warm-theme branding.
 
     Args:
         user_email: The recipient email address.
@@ -374,15 +374,15 @@ async def send_weekly_review(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {{ margin: 0; padding: 0; background-color: #0f0f14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    body {{ margin: 0; padding: 0; background-color: #f8f6f1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
     .container {{ max-width: 560px; margin: 0 auto; padding: 40px 20px; }}
-    .card {{ background-color: #1a1a24; border-radius: 16px; padding: 36px; border: 1px solid #2a2a3a; }}
-    .logo {{ color: #a78bfa; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
-    .heading {{ color: #ffffff; font-size: 18px; font-weight: 600; margin-bottom: 6px; }}
-    .subheading {{ color: #888; font-size: 13px; margin-bottom: 24px; }}
+    .card {{ background-color: #fffefb; border-radius: 16px; padding: 36px; border: 1px solid #ece5da; }}
+    .logo {{ color: #dd8a5a; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
+    .heading {{ color: #2b2722; font-size: 18px; font-weight: 600; margin-bottom: 6px; }}
+    .subheading {{ color: #6b6258; font-size: 13px; margin-bottom: 24px; }}
     .review-content {{ margin: 16px 0; }}
-    .btn {{ display: inline-block; background-color: #a78bfa; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 24px; }}
-    .footer {{ color: #666; font-size: 12px; margin-top: 28px; text-align: center; }}
+    .btn {{ display: inline-block; background-color: #c96f3e; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 24px; }}
+    .footer {{ color: #a89e92; font-size: 12px; margin-top: 28px; text-align: center; }}
   </style>
 </head>
 <body>
@@ -452,15 +452,15 @@ async def send_notifications_enabled_confirmation(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {{ margin: 0; padding: 0; background-color: #0f0f14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    body {{ margin: 0; padding: 0; background-color: #f8f6f1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
     .container {{ max-width: 560px; margin: 0 auto; padding: 40px 20px; }}
-    .card {{ background-color: #1a1a24; border-radius: 16px; padding: 36px; border: 1px solid #2a2a3a; }}
-    .logo {{ color: #a78bfa; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
-    .heading {{ color: #ffffff; font-size: 18px; font-weight: 600; margin-bottom: 12px; }}
-    .message {{ color: #b0b0c0; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }}
+    .card {{ background-color: #fffefb; border-radius: 16px; padding: 36px; border: 1px solid #ece5da; }}
+    .logo {{ color: #dd8a5a; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
+    .heading {{ color: #2b2722; font-size: 18px; font-weight: 600; margin-bottom: 12px; }}
+    .message {{ color: #6b6258; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }}
     .check-badge {{ display: inline-block; background-color: #10b98115; border: 1px solid #10b98130; color: #10b981; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 16px; }}
-    .btn {{ display: inline-block; background-color: #a78bfa; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; }}
-    .footer {{ color: #666; font-size: 12px; margin-top: 28px; text-align: center; }}
+    .btn {{ display: inline-block; background-color: #c96f3e; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; }}
+    .footer {{ color: #a89e92; font-size: 12px; margin-top: 28px; text-align: center; }}
   </style>
 </head>
 <body>
