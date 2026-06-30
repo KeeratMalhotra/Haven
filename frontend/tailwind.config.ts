@@ -28,20 +28,20 @@ const config: Config = {
           900: "#18181b",
           950: "#0f0f10",
         },
-        // Primary accent: indigo/violet spectrum
+        // Primary accent: warm terracotta/amber spectrum (cozy "digital living room")
         accent: {
-          DEFAULT: "#6366f1",
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
-          950: "#1e1b4b",
+          DEFAULT: "#dd8a5a",
+          50: "#fdf6f0",
+          100: "#fae9da",
+          200: "#f3d2b6",
+          300: "#ecb98e",
+          400: "#e8a87c",
+          500: "#dd8a5a",
+          600: "#c96f3e",
+          700: "#a8572f",
+          800: "#854629",
+          900: "#6b3a25",
+          950: "#4a2818",
         },
         // Warm cozy spectrum — peach / amber / ember for the "digital living room"
         warm: {
@@ -172,10 +172,10 @@ const config: Config = {
         xl: "0 8px 16px -4px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.02)",
         "2xl": "0 16px 32px -8px rgba(0, 0, 0, 0.1)",
         // Subtle accent glow (reduced)
-        glow: "0 0 12px -4px rgba(99, 102, 241, 0.12)",
-        "glow-sm": "0 0 6px -2px rgba(99, 102, 241, 0.1)",
-        "glow-lg": "0 0 20px -6px rgba(99, 102, 241, 0.15)",
-        "glow-accent": "0 0 12px -4px rgba(99, 102, 241, 0.15)",
+        glow: "0 0 12px -4px rgba(221, 138, 90, 0.12)",
+        "glow-sm": "0 0 6px -2px rgba(221, 138, 90, 0.1)",
+        "glow-lg": "0 0 20px -6px rgba(221, 138, 90, 0.15)",
+        "glow-accent": "0 0 12px -4px rgba(221, 138, 90, 0.15)",
         // Surface shadows
         panel:
           "0 8px 24px -8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.02)",
@@ -193,9 +193,9 @@ const config: Config = {
       },
       backgroundImage: {
         "accent-gradient":
-          "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)",
+          "linear-gradient(135deg, #e8a87c 0%, #dd8a5a 50%, #c96f3e 100%)",
         "accent-soft":
-          "linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)",
+          "linear-gradient(135deg, rgba(232,168,124,0.8) 0%, rgba(221,138,90,0.8) 100%)",
         "surface-gradient":
           "linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%)",
       },

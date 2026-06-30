@@ -35,6 +35,7 @@ import {
   fetchTasks,
   type CalendarEvent,
 } from "@/lib/api";
+import { fetchPreferences } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -69,7 +70,10 @@ interface LocalTask {
 }
 
 const TASKS_STORAGE_KEY = "chronai-tasks";
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
+// Default display window (matches an 8 AM–8 PM work day: start-1, end+2) until
+// the user's saved work hours load.
+const DEFAULT_GRID_START = 7;
+const DEFAULT_GRID_END = 22;
 const ROW_HEIGHT = 64;
 
 const DURATION_OPTIONS = [
@@ -168,7 +172,17 @@ function DroppableTimeSlot({
 }
 
 // ---------- Calendar Event Block ----------
-function EventBlock({ event, dayStart }: { event: CalendarEvent; dayStart: Date }) {
+function EventBlock({
+  event,
+  dayStart,
+  gridStart,
+  gridEnd,
+}: {
+  event: CalendarEvent;
+  dayStart: Date;
+  gridStart: number;
+  gridEnd: number;
+}) {
   const startDate = safeParseDate(event.start);
   const parsedEnd = safeParseDate(event.end);
   const endDate =
@@ -184,10 +198,10 @@ function EventBlock({ event, dayStart }: { event: CalendarEvent; dayStart: Date 
   const startMinuteOfDay = startDate.getMinutes();
   const duration = Math.max(0, (endDate.getTime() - startDate.getTime()) / 60000);
 
-  const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
+  const minutesFromStart = (startHour - gridStart) * 60 + startMinuteOfDay;
   const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
   const height = Math.max(28, (duration / 60) * ROW_HEIGHT);
-  const gridHeight = HOURS.length * ROW_HEIGHT;
+  const gridHeight = (gridEnd - gridStart + 1) * ROW_HEIGHT;
   const clampedHeight = Math.min(height, Math.max(28, gridHeight - top));
 
   const isLinkedTask = event.description?.includes("[task-linked]");
@@ -225,19 +239,26 @@ function EventBlock({ event, dayStart }: { event: CalendarEvent; dayStart: Date 
 }
 
 // ---------- Current Time Indicator (hydration-safe) ----------
-function CurrentTimeIndicator() {
+function CurrentTimeIndicator({
+  gridStart,
+  gridEnd,
+}: {
+  gridStart: number;
+  gridEnd: number;
+}) {
   const [top, setTop] = useState<number | null>(null);
 
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      const mins = (now.getHours() - 6) * 60 + now.getMinutes();
-      setTop(mins >= 0 && mins <= 18 * 60 ? (mins / 60) * ROW_HEIGHT : null);
+      const mins = (now.getHours() - gridStart) * 60 + now.getMinutes();
+      const gridMinutes = (gridEnd - gridStart + 1) * 60;
+      setTop(mins >= 0 && mins <= gridMinutes ? (mins / 60) * ROW_HEIGHT : null);
     };
     update();
     const interval = setInterval(update, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [gridStart, gridEnd]);
 
   if (top === null) return null;
 
@@ -265,6 +286,15 @@ export default function PlannerPage() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // Display window for the hour grid, derived from the user's saved work hours.
+  // Defaults match an 8 AM–8 PM work day (start-1, end+2) until prefs load.
+  const [gridStart, setGridStart] = useState(DEFAULT_GRID_START);
+  const [gridEnd, setGridEnd] = useState(DEFAULT_GRID_END);
+  const HOURS = useMemo(
+    () => Array.from({ length: gridEnd - gridStart + 1 }, (_, i) => i + gridStart),
+    [gridStart, gridEnd]
+  );
+
   // Confirmation modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSchedule, setPendingSchedule] = useState<{
@@ -287,6 +317,33 @@ export default function PlannerPage() {
   useEffect(() => {
     document.title = "Planner | Haven";
   }, []);
+
+  // Fetch the user's work hours and compute the visible grid window.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkHours() {
+      try {
+        const { preferences } = await fetchPreferences(accessToken);
+        const workStart =
+          typeof preferences?.work_hours_start === "number"
+            ? preferences.work_hours_start
+            : 8;
+        const workEnd =
+          typeof preferences?.work_hours_end === "number"
+            ? preferences.work_hours_end
+            : 20;
+        if (cancelled) return;
+        setGridStart(Math.max(0, workStart - 1));
+        setGridEnd(Math.min(23, workEnd + 2));
+      } catch {
+        // Keep defaults on failure.
+      }
+    }
+    loadWorkHours();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   // Load tasks from the real API, merging localStorage enrichment for linkedEventId
   useEffect(() => {
@@ -640,10 +697,12 @@ export default function PlannerPage() {
                         key={event.id || i}
                         event={event}
                         dayStart={currentDate}
+                        gridStart={gridStart}
+                        gridEnd={gridEnd}
                       />
                     ))}
                     {/* Current time indicator */}
-                    {isToday(currentDate) && <CurrentTimeIndicator />}
+                    {isToday(currentDate) && <CurrentTimeIndicator gridStart={gridStart} gridEnd={gridEnd} />}
                   </div>
                 </div>
               )}

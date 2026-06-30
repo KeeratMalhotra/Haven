@@ -47,7 +47,7 @@ import {
   deleteCalendarEvent,
   type CalendarEvent,
 } from "@/lib/api";
-import { updateCalendarEvent } from "@/lib/api-extended";
+import { updateCalendarEvent, fetchPreferences } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import AISuggestionBanner from "@/components/ai/AISuggestionBanner";
 import { Button } from "@/components/ui/Button";
@@ -60,7 +60,10 @@ import { safeParseDate, safeFormat, isDateOnly } from "@/lib/date-utils";
 
 type CalendarView = "month" | "week" | "day";
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
+// Default display window (matches an 8 AM–8 PM work day: start-1, end+2) until
+// the user's saved work hours load.
+const DEFAULT_GRID_START = 7;
+const DEFAULT_GRID_END = 22;
 const DURATION_OPTIONS = [
   { label: "15 min", value: 15 },
   { label: "30 min", value: 30 },
@@ -166,12 +169,16 @@ function TimeBlock({
   dayStart,
   isDragging,
   overlapInfo,
+  gridStart,
+  gridEnd,
 }: {
   event: CalendarEvent;
   onClick: () => void;
   dayStart: Date;
   isDragging?: boolean;
   overlapInfo?: OverlapInfo;
+  gridStart: number;
+  gridEnd: number;
 }) {
   // Safe parse: callers already filter out events without a valid timed start,
   // but guard defensively so a bad payload can never throw during render.
@@ -198,8 +205,8 @@ function TimeBlock({
   const startMinuteOfDay = startDate.getMinutes();
   const duration = Math.max(0, differenceInMinutes(endDate, startDate));
 
-  // Accurate positioning: top = ((startHour - 6) * 60 + startMinutes) / 60 * ROW_HEIGHT
-  const minutesFromStart = (startHour - 6) * 60 + startMinuteOfDay;
+  // Accurate positioning: top = ((startHour - gridStart) * 60 + startMinutes) / 60 * ROW_HEIGHT
+  const minutesFromStart = (startHour - gridStart) * 60 + startMinuteOfDay;
   const top = Math.max(0, (minutesFromStart / 60) * ROW_HEIGHT);
   // Height: (duration_minutes / 60) * ROW_HEIGHT with minimum 28px
   const height = Math.max(28, (duration / 60) * ROW_HEIGHT);
@@ -213,7 +220,7 @@ function TimeBlock({
   const isSecondaryOverlap = overlapIndex > 0;
 
   // Clamp the block so it can never overflow the bottom of the hour grid.
-  const gridHeight = HOURS.length * ROW_HEIGHT;
+  const gridHeight = (gridEnd - gridStart + 1) * ROW_HEIGHT;
   const clampedHeight = Math.min(height, Math.max(28, gridHeight - top));
 
   // Conditional sizing: compact for short events, spacious for tall ones
@@ -309,19 +316,26 @@ function DroppableTimeSlot({
 }
 
 // Current time indicator (hydration-safe: only renders after mount)
-function CurrentTimeIndicator() {
+function CurrentTimeIndicator({
+  gridStart,
+  gridEnd,
+}: {
+  gridStart: number;
+  gridEnd: number;
+}) {
   const [top, setTop] = useState<number | null>(null);
 
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      const mins = (now.getHours() - 6) * 60 + now.getMinutes();
-      setTop(mins >= 0 && mins <= 18 * 60 ? (mins / 60) * 64 : null);
+      const mins = (now.getHours() - gridStart) * 60 + now.getMinutes();
+      const gridMinutes = (gridEnd - gridStart + 1) * 60;
+      setTop(mins >= 0 && mins <= gridMinutes ? (mins / 60) * ROW_HEIGHT : null);
     };
     update();
     const interval = setInterval(update, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [gridStart, gridEnd]);
 
   if (top === null) return null;
 
@@ -352,6 +366,42 @@ function CalendarPageContent() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [navDirection, setNavDirection] = useState(0);
+
+  // Display window for the hour grid, derived from the user's saved work hours.
+  // Defaults match an 8 AM–8 PM work day (start-1, end+2) until prefs load.
+  const [gridStart, setGridStart] = useState(DEFAULT_GRID_START);
+  const [gridEnd, setGridEnd] = useState(DEFAULT_GRID_END);
+  const HOURS = useMemo(
+    () => Array.from({ length: gridEnd - gridStart + 1 }, (_, i) => i + gridStart),
+    [gridStart, gridEnd]
+  );
+
+  // Fetch the user's work hours and compute the visible grid window.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWorkHours() {
+      try {
+        const { preferences } = await fetchPreferences(accessToken);
+        const workStart =
+          typeof preferences?.work_hours_start === "number"
+            ? preferences.work_hours_start
+            : 8;
+        const workEnd =
+          typeof preferences?.work_hours_end === "number"
+            ? preferences.work_hours_end
+            : 20;
+        if (cancelled) return;
+        setGridStart(Math.max(0, workStart - 1));
+        setGridEnd(Math.min(23, workEnd + 2));
+      } catch {
+        // Keep defaults on failure.
+      }
+    }
+    loadWorkHours();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   // Detect mobile viewport for responsive view override
   useEffect(() => {
@@ -575,12 +625,12 @@ function CalendarPageContent() {
       if (!container) return;
       const now = new Date();
       const targetHour = now.getHours() < 8 ? 8 : now.getHours();
-      // Scroll to: (targetHour - 6) * ROW_HEIGHT, minus some padding so it's not at the very top
-      const scrollTarget = Math.max(0, (targetHour - 6) * ROW_HEIGHT - 32);
+      // Scroll to: (targetHour - gridStart) * ROW_HEIGHT, minus some padding so it's not at the very top
+      const scrollTarget = Math.max(0, (targetHour - gridStart) * ROW_HEIGHT - 32);
       container.scrollTo({ top: scrollTarget, behavior: "smooth" });
     }, 100);
     return () => clearTimeout(timer);
-  }, [effectiveView, currentDate]);
+  }, [effectiveView, currentDate, gridStart]);
 
   // Navigation
   const navigatePrev = () => {
@@ -1010,12 +1060,14 @@ function CalendarPageContent() {
                                 onClick={() => openEditModal(event)}
                                 isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
                                 overlapInfo={overlaps.get(key)}
+                                gridStart={gridStart}
+                                gridEnd={gridEnd}
                               />
                             );
                           });
                         })()}
                         {/* Current time indicator */}
-                        {isToday(day) && <CurrentTimeIndicator />}
+                        {isToday(day) && <CurrentTimeIndicator gridStart={gridStart} gridEnd={gridEnd} />}
                       </div>
                     ))}
                   </div>
@@ -1100,12 +1152,14 @@ function CalendarPageContent() {
                               onClick={() => openEditModal(event)}
                               isDragging={draggedEventId === `event-${event.id || event.summary}-${event.start}`}
                               overlapInfo={overlaps.get(key)}
+                              gridStart={gridStart}
+                              gridEnd={gridEnd}
                             />
                           );
                         });
                       })()}
                       {/* Current time indicator */}
-                      {isToday(currentDate) && <CurrentTimeIndicator />}
+                      {isToday(currentDate) && <CurrentTimeIndicator gridStart={gridStart} gridEnd={gridEnd} />}
                     </div>
                   </div>
                 </div>
