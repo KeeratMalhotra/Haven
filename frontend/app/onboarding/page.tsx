@@ -199,16 +199,17 @@ export default function OnboardingPage() {
     if (listening) return;
     setListening(true);
     try {
-      const transcript = await startListening();
+      const transcript = await startListening(accessToken);
       if (transcript) {
         setBraindump((cur) => (cur ? `${cur} ${transcript}` : transcript));
       }
     } catch {
-      // Speech not supported / denied — silently ignore, typing still works.
+      // Mic denied / unsupported / transcription failed — silently ignore,
+      // typing still works.
     } finally {
       setListening(false);
     }
-  }, [listening]);
+  }, [listening, accessToken]);
 
   const saveProfile = useCallback(async () => {
     await postOnboarding(accessToken, {

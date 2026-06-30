@@ -2,13 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Mic, WifiOff, AlertTriangle } from "lucide-react";
-import { startListening } from "@/lib/voice";
+import { Mic, Square, WifiOff, AlertTriangle } from "lucide-react";
+import {
+  startListening,
+  stopListening,
+  cancelListening,
+  isRecordingSupported,
+} from "@/lib/voice";
 
 interface VoiceModeProps {
   active: boolean;
   onClose: () => void;
   onSpeak: (transcript: string) => void;
+  /** Google OAuth token forwarded to the backend STT endpoint. */
+  authToken?: string;
   /** Human-friendly status, e.g. "Checking your calendar" */
   statusLabel?: string;
   thinking?: boolean;
@@ -19,25 +26,20 @@ interface VoiceModeProps {
 type VoicePhase = "idle" | "listening" | "processing" | "error";
 
 /**
- * Check whether the browser supports the Web Speech API.
- */
-function isSpeechRecognitionSupported(): boolean {
-  if (typeof window === "undefined") return false;
-  return !!(
-    (window as unknown as Record<string, unknown>).SpeechRecognition ||
-    (window as unknown as Record<string, unknown>).webkitSpeechRecognition
-  );
-}
-
-/**
  * VoiceMode
  * An inline voice interaction component that renders within its parent container.
- * Tapping the mic captures speech and sends it as a voice message.
+ *
+ * Speech-to-text runs server-side: tapping the mic records microphone audio
+ * with MediaRecorder and uploads it to the backend Google Cloud Speech-to-Text
+ * endpoint. Recording stops automatically after a short silence, or when the
+ * user taps again. The resulting transcript is sent as a voice message, and the
+ * backend replies with both text and spoken audio (the AI "talks back").
  */
 export default function VoiceMode({
   active,
   onClose,
   onSpeak,
+  authToken,
   statusLabel,
   thinking,
   connectionState,
@@ -45,61 +47,77 @@ export default function VoiceMode({
   const [phase, setPhase] = useState<VoicePhase>("idle");
   const [hint, setHint] = useState("Tap to speak");
   const [errorDetail, setErrorDetail] = useState("");
-  const listeningRef = useRef(false);
+  const busyRef = useRef(false);
 
+  // Reset state and cancel any in-flight recording when voice mode closes.
   useEffect(() => {
     if (!active) {
+      cancelListening();
       setPhase("idle");
       setHint("Tap to speak");
       setErrorDetail("");
-      listeningRef.current = false;
+      busyRef.current = false;
     }
   }, [active]);
+
+  // Cancel any active recording on unmount.
+  useEffect(() => {
+    return () => cancelListening();
+  }, []);
 
   useEffect(() => {
     if (thinking && active) setPhase("processing");
   }, [thinking, active]);
 
-  // Check browser support on mount
+  // Check recording support on mount.
   useEffect(() => {
-    if (active && !isSpeechRecognitionSupported()) {
+    if (active && !isRecordingSupported()) {
       setPhase("error");
       setHint("Voice not supported");
       setErrorDetail(
-        "Your browser does not support speech recognition. Please use Chrome or Edge."
+        "This browser cannot record audio. Please update your browser to use voice."
       );
     }
   }, [active]);
 
   const handleMic = async () => {
-    if (listeningRef.current) return;
+    // If we're already recording, a tap stops it (and transcription begins).
+    if (phase === "listening") {
+      stopListening();
+      return;
+    }
 
-    // Check WebSocket connection before attempting voice
+    if (busyRef.current) return;
+
+    // Check WebSocket connection before attempting voice.
     if (connectionState === "disconnected") {
       setPhase("error");
       setHint("Not connected");
-      setErrorDetail("WebSocket is disconnected. Please wait for reconnection or refresh the page.");
+      setErrorDetail(
+        "Connection lost. Please wait for reconnection or refresh the page."
+      );
       return;
     }
 
     if (connectionState === "connecting") {
       setPhase("error");
       setHint("Connecting...");
-      setErrorDetail("Still connecting to the server. Please wait a moment and try again.");
-      return;
-    }
-
-    // Check browser support
-    if (!isSpeechRecognitionSupported()) {
-      setPhase("error");
-      setHint("Voice not supported");
       setErrorDetail(
-        "Your browser does not support speech recognition. Please use Chrome or Edge."
+        "Still connecting to the server. Please wait a moment and try again."
       );
       return;
     }
 
-    // Check HTTPS (required for SpeechRecognition in production)
+    if (!isRecordingSupported()) {
+      setPhase("error");
+      setHint("Voice not supported");
+      setErrorDetail(
+        "This browser cannot record audio. Please update your browser to use voice."
+      );
+      return;
+    }
+
+    // getUserMedia requires a secure context (HTTPS or localhost).
     if (
       typeof window !== "undefined" &&
       window.location.protocol !== "https:" &&
@@ -108,16 +126,16 @@ export default function VoiceMode({
     ) {
       setPhase("error");
       setHint("HTTPS required");
-      setErrorDetail("Voice recognition requires a secure (HTTPS) connection.");
+      setErrorDetail("Microphone access requires a secure (HTTPS) connection.");
       return;
     }
 
-    listeningRef.current = true;
+    busyRef.current = true;
     setPhase("listening");
-    setHint("Listening...");
+    setHint("Listening... tap to stop");
     setErrorDetail("");
     try {
-      const transcript = await startListening();
+      const transcript = await startListening(authToken);
       if (transcript) {
         onSpeak(transcript);
         setPhase("processing");
@@ -134,21 +152,28 @@ export default function VoiceMode({
         setErrorDetail(
           "Microphone access was denied. Please allow microphone permission in your browser settings."
         );
-      } else if (message.includes("network")) {
-        setHint("Network error");
-        setErrorDetail("A network error occurred. Please check your connection and try again.");
+      } else if (message.includes("no-mic")) {
+        setHint("No microphone");
+        setErrorDetail(
+          "No microphone was found. Please connect a microphone and try again."
+        );
+      } else if (message.startsWith("auth:")) {
+        setHint("Session expired");
+        setErrorDetail("Your session expired. Please sign in again and retry.");
       } else {
         setHint("Voice failed");
         setErrorDetail(
-          "Speech recognition failed. Make sure you are using Chrome/Edge with HTTPS."
+          "Could not transcribe your audio. Please check your connection and try again."
         );
       }
     } finally {
-      listeningRef.current = false;
+      busyRef.current = false;
     }
   };
 
   if (!active) return null;
+
+  const isListening = phase === "listening";
 
   return (
     <motion.div
@@ -165,9 +190,7 @@ export default function VoiceMode({
             {statusLabel || "One moment"}
           </span>
         ) : phase === "error" ? (
-          <span className="text-sm font-medium text-warning-500">
-            {hint}
-          </span>
+          <span className="text-sm font-medium text-warning-500">{hint}</span>
         ) : (
           <span className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">
             {hint}
@@ -186,10 +209,10 @@ export default function VoiceMode({
               ? "border-[var(--border)] bg-[var(--surface-hover)] opacity-50 cursor-not-allowed"
               : "border-[var(--border)] bg-[var(--surface-hover)] hover:border-[var(--text-tertiary)]"
         }`}
-        aria-label="Speak"
+        aria-label={isListening ? "Stop recording" : "Speak"}
         disabled={connectionState === "disconnected"}
       >
-        {phase === "listening" && (
+        {isListening && (
           <motion.span
             className="absolute inset-0 rounded-full border-2 border-[var(--text-secondary)]"
             animate={{ scale: [1, 1.4], opacity: [0.5, 0] }}
@@ -197,23 +220,21 @@ export default function VoiceMode({
           />
         )}
         {phase === "error" ? (
-          <AlertTriangle
-            size={28}
-            className="relative z-10 text-warning-500"
-          />
+          <AlertTriangle size={28} className="relative z-10 text-warning-500" />
         ) : connectionState === "disconnected" ? (
           <WifiOff
             size={28}
             className="relative z-10 text-[var(--text-tertiary)] dark:text-[#847e76]"
           />
+        ) : isListening ? (
+          <Square
+            size={24}
+            className="relative z-10 fill-current text-[var(--text-primary)] dark:text-[#ece9e4]"
+          />
         ) : (
           <Mic
             size={28}
-            className={
-              phase === "listening"
-                ? "relative z-10 text-[var(--text-primary)] dark:text-[#ece9e4]"
-                : "relative z-10 text-[var(--text-secondary)] dark:text-[#a8a39c]"
-            }
+            className="relative z-10 text-[var(--text-secondary)] dark:text-[#a8a39c]"
           />
         )}
       </motion.button>
@@ -232,7 +253,7 @@ export default function VoiceMode({
       {/* Phase indicator */}
       <p className="mt-6 text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
         {phase === "listening"
-          ? "Speak now"
+          ? "Recording - tap to stop"
           : phase === "processing"
             ? "Processing..."
             : phase === "error"
