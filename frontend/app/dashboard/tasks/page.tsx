@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckSquare,
@@ -1027,63 +1026,33 @@ function TasksPageContent() {
   const [showGmailScan, setShowGmailScan] = useState(false);
   const [showSlidesGenerator, setShowSlidesGenerator] = useState(false);
   const [creatingTask, setCreatingTask] = useState(false);
-  const [tasksDisconnected, setTasksDisconnected] = useState(false);
   const [gmailDisconnected, setGmailDisconnected] = useState(false);
   const [slidesDisconnected, setSlidesDisconnected] = useState(false);
-
-  // Offline queue state
-  const [taskQueueCount, setTaskQueueCount] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
-
-  // Helper: add an operation to the offline task queue
-  const enqueueTaskOperation = useCallback((operation: { type: string; data: any; timestamp: number }) => {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-task-queue") || "[]");
-      queue.push(operation);
-      localStorage.setItem("chronai-task-queue", JSON.stringify(queue));
-      setTaskQueueCount(queue.length);
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
 
   // Set page title
   useEffect(() => {
     document.title = "Tasks | Haven";
   }, []);
 
-  // Check if Google Tasks is connected via cached integration status
+  // Check integration status for Gmail and Slides (optional services)
   useEffect(() => {
     try {
       const cached = localStorage.getItem("chronai-integration-status-cache");
       if (cached) {
         const status = JSON.parse(cached);
-        setTasksDisconnected(!status?.tasks?.connected);
         setGmailDisconnected(!status?.gmail?.connected);
         setSlidesDisconnected(!status?.slides?.connected);
       } else {
-        setTasksDisconnected(true);
         setGmailDisconnected(true);
         setSlidesDisconnected(true);
       }
     } catch {
-      setTasksDisconnected(true);
       setGmailDisconnected(true);
       setSlidesDisconnected(true);
-    }
-
-    // Also check offline task queue count
-    try {
-      const queue = localStorage.getItem("chronai-task-queue");
-      if (queue) {
-        const parsed = JSON.parse(queue);
-        if (Array.isArray(parsed)) setTaskQueueCount(parsed.length);
-      }
-    } catch {
-      // ignore
     }
   }, []);
 
@@ -1294,14 +1263,7 @@ function TasksPageContent() {
         );
       }
     } catch {
-      // API failed - queue for later if disconnected
-      if (tasksDisconnected) {
-        enqueueTaskOperation({
-          type: "create",
-          data: { title: task.title, notes: task.notes || "", due_days_from_now: dueDays },
-          timestamp: Date.now(),
-        });
-      }
+      // API failed - task remains in local state
     } finally {
       setCreatingTask(false);
     }
@@ -1321,14 +1283,7 @@ function TasksPageContent() {
     if (accessToken && taskId) {
       apiUpdateTask(accessToken, taskId, { completed: newCompleted }).catch(
         () => {
-          // API failed - queue if disconnected
-          if (tasksDisconnected) {
-            enqueueTaskOperation({
-              type: "update",
-              data: { taskId, completed: newCompleted },
-              timestamp: Date.now(),
-            });
-          }
+          // API failed - task state already updated locally
         }
       );
     }
@@ -1361,7 +1316,7 @@ function TasksPageContent() {
 
       return updated;
     });
-  }, [accessToken, reportAction, tasksDisconnected, enqueueTaskOperation]);
+  }, [accessToken, reportAction]);
 
   const handleUpdateTask = useCallback((updated: LocalTask) => {
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -1388,17 +1343,10 @@ function TasksPageContent() {
     // Call API to delete from Google Tasks
     if (accessToken && taskId) {
       apiDeleteTask(accessToken, taskId).catch(() => {
-        // API failed - queue if disconnected
-        if (tasksDisconnected) {
-          enqueueTaskOperation({
-            type: "delete",
-            data: { taskId },
-            timestamp: Date.now(),
-          });
-        }
+        // API failed - task already removed from local state
       });
     }
-  }, [accessToken, reportAction, tasksDisconnected, enqueueTaskOperation]);
+  }, [accessToken, reportAction]);
 
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -1824,31 +1772,6 @@ function TasksPageContent() {
           </div>
         );
       })()}
-
-      {/* Connect Google Tasks Banner */}
-      {tasksDisconnected && (
-        <div className="mb-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-          <p className="text-sm text-[var(--text-secondary)] dark:text-[#a8a39c]">
-            Google Tasks is not connected. Your changes are saved locally.
-          </p>
-          <Link
-            href="/dashboard/settings"
-            className="flex-shrink-0 rounded-lg bg-accent-500/10 px-3 py-1.5 text-xs font-medium text-accent-500 hover:bg-accent-500/20 transition-colors"
-          >
-            Connect
-          </Link>
-        </div>
-      )}
-
-      {/* Pending Sync Indicator */}
-      {taskQueueCount > 0 && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-warning-500/20 bg-warning-500/5 px-4 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-warning-500 animate-pulse" />
-          <p className="text-xs font-medium text-warning-600 dark:text-warning-400">
-            {taskQueueCount} change{taskQueueCount !== 1 ? "s" : ""} pending sync
-          </p>
-        </div>
-      )}
 
       {/* Content */}
       {loading ? (

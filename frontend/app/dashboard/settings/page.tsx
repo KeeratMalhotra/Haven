@@ -115,45 +115,6 @@ function dispatchStorageChange(key: string, newValue: string) {
   );
 }
 
-/**
- * Flush offline queues when a previously-disconnected service is reconnected.
- * Compares prev and next integration status and flushes the appropriate queue.
- */
-function flushQueuesOnReconnect(
-  prev: IntegrationStatus,
-  next: IntegrationStatus
-) {
-  // Tasks queue flush
-  const wasTasksDisconnected = !prev?.tasks?.connected;
-  const isTasksConnected = next?.tasks?.connected;
-  if (wasTasksDisconnected && isTasksConnected) {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-task-queue") || "[]");
-      if (queue.length > 0) {
-        // Clear the queue immediately - the operations were already applied locally
-        localStorage.removeItem("chronai-task-queue");
-      }
-    } catch {
-      localStorage.removeItem("chronai-task-queue");
-    }
-  }
-
-  // Calendar queue flush
-  const wasCalendarDisconnected = !prev?.calendar?.connected;
-  const isCalendarConnected = next?.calendar?.connected;
-  if (wasCalendarDisconnected && isCalendarConnected) {
-    try {
-      const queue = JSON.parse(localStorage.getItem("chronai-calendar-queue") || "[]");
-      if (queue.length > 0) {
-        // Clear the queue immediately - the operations were already applied locally
-        localStorage.removeItem("chronai-calendar-queue");
-      }
-    } catch {
-      localStorage.removeItem("chronai-calendar-queue");
-    }
-  }
-}
-
 export default function SettingsPage() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-[var(--text-tertiary)] dark:text-[#847e76]">Loading settings...</div>}>
@@ -280,10 +241,7 @@ function SettingsContent() {
       // Refetch integration status from backend to update the UI
       if (authToken) {
         fetchIntegrationStatus(authToken).then((status) => {
-          setIntegrationStatus((prev) => {
-            flushQueuesOnReconnect(prev, status);
-            return status;
-          });
+          setIntegrationStatus(status);
           localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
           if (status.spotify?.connected) {
             localStorage.setItem("chronai-spotify-connected", "true");
@@ -362,11 +320,7 @@ function SettingsContent() {
 
         setTimeout(() => {
           fetchIntegrationStatus(authToken).then((status) => {
-            setIntegrationStatus((prev) => {
-              // Flush queues if service was reconnected
-              flushQueuesOnReconnect(prev, status);
-              return status;
-            });
+            setIntegrationStatus(status);
             localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
             if (status.spotify?.connected) {
               localStorage.setItem("chronai-spotify-connected", "true");
@@ -408,10 +362,7 @@ function SettingsContent() {
       processingConnectionRef.current = true;
 
       fetchIntegrationStatus(authToken).then((status) => {
-        setIntegrationStatus((prev) => {
-          flushQueuesOnReconnect(prev, status);
-          return status;
-        });
+        setIntegrationStatus(status);
         localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
         if (status.spotify?.connected) {
           localStorage.setItem("chronai-spotify-connected", "true");
@@ -468,10 +419,7 @@ function SettingsContent() {
         oauthPopupRef.current = null;
         // Refresh integration status
         fetchIntegrationStatus(authToken).then((status) => {
-          setIntegrationStatus((prev) => {
-            flushQueuesOnReconnect(prev, status);
-            return status;
-          });
+          setIntegrationStatus(status);
           localStorage.setItem("chronai-integration-status-cache", JSON.stringify(status));
           // Only show toast if the service was not already connected before
           if (!preConnectStatusRef.current[service]) {
