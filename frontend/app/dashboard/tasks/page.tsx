@@ -1218,6 +1218,20 @@ function TasksPageContent() {
     });
   }, [loading, tasks, searchParams]);
 
+  // Open the create-task modal once when navigated here with ?new=1 (e.g. from
+  // the TopBar "Add Task" quick action), then strip the param so a refresh
+  // doesn't reopen it.
+  const openedCreateFromQuery = useRef(false);
+  useEffect(() => {
+    if (openedCreateFromQuery.current) return;
+    if (searchParams.get("new") !== "1") return;
+    openedCreateFromQuery.current = true;
+    setShowCreateModal(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, [searchParams]);
+
   // Task helpers - apply label filter and text search
   const filteredTasks = useMemo(() => {
     let result = tasks;

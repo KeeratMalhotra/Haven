@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar as CalendarIcon,
@@ -337,10 +338,11 @@ function CurrentTimeIndicator() {
   );
 }
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const { data: session } = useSession();
   const accessToken = (session as { accessToken?: string })?.accessToken || "";
   const { reportAction, suggestions, dismissSuggestion } = useAI();
+  const searchParams = useSearchParams();
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -363,6 +365,20 @@ export default function CalendarPage() {
 
   // Effective view: override week to day on mobile
   const effectiveView: CalendarView = (view === "week" && isMobile) ? "day" : view;
+
+  // Open the create-event modal once when navigated here with ?new=1 (e.g.
+  // from the TopBar "Add Event" quick action), then strip the param so a
+  // refresh doesn't reopen it.
+  const openedCreateFromQuery = useRef(false);
+  useEffect(() => {
+    if (openedCreateFromQuery.current) return;
+    if (searchParams.get("new") !== "1") return;
+    openedCreateFromQuery.current = true;
+    setShowCreateModal(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("new");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, [searchParams]);
 
   // Create event form
   const [newSummary, setNewSummary] = useState("");
@@ -1260,5 +1276,15 @@ export default function CalendarPage() {
       </Modal>
     </motion.div>
     </ErrorBoundary>
+  );
+}
+
+
+export default function CalendarPage() {
+  // useSearchParams requires a Suspense boundary in Next.js 15.
+  return (
+    <Suspense fallback={null}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

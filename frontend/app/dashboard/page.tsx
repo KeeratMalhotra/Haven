@@ -510,7 +510,9 @@ export default function DashboardPage() {
 
               {/* Talk to AI - button instead of Link */}
               <button
-                onClick={() => {/* Chat handled by layout FAB */}}
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("chronai-open-chat"))
+                }
                 className="text-left"
               >
                 <Card
@@ -544,7 +546,13 @@ export default function DashboardPage() {
               {aiSuggestionChips.map((chip, index) => (
                 <button
                   key={chip}
-                  onClick={() => {/* Chat handled by layout FAB */}}
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("chronai-open-chat", {
+                        detail: { message: chip },
+                      })
+                    )
+                  }
                   className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-medium text-[var(--text-secondary)] dark:text-[#a8a39c] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] dark:hover:text-[#ece9e4]"
                 >
                   {index === 0 && (

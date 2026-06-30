@@ -43,6 +43,9 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const [chatOpen, setChatOpen] = useState(false);
   const [detached, setDetached] = useState(false);
+  // Optional message dispatched alongside "chronai-open-chat" that should be
+  // auto-sent once the chat panel is open and connected (e.g. dashboard chips).
+  const [pendingChatMessage, setPendingChatMessage] = useState<string | null>(null);
 
   // Focus mode (Pomodoro) - lives in layout so it works from any dashboard page
   const [focusActive, setFocusActive] = useState(false);
@@ -57,10 +60,17 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("chronai-start-focus", handleStartFocus);
   }, []);
 
-  // Allow pages (e.g. the morning briefing "Adjust" action) to open the chat
-  // panel by dispatching a window event.
+  // Allow pages (e.g. the morning briefing "Adjust" action, dashboard AI
+  // buttons) to open the chat panel by dispatching a window event. An optional
+  // `detail.message` is auto-sent once the panel is open and connected.
   useEffect(() => {
-    const openChat = () => setChatOpen(true);
+    const openChat = (e: Event) => {
+      const message = (e as CustomEvent).detail?.message;
+      if (typeof message === "string" && message.trim()) {
+        setPendingChatMessage(message);
+      }
+      setChatOpen(true);
+    };
     window.addEventListener("chronai-open-chat", openChat);
     return () => window.removeEventListener("chronai-open-chat", openChat);
   }, []);
@@ -113,6 +123,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             detached={detached}
             onDetach={handleDetach}
             onAttach={handleAttach}
+            initialMessage={pendingChatMessage ?? undefined}
+            onInitialMessageSent={() => setPendingChatMessage(null)}
           />
         </AIContextProvider>
         <SpotifyMiniPlayer />

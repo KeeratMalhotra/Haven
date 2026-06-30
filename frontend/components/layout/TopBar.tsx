@@ -107,7 +107,11 @@ export default function TopBar({
   const handleActionClick = (action: (typeof quickActions)[number]) => {
     setActionsOpen(false);
     if (action.href) {
-      router.push(action.href);
+      // Add Task / Add Event should open the create modal directly on the
+      // destination page via a query param, instead of just navigating there.
+      const opensCreateModal =
+        action.label === "Add Task" || action.label === "Add Event";
+      router.push(opensCreateModal ? `${action.href}?new=1` : action.href);
     } else if (action.label === "Start Pomodoro") {
       // Dispatch a custom event that PomodoroTimer can listen for
       window.dispatchEvent(new CustomEvent("chronai-start-focus"));
