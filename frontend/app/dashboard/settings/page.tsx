@@ -169,6 +169,10 @@ function SettingsContent() {
   const [customProfilePicture, setCustomProfilePicture] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Track Google avatar (user.image) load failures so we fall back to the initial.
+  const [avatarImgError, setAvatarImgError] = useState(false);
+  useEffect(() => setAvatarImgError(false), [user?.image]);
+
   // Error state for surfacing failures to the user
   const [integrationError, setIntegrationError] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -659,12 +663,14 @@ function SettingsContent() {
                   height={56}
                   className="h-14 w-14 rounded-full ring-2 ring-[var(--border)] object-cover"
                 />
-              ) : user?.image ? (
+              ) : user?.image && !avatarImgError ? (
                 <Image
                   src={user.image}
                   alt={user.name || "User"}
                   width={56}
                   height={56}
+                  unoptimized
+                  onError={() => setAvatarImgError(true)}
                   className="h-14 w-14 rounded-full ring-2 ring-[var(--border)]"
                 />
               ) : (
