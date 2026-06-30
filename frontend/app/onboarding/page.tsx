@@ -26,7 +26,6 @@ import {
 import { postOnboarding } from "@/lib/api";
 import { parseBraindump, type BrainDumpResult } from "@/lib/api-extended";
 import { startListening } from "@/lib/voice";
-import { Button } from "@/components/ui/Button";
 import { Confetti } from "@/components/ui/Confetti";
 
 /* ------------------------------------------------------------------ */
@@ -84,8 +83,8 @@ const slideVariants = {
 function Assistant({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-8 flex items-start gap-3">
-      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-accent-500 shadow-sm">
-        <Sparkles className="h-4.5 w-4.5 text-white" />
+      <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-warm-300 to-warm-600 shadow-sm ring-2 ring-warm-400/30 ring-offset-2 ring-offset-[var(--bg)]">
+        <Sparkles className="h-5 w-5 text-[#3a2418]" />
       </div>
       <div className="rounded-2xl rounded-tl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 text-left">
         <p className="text-sm leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4] sm:text-base">
@@ -99,24 +98,38 @@ function Assistant({ children }: { children: React.ReactNode }) {
 function ProgressBar({ step, totalSteps: total }: { step: number; totalSteps: number }) {
   return (
     <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-2 px-6 py-6">
-      <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--surface)]/80 px-4 py-2.5 backdrop-blur-xl">
-        {Array.from({ length: total }, (_, i) => (
-          <div key={i} className="relative flex items-center">
-            <motion.div
-              className="relative h-1.5 overflow-hidden rounded-full bg-[var(--border-subtle)]"
-              animate={{ width: i === step ? "2.5rem" : "1rem" }}
-              transition={spring}
-            >
+      <div className="flex items-center gap-2 pixel-corners border-[2px] border-[#3a2418]/20 bg-[var(--surface)]/80 px-4 py-2.5 backdrop-blur-xl">
+        <span
+          className="pixelated grid place-items-center bg-gradient-to-br from-warm-300 to-warm-600 shadow-pixel-sm"
+          style={{ width: 22, height: 22, imageRendering: "pixelated" }}
+        >
+          <svg width={14} height={14} viewBox="0 0 8 8" shapeRendering="crispEdges" aria-hidden="true">
+            <g fill="#3a2418">
+              <rect x="1" y="1" width="2" height="6" />
+              <rect x="5" y="1" width="2" height="6" />
+              <rect x="3" y="3" width="2" height="2" />
+            </g>
+          </svg>
+        </span>
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: total }, (_, i) => (
+            <div key={i} className="relative flex items-center">
               <motion.div
-                className="absolute inset-y-0 left-0 rounded-full bg-accent-500"
-                initial={{ width: "0%" }}
-                animate={{ width: i <= step ? "100%" : "0%" }}
+                className="relative h-1.5 overflow-hidden bg-[var(--border-subtle)] pixel-corners"
+                animate={{ width: i === step ? "2.5rem" : "1rem" }}
                 transition={spring}
-              />
-            </motion.div>
-          </div>
-        ))}
-        <span className="ml-3 font-mono text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
+              >
+                <motion.div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-warm-400 to-warm-500"
+                  initial={{ width: "0%" }}
+                  animate={{ width: i <= step ? "100%" : "0%" }}
+                  transition={spring}
+                />
+              </motion.div>
+            </div>
+          ))}
+        </div>
+        <span className="ml-2 font-mono text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
           {step + 1}/{total}
         </span>
       </div>
@@ -274,7 +287,7 @@ export default function OnboardingPage() {
             if (e.key === "Enter") next();
           }}
           placeholder="Your name"
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-center text-base text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-center text-base text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-warm-400/50 focus:ring-2 focus:ring-warm-400/20"
         />
       </motion.div>
     </div>
@@ -306,7 +319,7 @@ export default function OnboardingPage() {
               onClick={() => setRole(r.id)}
               className={`relative flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-200 ${
                 active
-                  ? "border-accent-500/60 bg-accent-500/10 text-[var(--text-primary)] dark:text-[#ece9e4] shadow-sm"
+                  ? "border-warm-400/60 bg-warm-400/10 text-[var(--text-primary)] dark:text-[#ece9e4] shadow-sm"
                   : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
               }`}
             >
@@ -318,8 +331,8 @@ export default function OnboardingPage() {
                   className="absolute -top-1.5 -right-1.5"
                   transition={spring}
                 >
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-500 shadow-sm">
-                    <Check className="h-3 w-3 text-white" />
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-warm-300 to-warm-500 shadow-sm">
+                    <Check className="h-3 w-3 text-[#3a2418]" />
                   </div>
                 </motion.div>
               )}
@@ -342,7 +355,7 @@ export default function OnboardingPage() {
           value={occupation}
           onChange={(e) => setOccupation(e.target.value)}
           placeholder="e.g. Software Engineer, Marketing Manager"
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-warm-400/50 focus:ring-2 focus:ring-warm-400/20"
         />
       </motion.div>
     </div>
@@ -403,7 +416,7 @@ export default function OnboardingPage() {
               onClick={() => togglePriority(p)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 active
-                  ? "border-accent-500/60 bg-accent-500/15 text-accent-300 shadow-sm"
+                  ? "border-warm-400/60 bg-warm-400/15 text-warm-300 shadow-sm"
                   : "border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-secondary)] dark:text-[#a8a39c] hover:border-[var(--border)] hover:bg-[var(--surface-hover)]"
               }`}
             >
@@ -450,7 +463,7 @@ export default function OnboardingPage() {
           onChange={(e) => setBraindump(e.target.value)}
           rows={6}
           placeholder={BRAINDUMP_PLACEHOLDER}
-          className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 pr-14 text-sm leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20"
+          className="w-full resize-none rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 pr-14 text-sm leading-relaxed text-[var(--text-primary)] dark:text-[#ece9e4] placeholder-[var(--text-tertiary)] outline-none transition-all duration-200 focus:border-warm-400/50 focus:ring-2 focus:ring-warm-400/20"
         />
         <button
           type="button"
@@ -458,8 +471,8 @@ export default function OnboardingPage() {
           aria-label={listening ? "Listening..." : "Dictate with your voice"}
           className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 ${
             listening
-              ? "animate-pulse border-accent-500/60 bg-accent-500/20 text-accent-300"
-              : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-tertiary)] dark:text-[#847e76] hover:border-accent-500/40 hover:text-accent-400"
+              ? "animate-pulse border-warm-500/60 bg-warm-500/20 text-warm-300"
+              : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-tertiary)] dark:text-[#847e76] hover:border-warm-400/40 hover:text-warm-400"
           }`}
         >
           {listening ? (
@@ -479,7 +492,7 @@ export default function OnboardingPage() {
         <button
           onClick={handlePlanWeek}
           disabled={submitting || !braindump.trim()}
-          className="group relative flex w-full items-center justify-center gap-2.5 rounded-2xl bg-accent-500 px-6 py-4 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-accent-600 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+          className="pixel-corners pixel-press group relative flex w-full items-center justify-center gap-2.5 border-[3px] border-[#3a2418]/20 bg-gradient-to-br from-warm-300 to-warm-500 px-6 py-4 text-base font-semibold text-[#3a2418] shadow-pixel-sm transition-all duration-200 hover:from-warm-400 hover:to-warm-600 active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
         >
           {submitting ? (
             <Loader2 className="h-4.5 w-4.5 animate-spin" />
@@ -535,10 +548,12 @@ export default function OnboardingPage() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-y-auto bg-[var(--bg)]">
+      {/* Subtle pixel-grid background */}
+      <div className="pointer-events-none fixed inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='16' height='16' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%23a8572f'/%3E%3C/svg%3E\")", backgroundSize: "16px 16px" }} />
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-[25%] left-[30%] h-[500px] w-[500px] rounded-full bg-accent-500/[0.06] blur-[100px] animate-breathe" />
-        <div className="absolute -bottom-[15%] right-[20%] h-[400px] w-[400px] rounded-full bg-accent-700/[0.04] blur-[80px] animate-float" />
-        <div className="absolute top-[50%] -left-[10%] h-[300px] w-[300px] rounded-full bg-violet-500/[0.03] blur-[60px] animate-float" />
+        <div className="absolute -top-[25%] left-[30%] h-[500px] w-[500px] rounded-full bg-warm-500/[0.06] blur-[100px] animate-breathe" />
+        <div className="absolute -bottom-[15%] right-[20%] h-[400px] w-[400px] rounded-full bg-warm-700/[0.04] blur-[80px] animate-float" />
+        <div className="absolute top-[50%] -left-[10%] h-[300px] w-[300px] rounded-full bg-clay-400/[0.03] blur-[60px] animate-float" />
       </div>
 
       <ProgressBar step={step} totalSteps={totalSteps} />
@@ -562,22 +577,23 @@ export default function OnboardingPage() {
 
       {/* Navigation — hidden on the brain-dump step which has its own CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg)]/80 px-6 py-4 backdrop-blur-xl">
-        <Button
-          variant="ghost"
-          size="md"
+        <button
           onClick={prev}
           disabled={step === 0}
-          className={step === 0 ? "invisible" : ""}
+          className={`pixel-corners inline-flex items-center gap-2 border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-all duration-200 hover:border-warm-400/40 hover:bg-warm-400/5 disabled:opacity-50 ${step === 0 ? "invisible" : ""}`}
         >
           <ArrowLeft className="h-4 w-4" />
           Back
-        </Button>
+        </button>
 
         {step < totalSteps - 1 && (
-          <Button variant="secondary" size="md" onClick={next}>
+          <button
+            onClick={next}
+            className="pixel-corners inline-flex items-center gap-2 border-[2px] border-[#3a2418]/20 bg-gradient-to-br from-warm-300 to-warm-500 px-5 py-2.5 text-sm font-semibold text-[#3a2418] transition-all duration-200 hover:from-warm-400 hover:to-warm-600 active:scale-[0.97]"
+          >
             Continue
             <ArrowRight className="h-4 w-4" />
-          </Button>
+          </button>
         )}
       </div>
     </main>
@@ -847,7 +863,7 @@ function TimeSelect({
         <select
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 pr-10 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] outline-none transition-all duration-200 focus:border-accent-500/50 focus:ring-2 focus:ring-accent-500/20 cursor-pointer"
+          className="w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 pr-10 text-sm text-[var(--text-primary)] dark:text-[#ece9e4] outline-none transition-all duration-200 focus:border-warm-400/50 focus:ring-2 focus:ring-warm-400/20 cursor-pointer"
         >
           {HOURS.map((h) => (
             <option key={h.value} value={h.value}>

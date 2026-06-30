@@ -85,15 +85,19 @@ export function AIContextProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const localSuggestion: AISuggestion = {
-          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          text,
-          type,
-          actions: [],
-          timestamp: Date.now(),
-          dismissed: false,
-        };
-        addNotification(localSuggestion);
+        // Add a random delay (2-4s) so suggestions feel like the AI "thought about it"
+        const delay = 2000 + Math.random() * 2000;
+        setTimeout(() => {
+          const localSuggestion: AISuggestion = {
+            id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            text,
+            type,
+            actions: [],
+            timestamp: Date.now(),
+            dismissed: false,
+          };
+          addNotification(localSuggestion);
+        }, delay);
       };
 
       // Task without deadline
