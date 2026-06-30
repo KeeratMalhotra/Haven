@@ -25,6 +25,27 @@ const handler = NextAuth({
       if (!account?.access_token) {
         return false;
       }
+
+      // Verify that all mandatory scopes were granted by the user.
+      // Google's granular consent always provides an access_token even if scopes
+      // are unchecked, so we must explicitly check the granted scopes.
+      const MANDATORY_SCOPES = [
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/tasks",
+        "https://www.googleapis.com/auth/presentations",
+        "https://www.googleapis.com/auth/drive.file",
+      ];
+
+      const grantedScopes = (account.scope ?? "").split(" ").filter(Boolean);
+      const missingScopes = MANDATORY_SCOPES.filter(
+        (scope) => !grantedScopes.includes(scope)
+      );
+
+      if (missingScopes.length > 0) {
+        // User denied one or more mandatory permissions - reject sign-in
+        return false;
+      }
+
       return true;
     },
     async jwt({ token, account }) {

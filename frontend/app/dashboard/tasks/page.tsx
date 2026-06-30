@@ -1076,76 +1076,91 @@ function TasksPageContent() {
 
       // Fetch from API
       let apiTasks: TaskItem[] = [];
-      try {
-        apiTasks = await fetchTasks(accessToken);
-      } catch { }
 
       let finalTasks: LocalTask[];
+      let apiCallSucceeded = false;
 
-      if (apiTasks.length > 0) {
-        // API is the source of truth for WHICH tasks exist.
-        // Merge local enrichments (status, priority, labels, recurrence) onto API tasks.
+      try {
+        apiTasks = await fetchTasks(accessToken);
+        apiCallSucceeded = true;
+      } catch {
+        apiCallSucceeded = false;
+      }
 
-        // Build lookups from local tasks
-        const localById = new Map<string, LocalTask>();
-        const localByTitle = new Map<string, LocalTask>();
-        for (const lt of localTasks) {
-          if (lt.id) localById.set(lt.id, lt);
-          // For title matching, use first occurrence only
-          if (lt.title && !localByTitle.has(lt.title)) {
-            localByTitle.set(lt.title, lt);
-          }
-        }
+      if (apiCallSucceeded) {
+        // API call succeeded - API is the authoritative source of truth.
+        // Even if API returns empty (new user), we trust it over stale localStorage.
 
-        // Track which local tasks got matched (so we can keep unsynced local-only tasks)
-        const matchedLocalIds = new Set<string>();
+        if (apiTasks.length > 0) {
+          // Merge local enrichments (status, priority, labels, recurrence) onto API tasks.
 
-        // Merge: for each API task, find local enrichment
-        const mergedTasks: LocalTask[] = apiTasks.map((apiTask, i) => {
-          const apiId = apiTask.id || `task-api-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
-
-          // Try ID match first
-          let localMatch = localById.get(apiId);
-
-          // If no ID match, try title match
-          if (!localMatch && apiTask.title) {
-            localMatch = localByTitle.get(apiTask.title);
+          // Build lookups from local tasks
+          const localById = new Map<string, LocalTask>();
+          const localByTitle = new Map<string, LocalTask>();
+          for (const lt of localTasks) {
+            if (lt.id) localById.set(lt.id, lt);
+            // For title matching, use first occurrence only
+            if (lt.title && !localByTitle.has(lt.title)) {
+              localByTitle.set(lt.title, lt);
+            }
           }
 
-          if (localMatch) {
-            matchedLocalIds.add(localMatch.id);
-            // Preserve local enrichments, but use the API's canonical ID and title/notes/due
+          // Track which local tasks got matched (so we can keep unsynced local-only tasks)
+          const matchedLocalIds = new Set<string>();
+
+          // Merge: for each API task, find local enrichment
+          const mergedTasks: LocalTask[] = apiTasks.map((apiTask, i) => {
+            const apiId = apiTask.id || `task-api-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
+
+            // Try ID match first
+            let localMatch = localById.get(apiId);
+
+            // If no ID match, try title match
+            if (!localMatch && apiTask.title) {
+              localMatch = localByTitle.get(apiTask.title);
+            }
+
+            if (localMatch) {
+              matchedLocalIds.add(localMatch.id);
+              // Preserve local enrichments, but use the API's canonical ID and title/notes/due
+              return {
+                ...apiTask,
+                id: apiId,
+                status: localMatch.status || (apiTask.completed ? "done" : "todo"),
+                priority: localMatch.priority || "none",
+                recurrence: localMatch.recurrence || null,
+                labels: localMatch.labels || [],
+                subtasks: localMatch.subtasks || apiTask.subtasks || [],
+              } as LocalTask;
+            }
+
+            // Truly new task from API
             return {
               ...apiTask,
               id: apiId,
-              status: localMatch.status || (apiTask.completed ? "done" : "todo"),
-              priority: localMatch.priority || "none",
-              recurrence: localMatch.recurrence || null,
-              labels: localMatch.labels || [],
-              subtasks: localMatch.subtasks || apiTask.subtasks || [],
+              status: apiTask.completed ? "done" : "todo",
+              priority: "none" as const,
+              recurrence: null,
+              labels: [],
             } as LocalTask;
-          }
+          });
 
-          // Truly new task from API
-          return {
-            ...apiTask,
-            id: apiId,
-            status: apiTask.completed ? "done" : "todo",
-            priority: "none" as const,
-            recurrence: null,
-            labels: [],
-          } as LocalTask;
-        });
+          // Add local-only tasks that haven't been synced yet (recently created offline)
+          // These have IDs starting with "task-" (locally generated) and weren't matched
+          const localOnlyTasks = localTasks.filter(
+            (lt) => !matchedLocalIds.has(lt.id) && lt.id.startsWith("task-")
+          );
 
-        // Add local-only tasks that haven't been synced yet (recently created offline)
-        // These have IDs starting with "task-" (locally generated) and weren't matched
-        const localOnlyTasks = localTasks.filter(
-          (lt) => !matchedLocalIds.has(lt.id) && lt.id.startsWith("task-")
-        );
-
-        finalTasks = [...mergedTasks, ...localOnlyTasks];
+          finalTasks = [...mergedTasks, ...localOnlyTasks];
+        } else {
+          // API succeeded but returned empty (new user) - clear stale localStorage
+          finalTasks = [];
+          try {
+            localStorage.removeItem(STORAGE_KEY);
+          } catch { }
+        }
       } else if (localTasks.length > 0) {
-        // API failed/empty but we have local tasks
+        // API failed but we have local tasks - use them as offline fallback
         finalTasks = localTasks;
       } else {
         finalTasks = [];

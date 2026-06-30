@@ -1221,7 +1221,23 @@ function SettingsContent() {
           Sign out of your Haven account. You will need to sign in again to access your data.
         </p>
         <button
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={() => {
+            // Clear all chronai-* localStorage keys to prevent stale data
+            // from leaking to the next user on this browser
+            try {
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith("chronai-")) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach((key) => localStorage.removeItem(key));
+            } catch {
+              // Ignore storage errors
+            }
+            signOut({ callbackUrl: "/" });
+          }}
           className="inline-flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/20 transition-colors"
         >
           <LogOut size={16} strokeWidth={1.5} />
