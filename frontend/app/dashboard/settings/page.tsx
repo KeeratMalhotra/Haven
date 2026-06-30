@@ -25,6 +25,7 @@ import {
   Save,
   Camera,
   LogOut,
+  Shield,
 } from "lucide-react";
 
 import Image from "next/image";
@@ -70,6 +71,16 @@ const TIMEZONES = [
 
 const GOOGLE_SERVICES = [
   {
+    id: "gmail",
+    name: "Gmail",
+    description: "Scan inbox for action items and send emails",
+    icon: Mail,
+    color: "red",
+  },
+];
+
+const CORE_SERVICES = [
+  {
     id: "calendar",
     name: "Google Calendar",
     description: "Manage events and scheduling",
@@ -82,13 +93,6 @@ const GOOGLE_SERVICES = [
     description: "Create and manage task lists",
     icon: CheckCheck,
     color: "blue",
-  },
-  {
-    id: "gmail",
-    name: "Gmail",
-    description: "Scan inbox for action items and send emails",
-    icon: Mail,
-    color: "red",
   },
   {
     id: "slides",
@@ -986,6 +990,52 @@ function SettingsContent() {
               </div>
             </div>
             <CheckCircle2 size={16} strokeWidth={1.5} className="text-emerald-500" />
+          </div>
+
+          {/* Core Services — Always Connected */}
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield size={14} strokeWidth={1.5} className="text-emerald-500" />
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                Core Services — Always Connected
+              </p>
+            </div>
+            <div className="space-y-2">
+              {CORE_SERVICES.map((service) => {
+                const IconComponent = service.icon;
+                const colorClass = service.color === "blue"
+                  ? "text-blue-500"
+                  : "text-amber-500";
+                const bgClass = service.color === "blue"
+                  ? "bg-blue-500/10"
+                  : "bg-amber-500/10";
+
+                return (
+                  <div
+                    key={service.id}
+                    className="flex items-center justify-between rounded-lg bg-[var(--bg-tertiary)] px-4 py-2.5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${bgClass}`}>
+                        <IconComponent size={18} strokeWidth={1.5} className={colorClass} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[#ece9e4]">
+                          {service.name}
+                        </p>
+                        <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76]">
+                          {service.description}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+                      <CheckCircle2 size={14} strokeWidth={2} className="text-emerald-500" />
+                      Active
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Google Services with real Connect/Disconnect */}

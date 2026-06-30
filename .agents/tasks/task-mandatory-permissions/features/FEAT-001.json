@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Implement mandatory permissions auth strategy: require Calendar, Tasks, and Slides scopes at sign-in; make Gmail optional; update settings UI to show core services as always-connected; update backend status endpoint.",
+  "status": "in_progress",
+  "steps": [
+    "1. Update route.ts: Add Slides scopes, remove Gmail scope, add signIn callback that rejects if no access_token, add jwt guard",
+    "2. Update page.tsx (landing): Show error banner when ?error= query param present",
+    "3. Update settings/page.tsx: Remove Calendar/Tasks/Slides from GOOGLE_SERVICES, keep only Gmail, add Core Services section",
+    "4. Update integrations.py: Calendar/Tasks/Slides always return connected:true in /status",
+    "5. Update user_context.py: Calendar/Tasks/Slides always available, only check Gmail"
+  ],
+  "acceptance_criteria": [
+    "route.ts requests calendar, tasks, presentations, drive.file scopes (not gmail.modify)",
+    "route.ts has signIn callback that rejects sign-in when no access_token",
+    "Landing page shows error banner on ?error= query param",
+    "Settings page shows Calendar, Tasks, Slides as core services (no buttons)",
+    "Settings page only shows Gmail as toggleable service",
+    "Backend /status returns connected:true for calendar, tasks, slides always",
+    "user_context.py treats calendar, tasks, slides as always connected",
+    "pnpm lint passes",
+    "python3 -m py_compile passes on all modified backend files"
+  ],
+  "blocked_reason": null
+}

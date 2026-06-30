@@ -105,11 +105,18 @@ async def _safe_integrations_context(user_id: str) -> str:
         user_ref = db.collection("users").document(user_id)
         doc = await user_ref.get()
 
+        # Calendar, Tasks, and Slides are mandatory (granted at sign-in) so
+        # they are always reported as connected regardless of Firestore state.
+        MANDATORY_SERVICES = {"calendar", "tasks", "slides"}
+
         if not doc.exists:
-            # No user doc yet -- assume nothing is connected
+            # No user doc yet -- mandatory services are connected, others are not
             lines = ["Connected Services:"]
             for service_id, display_name in _SERVICE_DISPLAY_NAMES.items():
-                lines.append(f"  {display_name} is NOT connected.")
+                if service_id in MANDATORY_SERVICES:
+                    lines.append(f"  {display_name} is connected.")
+                else:
+                    lines.append(f"  {display_name} is NOT connected.")
             return "\n".join(lines)
 
         data = doc.to_dict() or {}
@@ -118,7 +125,10 @@ async def _safe_integrations_context(user_id: str) -> str:
 
         lines = ["Connected Services:"]
         for service_id, display_name in _SERVICE_DISPLAY_NAMES.items():
-            if service_id == "spotify":
+            if service_id in MANDATORY_SERVICES:
+                # Core services are always connected (granted at sign-in)
+                is_connected = True
+            elif service_id == "spotify":
                 is_connected = bool(spotify_tokens.get("access_token"))
             else:
                 explicitly_disconnected = connected_services.get(service_id, {}).get(

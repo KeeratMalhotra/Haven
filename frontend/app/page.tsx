@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/ui/theme-provider";
@@ -886,7 +887,17 @@ function Nav() {
 /* ------------------------------------------------------------------ */
 
 export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingContent />
+    </Suspense>
+  );
+}
+
+function LandingContent() {
   const reduce = useReducedMotion();
+  const searchParams = useSearchParams();
+  const authError = searchParams.get("error");
 
   useEffect(() => {
     const body = document.body;
@@ -911,6 +922,13 @@ export default function LandingPage() {
 
   return (
     <div id="top" className="relative w-full bg-[var(--bg)]">
+      {/* Permission denied error banner */}
+      {authError && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center bg-red-500/95 px-4 py-3 text-center text-sm font-medium text-white shadow-lg backdrop-blur-sm">
+          Haven needs access to your calendar, tasks, and slides to work. Please grant all permissions to continue.
+        </div>
+      )}
+
       {/* Ambient color blobs */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute top-[40%] -right-[8%] h-[520px] w-[520px] rounded-full bg-clay-400/[0.12] blur-[120px] animate-aurora" />

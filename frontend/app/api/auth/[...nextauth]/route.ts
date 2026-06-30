@@ -8,7 +8,7 @@ const handler = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
       authorization: {
         params: {
-          scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/gmail.modify",
+          scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file",
           access_type: "offline",
           prompt: "consent",
         },
@@ -17,14 +17,23 @@ const handler = NextAuth({
   ],
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: "/",
+    signIn: "/?error=OAuthPermissionDenied",
   },
   callbacks: {
+    async signIn({ account }) {
+      // Reject sign-in if user denied permissions (no access token granted)
+      if (!account?.access_token) {
+        return false;
+      }
+      return true;
+    },
     async jwt({ token, account }) {
       // Persist the Google OAuth access token on initial sign-in
       if (account) {
-        // Handle case where user denies permissions - access_token may be null/undefined
-        token.accessToken = account.access_token ?? "";
+        if (!account.access_token) {
+          throw new Error("Missing access token - user denied permissions");
+        }
+        token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token ?? "";
         token.expiresAt = account.expires_at ?? 0;
       }
