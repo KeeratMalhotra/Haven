@@ -9,6 +9,12 @@ RUN npm install --legacy-peer-deps
 # Copy application code
 COPY . .
 
+# Build arguments for Next.js public env vars (baked in at build time)
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
 # Build the Next.js application
 RUN npm run build
 
