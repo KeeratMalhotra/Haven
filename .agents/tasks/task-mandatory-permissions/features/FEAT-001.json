@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Implement mandatory permissions auth strategy: require Calendar, Tasks, and Slides scopes at sign-in; make Gmail optional; update settings UI to show core services as always-connected; update backend status endpoint.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Update route.ts: Add Slides scopes, remove Gmail scope, add signIn callback that rejects if no access_token, add jwt guard",
     "2. Update page.tsx (landing): Show error banner when ?error= query param present",
