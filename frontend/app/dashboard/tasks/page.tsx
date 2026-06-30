@@ -817,6 +817,7 @@ function TaskDetailPanel({
           <input
             type="date"
             value={due ? due.split("T")[0] : ""}
+            min={new Date().toISOString().split("T")[0]}
             onChange={(e) => {
               const val = e.target.value;
               setDue(val);
@@ -1015,7 +1016,7 @@ function TasksPageContent() {
   // New task form state
   const [newTitle, setNewTitle] = useState("");
   const [newNotes, setNewNotes] = useState("");
-  const [newDue, setNewDue] = useState("");
+  const [newDue, setNewDue] = useState(new Date().toISOString().split("T")[0]);
   const [newPriority, setNewPriority] = useState<LocalTask["priority"]>("none");
   const [newRecurrence, setNewRecurrence] = useState<RecurrenceConfig | null>(null);
 
@@ -1174,6 +1175,46 @@ function TasksPageContent() {
         return true;
       });
 
+      // Auto-create today's instance for recurring daily tasks if their last
+      // completed date (or due date) is before today.
+      const today = new Date().toISOString().split("T")[0];
+      const newRecurring: LocalTask[] = [];
+      for (const task of finalTasks) {
+        if (
+          task.recurrence &&
+          task.recurrence.type === "daily" &&
+          task.status === "done" &&
+          task.due
+        ) {
+          const taskDue = task.due.split("T")[0];
+          if (taskDue < today) {
+            // Check if there is already a todo instance for today with the same title
+            const alreadyExists = finalTasks.some(
+              (t) =>
+                t.title === task.title &&
+                t.status !== "done" &&
+                t.due &&
+                t.due.split("T")[0] === today
+            ) || newRecurring.some(
+              (t) => t.title === task.title && t.due === today
+            );
+            if (!alreadyExists) {
+              newRecurring.push({
+                ...task,
+                id: `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                status: "todo",
+                completed: false,
+                completedAt: undefined,
+                due: today,
+              });
+            }
+          }
+        }
+      }
+      if (newRecurring.length > 0) {
+        finalTasks = [...newRecurring, ...finalTasks];
+      }
+
       setTasks(finalTasks);
       isHydrated.current = true;
       setLoading(false);
@@ -1256,7 +1297,7 @@ function TasksPageContent() {
     setTasks((prev) => [task, ...prev]);
     setNewTitle("");
     setNewNotes("");
-    setNewDue("");
+    setNewDue(new Date().toISOString().split("T")[0]);
     setNewPriority("none");
     setNewRecurrence(null);
     setShowCreateModal(false);
@@ -1936,6 +1977,7 @@ function TasksPageContent() {
               label="Due Date"
               type="date"
               value={newDue}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setNewDue(e.target.value)}
             />
             <div className="flex flex-col gap-1.5">

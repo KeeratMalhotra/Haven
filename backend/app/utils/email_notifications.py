@@ -417,3 +417,82 @@ async def send_weekly_review(
             e,
         )
         return False
+
+
+async def send_notifications_enabled_confirmation(
+    user_email: str, google_tokens: dict
+) -> bool:
+    """Send a confirmation email when email notifications are enabled.
+
+    Notifies the user that their Gmail notifications have been successfully
+    turned on in Haven settings.
+
+    Args:
+        user_email: The recipient email address.
+        google_tokens: Dict with access_token and/or refresh_token.
+
+    Returns:
+        True if the email was sent successfully, False otherwise.
+    """
+    try:
+        service = _build_gmail_service(google_tokens)
+
+        plain_text = (
+            "Gmail Notifications Enabled\n\n"
+            "You have successfully enabled email notifications in Haven. "
+            "You will now receive task deadline reminders, daily digests, "
+            "and other important updates directly in your inbox.\n\n"
+            "You can manage your notification preferences at any time from Settings.\n\n"
+            f"Open Haven: {settings.FRONTEND_ORIGIN}"
+        )
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{ margin: 0; padding: 0; background-color: #0f0f14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+    .container {{ max-width: 560px; margin: 0 auto; padding: 40px 20px; }}
+    .card {{ background-color: #1a1a24; border-radius: 16px; padding: 36px; border: 1px solid #2a2a3a; }}
+    .logo {{ color: #a78bfa; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 28px; }}
+    .heading {{ color: #ffffff; font-size: 18px; font-weight: 600; margin-bottom: 12px; }}
+    .message {{ color: #b0b0c0; font-size: 15px; line-height: 1.7; margin-bottom: 28px; }}
+    .check-badge {{ display: inline-block; background-color: #10b98115; border: 1px solid #10b98130; color: #10b981; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 16px; }}
+    .btn {{ display: inline-block; background-color: #a78bfa; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 14px; }}
+    .footer {{ color: #666; font-size: 12px; margin-top: 28px; text-align: center; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">Haven</div>
+      <div class="heading">Notifications Enabled</div>
+      <div class="message">
+        <span class="check-badge">Email notifications are now active</span>
+        <p>You will receive task deadline reminders, daily digests, and other important updates directly to your inbox.</p>
+        <p>You can adjust your notification preferences at any time from your Haven settings.</p>
+      </div>
+      <a href="{settings.FRONTEND_ORIGIN}" class="btn">Open Haven</a>
+    </div>
+    <div class="footer">
+      <p>You received this because you enabled email notifications in Haven.</p>
+    </div>
+  </div>
+</body>
+</html>"""
+
+        await asyncio.to_thread(
+            _send_email, service, user_email,
+            "Haven: Email Notifications Enabled", plain_text, html_body,
+        )
+        logger.info(f"Notifications enabled confirmation email sent to {user_email}")
+        return True
+    except Exception as e:
+        logger.error(
+            "Failed to send notifications enabled confirmation to %s: [%s] %s",
+            user_email,
+            type(e).__name__,
+            e,
+        )
+        return False

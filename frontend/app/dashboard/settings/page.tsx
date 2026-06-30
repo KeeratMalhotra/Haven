@@ -161,7 +161,7 @@ function SettingsContent() {
 
   // Profile editing
   const [displayName, setDisplayName] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
+  const [timezone, setTimezone] = useState("Asia/Kolkata");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 

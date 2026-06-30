@@ -366,7 +366,7 @@ export default function CalendarPage() {
 
   // Create event form
   const [newSummary, setNewSummary] = useState("");
-  const [newDate, setNewDate] = useState("");
+  const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newTime, setNewTime] = useState("09:00");
   const [newDuration, setNewDuration] = useState(60);
   const [creatingEvent, setCreatingEvent] = useState(false);
@@ -1127,6 +1127,7 @@ export default function CalendarPage() {
               label="Date"
               type="date"
               value={editDate}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setEditDate(e.target.value)}
             />
             <Input
@@ -1207,6 +1208,7 @@ export default function CalendarPage() {
               label="Date"
               type="date"
               value={newDate}
+              min={new Date().toISOString().split("T")[0]}
               onChange={(e) => setNewDate(e.target.value)}
             />
             <Input
