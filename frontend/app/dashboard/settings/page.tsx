@@ -833,35 +833,22 @@ function SettingsContent() {
             </div>
           </div>
 
-          {/* Suggestions toggle */}
+          {/* AI Nudges & Suggestions (merged: in-app suggestions + proactive notifications) */}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
-                AI Suggestions
+                AI Nudges &amp; Suggestions
               </p>
               <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
-                Show AI-powered suggestions throughout the app
+                Let Haven proactively suggest actions, reminders, and tips as you work
               </p>
             </div>
             <Toggle
               checked={aiSuggestions}
-              onChange={updateAiSuggestions}
-            />
-          </div>
-
-          {/* Proactive notifications */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[var(--text-primary)] dark:text-[#ece9e4]">
-                Proactive Notifications
-              </p>
-              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
-                Let AI proactively suggest actions and reminders
-              </p>
-            </div>
-            <Toggle
-              checked={proactiveNotifs}
-              onChange={updateProactiveNotifs}
+              onChange={(val) => {
+                updateAiSuggestions(val);
+                updateProactiveNotifs(val);
+              }}
             />
           </div>
 
@@ -1127,7 +1114,15 @@ function SettingsContent() {
             Notifications
           </h2>
         </div>
+        <p className="text-sm text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed mb-5 -mt-1">
+          Choose which email notifications Haven sends you.
+        </p>
         <div className="space-y-4">
+          {/* Email sub-header */}
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-tertiary)] dark:text-[#847e76]">
+            Email
+          </p>
+
           {/* Email Deadline Reminders */}
           <div className="flex items-center justify-between">
             <div>
