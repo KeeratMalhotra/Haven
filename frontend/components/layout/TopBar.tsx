@@ -54,6 +54,9 @@ export default function TopBar({
   // Custom profile picture from localStorage (takes priority over userImage)
   const [customProfilePicture, setCustomProfilePicture] = useState<string | null>(null);
 
+  // Track avatar load failures so we can fall back instead of showing broken alt text
+  const [imgError, setImgError] = useState(false);
+
   useEffect(() => {
     // Load custom profile picture on mount
     const stored = localStorage.getItem("chronai-profile-picture");
@@ -72,6 +75,9 @@ export default function TopBar({
   }, []);
 
   const displayImage = customProfilePicture || userImage;
+
+  // Reset the error flag whenever the image source changes so a new URL retries.
+  useEffect(() => setImgError(false), [displayImage]);
 
   const connectionColor =
     connected === true
@@ -273,13 +279,14 @@ export default function TopBar({
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
           className="min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
-          {displayImage ? (
+          {displayImage && !imgError ? (
             <Image
               src={displayImage}
               alt="User avatar"
               width={30}
               height={30}
-              unoptimized={displayImage.startsWith("data:")}
+              unoptimized
+              onError={() => setImgError(true)}
               className="rounded-full ring-2 ring-[var(--border)] ring-offset-1 ring-offset-[var(--bg)] transition-all hover:ring-accent-500/30 object-cover"
             />
           ) : (

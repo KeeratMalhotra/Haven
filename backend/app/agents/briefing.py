@@ -80,8 +80,14 @@ async def generate_daily_briefing(
 
     # Build prompt for Gemini
     current_time = now_ist()
+    # Time-of-day greeting must follow the user's own timezone, not server IST.
+    user_tz = (user.preferences or {}).get("timezone", "Asia/Kolkata") if user else "Asia/Kolkata"
+    try:
+        user_now = datetime.now(ZoneInfo(user_tz))
+    except Exception:
+        user_now = current_time
     time_of_day = "morning"
-    hour = current_time.hour
+    hour = user_now.hour
     if hour >= 12 and hour < 17:
         time_of_day = "afternoon"
     elif hour >= 17:
@@ -152,6 +158,22 @@ def _fmt_time(dt: datetime | None) -> str:
     return f"{hour}:{dt.minute:02d} {ampm}"
 
 
+def _fmt_date(dt: datetime | None) -> str:
+    """Format a deadline as a friendly date label (Today / Tomorrow / 'Jul 1')."""
+    if not dt:
+        return ""
+    today = now_ist().date()
+    d = dt.date()
+    delta = (d - today).days
+    if delta == 0:
+        return "Today"
+    if delta == 1:
+        return "Tomorrow"
+    if delta == -1:
+        return "Yesterday"
+    return dt.strftime("%b %-d")
+
+
 def _normalize_events(events: Any) -> list[dict]:
     """Coerce the MCP list_events payload into a clean list of event dicts."""
     if isinstance(events, dict):
@@ -196,7 +218,6 @@ async def generate_today_briefing(
         top_priority, warnings, stats and suggested_actions.
     """
     current_time = now_ist()
-    time_of_day = _time_of_day(current_time.hour)
 
     # --- User profile -----------------------------------------------------
     user = await UserRepository.get_by_id(user_id)
@@ -210,6 +231,14 @@ async def generate_today_briefing(
             priorities = user.profile.priorities or []
             work_start = user.profile.work_hours_start
             work_end = user.profile.work_hours_end
+
+    # Time-of-day greeting must follow the user's own timezone, not server IST.
+    user_tz = (user.preferences or {}).get("timezone", "Asia/Kolkata") if user else "Asia/Kolkata"
+    try:
+        user_now = datetime.now(ZoneInfo(user_tz))
+    except Exception:
+        user_now = now_ist()
+    time_of_day = _time_of_day(user_now.hour)
 
     # --- Calendar events --------------------------------------------------
     events: list[dict] = []
@@ -279,7 +308,7 @@ async def generate_today_briefing(
                 {
                     "title": t.get("title", "Untitled task"),
                     "due": t.get("due", ""),
-                    "due_label": _fmt_time(due_dt) if due_dt else "",
+                    "due_label": _fmt_date(due_dt),
                 }
             )
 
@@ -359,7 +388,7 @@ async def generate_today_briefing(
     return {
         "greeting": greeting,
         "time_of_day": time_of_day,
-        "date": current_time.strftime("%A, %d %B %Y"),
+        "date": user_now.strftime("%A, %d %B %Y"),
         "narrative": narrative,
         "meetings": meetings,
         "deadlines": deadlines,
