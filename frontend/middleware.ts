@@ -34,6 +34,14 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Short-circuit: if onboarding is already confirmed complete via cookie, skip the backend fetch
+  if (
+    pathname.startsWith("/dashboard") &&
+    request.cookies.get("haven-onboarding-complete")?.value === "true"
+  ) {
+    return NextResponse.next();
+  }
+
   // If we have a token, check onboarding status to prevent flash
   if (token) {
     const accessToken = (token as Record<string, unknown>).accessToken as string | undefined;
@@ -57,7 +65,10 @@ export async function middleware(request: NextRequest) {
           if (!data.complete && pathname.startsWith("/dashboard")) {
             const url = request.nextUrl.clone();
             url.pathname = "/onboarding";
-            return NextResponse.redirect(url);
+            const response = NextResponse.redirect(url);
+            // Clear the cookie in case it was set incorrectly
+            response.cookies.delete("haven-onboarding-complete");
+            return response;
           }
 
           // User has completed onboarding but is on onboarding page - redirect to dashboard
@@ -65,6 +76,18 @@ export async function middleware(request: NextRequest) {
             const url = request.nextUrl.clone();
             url.pathname = "/dashboard";
             return NextResponse.redirect(url);
+          }
+
+          // Onboarding complete and user is on dashboard - set cookie to skip future checks
+          if (data.complete && pathname.startsWith("/dashboard")) {
+            const response = NextResponse.next();
+            response.cookies.set("haven-onboarding-complete", "true", {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              maxAge: 60 * 60 * 24 * 365, // 1 year
+            });
+            return response;
           }
         }
       } catch {

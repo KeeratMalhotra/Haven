@@ -246,7 +246,7 @@ async def oauth_callback(code: str = Query(...), state: str = Query(...)):
 <body>
 <script>
   if (window.opener) {{
-    window.opener.postMessage({{ type: "oauth-connected", service: "{service}" }}, "*");
+    window.opener.postMessage({{ type: "oauth-connected", service: "{service}" }}, "{settings.cors_origins[0]}");
     window.close();
   }} else {{
     window.location.href = "{settings.FRONTEND_ORIGIN}/dashboard/settings?connected={service}";
