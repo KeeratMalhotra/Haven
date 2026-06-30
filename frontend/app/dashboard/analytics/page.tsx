@@ -8,6 +8,7 @@ import { BarChart3, TrendingUp, Target, Zap } from "lucide-react";
 
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { fetchTasks, fetchHabits } from "@/lib/api";
 
 // ─── Animation Variants ─────────────────────────────────────────────────────
 
@@ -409,6 +410,8 @@ function AnalyticsContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
+  const accessToken =
+    ((session as Record<string, unknown> | null)?.accessToken as string) || "";
 
   const reducedContainerVariants = prefersReducedMotion
     ? { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { staggerChildren: 0, delayChildren: 0 } } }
@@ -424,21 +427,13 @@ function AnalyticsContent() {
   const [pomodoroStats, setPomodoroStats] = useState<PomodoroStatsRecord>({});
   const [habitsData, setHabitsData] = useState<HabitData[]>([]);
 
-  // Load data from localStorage
+  // Load data: tasks and habits from the real API, pomodoro from localStorage
   useEffect(() => {
     document.title = "Analytics | Haven";
-    try {
-      const tasksRaw = localStorage.getItem("chronai-tasks");
-      if (tasksRaw) {
-        const parsed = JSON.parse(tasksRaw);
-        setTasksData(Array.isArray(parsed) ? parsed : []);
-      } else {
-        setTasksData([]);
-      }
-    } catch {
-      setTasksData([]);
-    }
 
+    let cancelled = false;
+
+    // Pomodoro stays a local-only feature (no backend).
     try {
       const pomodoroRaw = localStorage.getItem("chronai-pomodoro-stats");
       if (pomodoroRaw) {
@@ -456,20 +451,65 @@ function AnalyticsContent() {
       setPomodoroStats({});
     }
 
-    try {
-      const habitsRaw = localStorage.getItem("chronai-habits");
-      if (habitsRaw) {
-        const parsed = JSON.parse(habitsRaw);
-        setHabitsData(Array.isArray(parsed) ? parsed : []);
+    async function loadData() {
+      // Read local tasks to enrich per-day completion dates (completedAt).
+      let localTasks: TaskData[] = [];
+      try {
+        const tasksRaw = localStorage.getItem("chronai-tasks");
+        if (tasksRaw) {
+          const parsed = JSON.parse(tasksRaw);
+          if (Array.isArray(parsed)) localTasks = parsed as TaskData[];
+        }
+      } catch {
+        localTasks = [];
       }
-    } catch {
-      // silently fail
+
+      // Tasks: API is the source of truth for completion; merge local completedAt.
+      try {
+        const apiTasks = await fetchTasks(accessToken);
+        const localById = new Map<string, TaskData>();
+        for (const lt of localTasks) {
+          if (lt.id) localById.set(lt.id, lt);
+        }
+        const merged: TaskData[] = apiTasks.map((task, i) => {
+          const id = task.id || `task-api-${i}`;
+          const localMatch = localById.get(id);
+          return {
+            id,
+            completed: task.completed ?? false,
+            status: task.completed ? "done" : "todo",
+            completedAt: localMatch?.completedAt,
+            updatedAt: localMatch?.updatedAt,
+          };
+        });
+        if (!cancelled) setTasksData(merged);
+      } catch {
+        if (!cancelled) setTasksData([]);
+      }
+
+      // Habits: fetched entirely from the API.
+      try {
+        const apiHabits = await fetchHabits(accessToken);
+        const mappedHabits: HabitData[] = apiHabits.map((habit) => ({
+          id: habit.id,
+          completedDays: (habit.history || []).map((h) => h.completed_at),
+          streak: habit.streak,
+          targetDays: habit.target_days,
+        }));
+        if (!cancelled) setHabitsData(mappedHabits);
+      } catch {
+        if (!cancelled) setHabitsData([]);
+      }
+
+      if (!cancelled) setLoading(false);
     }
 
-    // Simulate brief loading for skeleton display
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   // Compute chart data based on period
   const dateKeys = useMemo(() => getDateKeys(period), [period]);

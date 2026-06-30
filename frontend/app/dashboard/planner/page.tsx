@@ -32,6 +32,7 @@ import {
 import {
   fetchCalendarEvents,
   createCalendarEvent,
+  fetchTasks,
   type CalendarEvent,
 } from "@/lib/api";
 import { useAI } from "@/components/ai/AIContextProvider";
@@ -287,20 +288,60 @@ export default function PlannerPage() {
     document.title = "Planner | Haven";
   }, []);
 
-  // Load tasks from localStorage
+  // Load tasks from the real API, merging localStorage enrichment for linkedEventId
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(TASKS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as LocalTask[];
-        if (Array.isArray(parsed)) {
-          setTasks(parsed);
+    async function loadTasks() {
+      // Read localStorage tasks for enrichment / fallback
+      let localTasks: LocalTask[] = [];
+      try {
+        const stored = localStorage.getItem(TASKS_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as LocalTask[];
+          if (Array.isArray(parsed)) {
+            localTasks = parsed;
+          }
         }
+      } catch {
+        localTasks = [];
       }
-    } catch {
-      setTasks([]);
+
+      try {
+        const apiTasks = await fetchTasks(accessToken);
+
+        // Build a lookup of localStorage tasks by id for linkedEventId enrichment
+        const localById = new Map<string, LocalTask>();
+        for (const lt of localTasks) {
+          if (lt.id) localById.set(lt.id, lt);
+        }
+
+        const mapped: LocalTask[] = apiTasks.map((task, i) => {
+          const id =
+            task.id ||
+            `task-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`;
+          const localMatch = localById.get(id);
+          return {
+            id,
+            title: task.title,
+            notes: task.notes,
+            due: task.due ?? null,
+            completed: task.completed ?? false,
+            status: task.completed ? "done" : "todo",
+            priority: "none",
+            labels: [],
+            ...(localMatch?.linkedEventId
+              ? { linkedEventId: localMatch.linkedEventId }
+              : {}),
+          };
+        });
+
+        setTasks(mapped);
+      } catch {
+        // API failed - fall back to localStorage tasks (previous behavior)
+        setTasks(localTasks);
+      }
     }
-  }, []);
+    loadTasks();
+  }, [accessToken]);
 
   // Load calendar events
   useEffect(() => {
