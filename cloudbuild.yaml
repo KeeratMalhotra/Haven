@@ -102,7 +102,7 @@ substitutions:
   # Frontend
   _FRONTEND_IMAGE: haven-frontend
   _FRONTEND_SERVICE: haven
-  _GOOGLE_CLIENT_ID: "412899276225-anoolbtvmqum76uf4bqh5ecpolkpulvo.apps.googleusercontent.com"
+  _GOOGLE_CLIENT_ID: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
