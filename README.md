@@ -6,8 +6,6 @@ Haven combines a clean, minimal dashboard with 9 specialist AI agents powered by
 
 ## Accessing the Live App
 
-> **For evaluators / first-time visitors — please read this first.**
-
 **Live app (Google Cloud Run):** [https://haven-412899276225.asia-south1.run.app](https://haven-412899276225.asia-south1.run.app)
 
 ### Signing in 
