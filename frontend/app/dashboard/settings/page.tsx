@@ -613,6 +613,11 @@ function SettingsContent() {
     (s) => s.connected
   ).length;
 
+  // Email notifications are delivered via the Gmail API, so they can only work
+  // when Gmail is connected. Gate the email toggles on this to avoid a broken
+  // affordance (a toggle that silently never delivers).
+  const gmailConnected = integrationStatus.gmail?.connected ?? false;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -1129,6 +1134,22 @@ function SettingsContent() {
             Email
           </p>
 
+          {/* Gmail-required hint: email notifications need a connected Gmail */}
+          {!gmailConnected && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] px-3 py-2.5">
+              <p className="text-xs text-[var(--text-tertiary)] dark:text-[#847e76] leading-relaxed">
+                Connect Gmail to receive email notifications.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleConnectService("gmail")}
+                className="shrink-0 text-xs font-medium text-accent-500 hover:underline"
+              >
+                Connect Gmail
+              </button>
+            </div>
+          )}
+
           {/* Email Deadline Reminders */}
           <div className="flex items-center justify-between">
             <div>
@@ -1141,6 +1162,7 @@ function SettingsContent() {
             </div>
             <Toggle
               checked={emailDeadlineReminders}
+              disabled={!gmailConnected}
               onChange={(val) =>
                 updateNotificationPref("chronai-email-deadline-reminders", val, setEmailDeadlineReminders)
               }
@@ -1159,6 +1181,7 @@ function SettingsContent() {
             </div>
             <Toggle
               checked={dailyDigest}
+              disabled={!gmailConnected}
               onChange={(val) =>
                 updateNotificationPref("chronai-daily-digest", val, setDailyDigest)
               }
@@ -1177,6 +1200,7 @@ function SettingsContent() {
             </div>
             <Toggle
               checked={weeklyReview}
+              disabled={!gmailConnected}
               onChange={(val) =>
                 updateNotificationPref("chronai-weekly-review", val, setWeeklyReview)
               }
