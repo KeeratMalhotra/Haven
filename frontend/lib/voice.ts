@@ -1,5 +1,5 @@
 /**
- * Voice utilities for ChronAI.
+ * Voice utilities for Haven.
  * - Speech-to-text (STT) via MediaRecorder capture + backend Google Cloud
  *   Speech-to-Text. This replaces the browser Web Speech API
  *   (webkitSpeechRecognition), which depends on Google's private speech

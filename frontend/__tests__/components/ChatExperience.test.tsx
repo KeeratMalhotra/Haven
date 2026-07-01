@@ -72,13 +72,13 @@ describe("ChatExperience", () => {
     render(<ChatExperience accessToken="mock-access-token" />);
 
     const input = screen.getByPlaceholderText("Message Haven");
-    fireEvent.change(input, { target: { value: "Hello ChronAI!" } });
+    fireEvent.change(input, { target: { value: "Hello Haven!" } });
 
     fireEvent.click(screen.getByLabelText("Send message"));
 
     expect(mockSend).toHaveBeenCalledWith({
       type: "chat",
-      content: "Hello ChronAI!",
+      content: "Hello Haven!",
       auth_token: "mock-access-token",
     });
   });

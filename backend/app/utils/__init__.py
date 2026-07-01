@@ -1,1 +1,1 @@
-"""Utility helpers for the ChronAI backend."""
+"""Utility helpers for the Haven backend."""

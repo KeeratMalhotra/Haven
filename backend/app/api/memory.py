@@ -98,7 +98,7 @@ def _memory_view(memory) -> dict:
 
 @router.post("/observe")
 async def observe(body: ObserveRequest):
-    """Record a behavioural signal so ChronAI can learn from it.
+    """Record a behavioural signal so Haven can learn from it.
 
     Accepts events like ``task_completed``, ``task_rescheduled``,
     ``focus_session`` and ``task_created`` with an optional timestamp and

@@ -1,4 +1,4 @@
-"""ChronAI Backend - FastAPI server with WebSocket chat and AI agents."""
+"""Haven Backend - FastAPI server with WebSocket chat and AI agents."""
 
 import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -227,7 +227,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="ChronAI",
+    title="Haven",
     description="AI-powered productivity companion",
     version="0.1.0",
     lifespan=lifespan,

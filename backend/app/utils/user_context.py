@@ -16,7 +16,7 @@ _SERVICE_DISPLAY_NAMES: dict[str, str] = {
 async def get_user_context(user_id: str) -> str:
     """Fetch user profile and return a formatted context string for prompts.
 
-    Includes the user's onboarding profile AND any behavioural memory ChronAI
+    Includes the user's onboarding profile AND any behavioural memory Haven
     has learned over time (productive hours, patterns, learned preferences,
     insights). The memory section is appended so ALL agents -- orchestrator,
     planner, scheduler -- adapt to how the user actually works.

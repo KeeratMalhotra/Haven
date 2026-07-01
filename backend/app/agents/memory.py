@@ -1,4 +1,4 @@
-"""Behavioral memory & learning module — ChronAI's persistent brain.
+"""Behavioral memory & learning module — Haven's persistent brain.
 
 This is the engine behind Sprint 11 "The Brain Gets Real". It does three jobs:
 
@@ -14,7 +14,7 @@ This is the engine behind Sprint 11 "The Brain Gets Real". It does three jobs:
 
 Design principles:
   - Memory must DEGRADE GRACEFULLY. If Firestore or Gemini is unavailable, the
-    rest of ChronAI keeps working; we simply learn/serve less.
+    rest of Haven keeps working; we simply learn/serve less.
   - Prompt-injection safety. User-derived text (task titles etc.) is passed to
     Gemini only as fenced, opaque data inside a separate user message while all
     behavioural rules live in the model's ``system_instruction``.
@@ -538,7 +538,7 @@ def _computed_insights(memory: UserMemory) -> list[MemoryInsight]:
 # ---------------------------------------------------------------------------
 
 
-_DISTILL_SYSTEM_INSTRUCTION = """You are ChronAI's memory analyst. You turn a user's productivity \
+_DISTILL_SYSTEM_INSTRUCTION = """You are Haven's memory analyst. You turn a user's productivity \
 signals into a SHORT list of durable, human-readable insights about how they work.
 
 You will receive a JSON object of FACTS (aggregated stats and recent anonymized \
@@ -729,7 +729,7 @@ async def get_memory_context(user_id: str) -> str:
 
     if not lines:
         return ""
-    return "Learned Memory (what ChronAI knows about how this user works):\n" + "\n".join(
+    return "Learned Memory (what Haven knows about how this user works):\n" + "\n".join(
         lines
     )
 

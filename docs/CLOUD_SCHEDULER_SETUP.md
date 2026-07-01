@@ -1,13 +1,13 @@
-# Google Cloud Scheduler Setup for ChronAI Proactive Nudges
+# Google Cloud Scheduler Setup for Haven Proactive Nudges
 
-This guide explains how to configure Google Cloud Scheduler to periodically trigger the ChronAI nudge endpoint, ensuring users receive proactive deadline reminders even when the background scheduler needs external triggering (e.g., in serverless deployments).
+This guide explains how to configure Google Cloud Scheduler to periodically trigger the Haven nudge endpoint, ensuring users receive proactive deadline reminders even when the background scheduler needs external triggering (e.g., in serverless deployments).
 
 ## Prerequisites
 
 - A Google Cloud project with billing enabled
 - The Cloud Scheduler API enabled
 - `gcloud` CLI installed and authenticated
-- ChronAI backend deployed and accessible via a public URL
+- Haven backend deployed and accessible via a public URL
 - `SCHEDULER_API_KEY` configured in your backend environment
 
 ## Step 1: Enable the Cloud Scheduler API
@@ -32,19 +32,19 @@ Set this value as `SCHEDULER_API_KEY` in your backend's `.env` file or environme
 Create a job that calls the nudge trigger endpoint every 30 minutes:
 
 ```bash
-gcloud scheduler jobs create http chronai-nudge-trigger \
+gcloud scheduler jobs create http haven-nudge-trigger \
   --location=us-central1 \
   --schedule="*/30 * * * *" \
   --uri="https://YOUR_BACKEND_URL/api/nudge/trigger" \
   --http-method=POST \
   --headers="X-API-Key=YOUR_SCHEDULER_API_KEY,Content-Type=application/json" \
   --time-zone="UTC" \
-  --description="Triggers ChronAI proactive nudge check every 30 minutes" \
+  --description="Triggers Haven proactive nudge check every 30 minutes" \
   --attempt-deadline="60s"
 ```
 
 Replace:
-- `YOUR_BACKEND_URL` with your deployed backend URL (e.g., `chronai-backend-abc123.run.app`)
+- `YOUR_BACKEND_URL` with your deployed backend URL (e.g., `haven-backend-abc123.run.app`)
 - `YOUR_SCHEDULER_API_KEY` with the key you generated in Step 2
 - `us-central1` with your preferred region
 
@@ -53,7 +53,7 @@ Replace:
 Manually trigger the job to verify it works:
 
 ```bash
-gcloud scheduler jobs run chronai-nudge-trigger --location=us-central1
+gcloud scheduler jobs run haven-nudge-trigger --location=us-central1
 ```
 
 You can also test directly with `curl`:
@@ -80,7 +80,7 @@ Expected response:
 To trigger nudges for a specific user only, add a `user_id` query parameter:
 
 ```bash
-gcloud scheduler jobs create http chronai-nudge-user-specific \
+gcloud scheduler jobs create http haven-nudge-user-specific \
   --location=us-central1 \
   --schedule="*/15 * * * *" \
   --uri="https://YOUR_BACKEND_URL/api/nudge/trigger?user_id=USER_ID_HERE" \
@@ -114,12 +114,12 @@ gcloud scheduler jobs create http chronai-nudge-user-specific \
 View job execution history:
 
 ```bash
-gcloud scheduler jobs describe chronai-nudge-trigger --location=us-central1
+gcloud scheduler jobs describe haven-nudge-trigger --location=us-central1
 ```
 
 Check recent executions in the Cloud Console:
 - Navigate to Cloud Scheduler in the GCP Console
-- Click on the `chronai-nudge-trigger` job
+- Click on the `haven-nudge-trigger` job
 - Review the "Last run" and "Status" columns
 
 ## Troubleshooting

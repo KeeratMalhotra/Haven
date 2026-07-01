@@ -819,7 +819,7 @@ export async function fetchMemoryInsights(
 }
 
 /**
- * Record a behavioural observation so ChronAI can learn from it.
+ * Record a behavioural observation so Haven can learn from it.
  * Best-effort: failures are swallowed so the UI flow is never blocked.
  */
 export async function recordObservation(
@@ -1084,7 +1084,7 @@ export async function setProactiveFocus(
 
 /**
  * Record that the user accepted or dismissed a proactive nudge. This calibrates
- * how often ChronAI nudges in the future. Optionally marks the notification read.
+ * how often Haven nudges in the future. Optionally marks the notification read.
  */
 export async function sendProactiveFeedback(
   authToken: string,

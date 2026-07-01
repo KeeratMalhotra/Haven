@@ -11,7 +11,10 @@ from app.db.models import User, UserProfile
 async def test_get_user_context_no_user(mock_firestore):
     """Should return 'not completed' message when user does not exist."""
     result = await get_user_context("nonexistent_user")
-    assert result == "User has not completed onboarding."
+    assert result.startswith("User has not completed onboarding.")
+    # Service connection status is still surfaced pre-onboarding so agents
+    # can guide the user (mandatory services are granted at sign-in).
+    assert "Connected Services:" in result
 
 
 @pytest.mark.asyncio
@@ -33,7 +36,8 @@ async def test_get_user_context_incomplete_onboarding(mock_firestore):
     await UserRepository.create(user)
 
     result = await get_user_context("user123")
-    assert result == "User has not completed onboarding."
+    assert result.startswith("User has not completed onboarding.")
+    assert "Connected Services:" in result
 
 
 @pytest.mark.asyncio

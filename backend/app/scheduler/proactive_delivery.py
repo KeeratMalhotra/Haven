@@ -3,7 +3,7 @@
 This is the layer that decides — like a disciplined chief of staff — *whether*
 and *how* to actually surface the interventions the intelligence engine
 produces. The engine says "here's what I noticed"; this layer enforces the
-rules that keep ChronAI respectful:
+rules that keep Haven respectful:
 
   - Frequency budget: at most N Tier 2+ nudges per user per day (calibrated by
     the user's own accept/dismiss history). Beyond that, everything is

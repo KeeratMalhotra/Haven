@@ -1,4 +1,4 @@
-"""Tests for all ChronAI agents.
+"""Tests for all Haven agents.
 
 Each test mocks Vertex AI and MCP tools to verify agent logic
 without requiring real API keys or credentials.
@@ -37,7 +37,7 @@ class TestOrchestratorAgent:
                 "intent": "greeting",
                 "agents": [],
                 "tasks": [],
-                "direct_response": "Hello! I'm ChronAI, your productivity companion.",
+                "direct_response": "Hello! I'm Haven, your productivity companion.",
             })
         )
 
@@ -47,7 +47,7 @@ class TestOrchestratorAgent:
             "conversation_history": [],
         })
 
-        assert result["content"] == "Hello! I'm ChronAI, your productivity companion."
+        assert result["content"] == "Hello! I'm Haven, your productivity companion."
         assert result["agent"] == "orchestrator"
         assert result["metadata"]["routed_to"] == []
 

@@ -1,4 +1,4 @@
-"""Shared Pydantic models for ChronAI."""
+"""Shared Pydantic models for Haven."""
 
 from datetime import datetime
 from enum import Enum

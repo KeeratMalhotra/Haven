@@ -1,6 +1,6 @@
 # Google Cloud Platform Setup Guide
 
-This guide walks you through setting up a GCP project and configuring all the necessary APIs and credentials for ChronAI.
+This guide walks you through setting up a GCP project and configuring all the necessary APIs and credentials for Haven.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ This guide walks you through setting up a GCP project and configuring all the ne
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
 2. Click the project dropdown at the top of the page.
 3. Click **New Project**.
-4. Enter a project name (e.g., `chronai-dev`).
+4. Enter a project name (e.g., `haven-dev`).
 5. Select your organization (if applicable) and click **Create**.
 6. Wait for the project to be created, then select it from the project dropdown.
 7. Note down the **Project ID** (visible on the project dashboard) - you will need this for `GCP_PROJECT_ID`.
@@ -54,7 +54,7 @@ Before creating credentials, you must configure the consent screen:
 2. Select **External** as the user type (unless you have a Google Workspace org and want internal-only access).
 3. Click **Create**.
 4. Fill in the required fields:
-   - **App name**: ChronAI
+   - **App name**: Haven
    - **User support email**: your email
    - **Developer contact information**: your email
 5. Click **Save and Continue**.
@@ -85,7 +85,7 @@ While in testing mode, you must explicitly add users who can log in:
 1. Navigate to **APIs & Services > Credentials**.
 2. Click **Create Credentials > OAuth client ID**.
 3. Select **Web application** as the application type.
-4. Set the name (e.g., `ChronAI Web Client`).
+4. Set the name (e.g., `Haven Web Client`).
 5. Under **Authorized JavaScript origins**, add:
    - `http://localhost:3000`
 6. Under **Authorized redirect URIs**, add:
@@ -115,7 +115,7 @@ For local development, the app can remain in "Testing" status.
 
 ## 5. Set Up Vertex AI Authentication
 
-ChronAI uses Vertex AI SDK which authenticates via Application Default Credentials (ADC).
+Haven uses Vertex AI SDK which authenticates via Application Default Credentials (ADC).
 No API key is needed for Gemini - just authenticate with your Google Cloud account:
 
 1. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) if not already installed.

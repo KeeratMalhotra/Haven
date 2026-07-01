@@ -195,7 +195,7 @@ class BehavioralStats(BaseModel):
 
 
 class MemoryInsight(BaseModel):
-    """A single human-readable insight ChronAI has learned about the user.
+    """A single human-readable insight Haven has learned about the user.
 
     Each insight carries a stable ``id`` so the transparency UI can let the
     user forget individual insights without touching the rest of memory.
@@ -211,7 +211,7 @@ class MemoryInsight(BaseModel):
 
 
 class UserMemory(BaseModel):
-    """Persistent, per-user memory — ChronAI's learning + competitive moat.
+    """Persistent, per-user memory — Haven's learning + competitive moat.
 
     Stored as a single document keyed by ``user_id`` in the ``user_memory``
     collection. It blends deterministically-computed structure (productive

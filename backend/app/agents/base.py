@@ -1,4 +1,4 @@
-"""Base class for all ChronAI agents."""
+"""Base class for all Haven agents."""
 
 import asyncio
 import logging
