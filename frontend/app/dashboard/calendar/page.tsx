@@ -356,8 +356,44 @@ function CurrentTimeIndicator({
 function CalendarPageContent() {
   const { data: session } = useSession();
   const accessToken = (session as { accessToken?: string })?.accessToken || "";
-  const { reportAction, suggestions, dismissSuggestion } = useAI();
+  const { reportAction, suggestions, dismissSuggestion, addNotification } = useAI();
   const searchParams = useSearchParams();
+
+  // --- Past-date guards ---------------------------------------------------
+  // Haven is a forward-looking planner: scheduling in the past is almost
+  // always a mistake, so we block it with a gentle toast. The date inputs
+  // carry a `min` attribute, but that only limits the native picker -- these
+  // guards also cover grid clicks, earlier times today, and drag-drops.
+  const notifyPast = (text: string) => {
+    addNotification({
+      id: `cal-past-${Date.now()}`,
+      text,
+      type: "info",
+      actions: [],
+      timestamp: Date.now(),
+      dismissed: false,
+    });
+  };
+
+  const rejectIfPast = (start: Date, text: string): boolean => {
+    if (isNaN(start.getTime())) return false;
+    if (start.getTime() < Date.now()) {
+      notifyPast(text);
+      return true;
+    }
+    return false;
+  };
+
+  const slotIsPast = (day: Date, hour: number): boolean => {
+    const slot = new Date(
+      day.getFullYear(), day.getMonth(), day.getDate(), hour, 0, 0, 0
+    );
+    const now = new Date();
+    const currentHour = new Date(
+      now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0
+    );
+    return slot.getTime() < currentHour.getTime();
+  };
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -453,6 +489,7 @@ function CalendarPageContent() {
   const handleSaveEdit = async () => {
     if (!selectedEvent || !editSummary.trim() || !editDate) return;
     const newStartTime = `${editDate}T${editTime}:00`;
+    if (rejectIfPast(new Date(newStartTime), "You can't move an event to the past.")) return;
     const oldTime = selectedEvent.start;
 
     const newStartISO = new Date(newStartTime).toISOString();
@@ -515,6 +552,11 @@ function CalendarPageContent() {
 
     const draggedEvent = (active.data.current as { event: CalendarEvent })?.event;
     if (!draggedEvent) return;
+
+    if (slotIsPast(new Date(`${dayStr}T00:00:00`), hour)) {
+      notifyPast("You can't reschedule an event into the past.");
+      return;
+    }
 
     const oldStart = safeParseDate(draggedEvent.start);
     const oldEnd = safeParseDate(draggedEvent.end);
@@ -690,8 +732,9 @@ function CalendarPageContent() {
   // Create event
   const handleCreateEvent = async () => {
     if (!newSummary.trim() || !newDate) return;
-    setCreatingEvent(true);
     const startTime = `${newDate}T${newTime}:00`;
+    if (rejectIfPast(new Date(startTime), "You can't create an event in the past.")) return;
+    setCreatingEvent(true);
 
     try {
       const created = await createCalendarEvent(accessToken, {
@@ -754,6 +797,10 @@ function CalendarPageContent() {
 
   // Click time slot to create event
   const handleTimeSlotClick = (day: Date, hour: number) => {
+    if (slotIsPast(day, hour)) {
+      notifyPast("You can't create an event in the past.");
+      return;
+    }
     reportAction("timeslot_clicked", { day: format(day, "yyyy-MM-dd"), hour });
     setNewDate(format(day, "yyyy-MM-dd"));
     setNewTime(`${hour.toString().padStart(2, "0")}:00`);
