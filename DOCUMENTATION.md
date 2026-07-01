@@ -1,7 +1,7 @@
 # Haven - AI-Powered Productivity Companion
 
 ## Live Demo
-- **Application:** https://haven-ai-new.vercel.app
+- **Application:** https://haven-412899276225.asia-south1.run.app
 - **Backend API:** https://haven-backend-412899276225.asia-south1.run.app
 - **GitHub Repository:** https://github.com/KeeratMalhotra/ChronAI
 
