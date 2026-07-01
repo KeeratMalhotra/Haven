@@ -47,7 +47,7 @@ import {
   deleteCalendarEvent,
   type CalendarEvent,
 } from "@/lib/api";
-import { updateCalendarEvent } from "@/lib/api-extended";
+import { updateCalendarEvent, recordObservation } from "@/lib/api-extended";
 import { useAI } from "@/components/ai/AIContextProvider";
 import AISuggestionBanner from "@/components/ai/AISuggestionBanner";
 import { Button } from "@/components/ui/Button";
@@ -544,6 +544,15 @@ function CalendarPageContent() {
       oldTime: draggedEvent.start,
       newTime: newStartISO,
       summary: draggedEvent.summary,
+    });
+
+    // Learn from the reschedule: record which hour the user moves work away
+    // from (from_hour) and to, so the memory panel + adaptive planning can
+    // avoid times the user consistently reschedules. Best-effort.
+    recordObservation(accessToken, "task_rescheduled", {
+      title: draggedEvent.summary,
+      from_hour: oldStart.getHours(),
+      to_hour: hour,
     });
 
     // Debounced PATCH call (500ms) - only fires the last one during rapid drags

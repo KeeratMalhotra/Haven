@@ -54,7 +54,7 @@ VALID_OBSERVATION_TYPES = {
 
 # Re-distill with Gemini at most this often, and only once enough new signal
 # has accumulated.
-_DISTILL_MIN_OBSERVATIONS = 4
+_DISTILL_MIN_OBSERVATIONS = 2
 _DISTILL_INTERVAL = timedelta(hours=6)
 
 
@@ -504,7 +504,7 @@ def _computed_insights(memory: UserMemory) -> list[MemoryInsight]:
             "pattern",
         )
 
-    if stats.tasks_created >= 3:
+    if stats.tasks_created >= 2:
         pct = int(round(stats.completion_rate * 100))
         add(
             "computed:completion_rate",
@@ -523,7 +523,7 @@ def _computed_insights(memory: UserMemory) -> list[MemoryInsight]:
             )
         add("computed:estimate_accuracy", text, "behavior")
 
-    if stats.focus_sessions >= 3:
+    if stats.focus_sessions >= 1:
         add(
             "computed:focus_sessions",
             f"You've run {stats.focus_sessions} focus sessions \u2014 deep work is part of your routine.",

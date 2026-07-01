@@ -670,7 +670,7 @@ async def create_task(body: CreateTaskRequest):
             detail="Authentication required",
         )
 
-    await verify_google_token(body.auth_token)
+    user = await verify_google_token(body.auth_token)
 
     if mcp_client:
         try:
@@ -684,6 +684,20 @@ async def create_task(body: CreateTaskRequest):
                     "due_days_from_now": body.due_days_from_now,
                 },
             )
+            # Learn from creation: record WHEN and WHAT the user plans so
+            # adaptive planning and the memory panel reflect real usage.
+            # Best-effort and non-blocking — never break the create flow.
+            try:
+                from app.agents.memory import record_observation
+                from app.utils.timectx import now_ist
+
+                await record_observation(
+                    user.get("sub", ""),
+                    "task_created",
+                    {"hour": now_ist().hour, "title": body.title},
+                )
+            except Exception:
+                pass
             return result
         except Exception as e:
             raise HTTPException(
