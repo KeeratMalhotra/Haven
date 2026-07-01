@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   PlayCircle,
@@ -9,6 +10,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
+import { recordObservation } from "@/lib/api-extended";
 
 interface PomodoroTimerProps {
   active: boolean;
@@ -278,6 +280,9 @@ function PlantGrowth({ progress, phase }: { progress: number; phase: PomodoroPha
 }
 
 export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTimerProps) {
+  const { data: session } = useSession();
+  const accessToken = (session as { accessToken?: string })?.accessToken || "";
+
   // Pomodoro settings
   const [focusMinutes, setFocusMinutes] = useState(25);
   const [breakMinutes] = useState(5);
@@ -340,6 +345,12 @@ export default function PomodoroTimer({ active, taskName, onStop }: PomodoroTime
           if (phase === "focus") {
             incrementTodayPomodoros(focusMinutes);
             setCompletedToday(getTodayMinutes());
+            // Learn from the completed focus session so the memory panel and
+            // adaptive planning know deep work is part of the user's routine.
+            recordObservation(accessToken, "focus_session", {
+              hour: new Date().getHours(),
+              minutes: focusMinutes,
+            });
             const breakTotal = breakMinutes * 60;
             setTotalSeconds(breakTotal);
             setPhase("break");
