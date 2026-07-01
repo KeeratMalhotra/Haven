@@ -4,6 +4,29 @@ AI-powered productivity companion that plans your day, manages tasks, and learns
 
 Haven combines a clean, minimal dashboard with 9 specialist AI agents powered by Google Gemini 2.5 Flash. It helps you manage tasks, schedule events, track habits, handle email, create presentations, and stay productive through natural conversation.
 
+## Accessing the Live App
+
+> **For evaluators / first-time visitors — please read this first.**
+
+**Live app (Google Cloud Run):** [https://haven-412899276225.asia-south1.run.app](https://haven-412899276225.asia-south1.run.app)
+
+Haven's Google OAuth app is currently in **testing (unverified) status**, so the first time you sign in Google will show a *"Google hasn't verified this app"* warning screen. This is expected — it is **not** an error. Follow the steps below to get past it and into the app.
+
+### Signing in past the "unverified app" screen
+
+1. Open the [live app URL](https://haven-412899276225.asia-south1.run.app) and click **Sign in with Google**.
+2. Choose the Google account you want to use.
+3. Google displays a **"Google hasn't verified this app"** screen. (This appears only because the app is in testing/unverified OAuth status — it is expected and safe to proceed for this project/demo.)
+4. Click **Advanced** (bottom-left of that screen).
+5. Click the **"Go to Haven (unsafe)"** link that appears.
+6. On the consent screen, **review and ALLOW all the requested permissions**, then continue. If Google shows individual permission checkboxes, **tick all of them**.
+7. You'll be redirected into the Haven dashboard. 🎉
+
+> **Note — why the warning appears and which permissions matter:**
+> - The warning shows because the OAuth app hasn't yet gone through Google's verification review (it's in **testing mode**). It is safe to proceed for this project/demo.
+> - The **Google Calendar, Google Tasks, and Google Slides** permissions are **mandatory** — the app will not function correctly if they are denied. **Gmail is optional** and can be connected later from **Settings**. (See [Authentication](#authentication) for details.)
+> - If a juror/tester still can't get past the screen, the app owner may need to add them as a **Test user** under the Google Cloud **OAuth consent screen** settings.
+
 ## Architecture
 
 ```
